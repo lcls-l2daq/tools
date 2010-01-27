@@ -5,6 +5,30 @@ import os, sys, string, telnetlib, subprocess
 import stat, errno, time
 from re import search
 from time import sleep
+import socket
+
+#
+# getConfigFileNames
+#
+# This function returns the paths of the p<partition>.conf.running and
+# p<partition>.conf.last files, based on the partition# and config path.
+#
+# The paths are returned irregardless of whether the files are present.
+#
+# RETURNS: Two values: running config filename, last config filename
+#
+def getConfigFileNames(argconfig, partition):
+
+    run_name = 'p%d.cnf.running' % partition
+    last_name = 'p%d.cnf.last' % partition
+
+    # prepend directory name if necessary
+    if ('/' in argconfig):
+        run_name = os.path.dirname(argconfig) + '/' + run_name
+        last_name = os.path.dirname(argconfig) + '/' + last_name
+
+    # return filenames
+    return (run_name, last_name)
 
 #
 # The ProcMgr class maintains a dictionary with keys of
@@ -88,10 +112,9 @@ class ProcMgr:
     DICT_PID = 1
     DICT_CMD = 2
     DICT_CTRL = 3
-    DICT_LOG = 4
-    DICT_PPID = 5
-    DICT_FLAGS = 6
-    DICT_GETID = 7
+    DICT_PPID = 4
+    DICT_FLAGS = 5
+    DICT_GETID = 6
 
     # a managed executable can be in the following states
     STATUS_NOCONNECT = "NOCONNECT"
@@ -113,35 +136,37 @@ class ProcMgr:
     MSG_PROMPT = "\x0d\x0a> "
     MSG_SPAWN = "procServ: spawning daemon"
 
-    # procmgr control port and log port initialized in __init__
+    # procmgr control port initialized in __init__
     EXECMGRCTRL = -1
-    EXECMGRLOG = -1
 
     # platform initialized in __init__
     PLATFORM = -1
 
-    valid_flag_list = ['X', 'k', 's', '-']
+    # Because a static port assignment can be specifed in the FLAGS field of the config file,
+    # digits are considered valid flags for error checking 
+    valid_flag_list = ['X', 'k', 's', '-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'] 
 
     def __init__(self, configfilename, platform, baseport=29000):
         self.pid = self.STRING_NOPID
         self.ppid = self.STRING_NOPID
         self.getid = None
         self.telnet = telnetlib.Telnet()
-        firstRemoteLine = True
+
+        # configure the default socket timeout in seconds
+        socket.setdefaulttimeout(2.5)
 
         # configure the port numbers
         self.EXECMGRCTRL = baseport
-        self.EXECMGRLOG = baseport+1
 
         # open the config file
         configfile = open(configfilename, 'r')
 
-        # create new empty dictionary
+        # create new empty 'self' dictionary
         self.d = dict()
 
-        if (platform == -1):
-            # try to deduce platform from args used within config file
-            platform = deduce_platform(configfilename)
+        # create dictionaries for port assignments
+        nextCtrlPort = dict()
+        staticPorts = dict()
 
         if (platform == -1):
             print 'ERR: platform not specified'
@@ -150,10 +175,18 @@ class ProcMgr:
             self.PLATFORM = platform
 
         if (self.PLATFORM > 0):
-            self.EXECMGRLOG += (self.PLATFORM * 100)
+            self.EXECMGRCTRL += (self.PLATFORM * 100)
 
-        # assign ports dynamically
-        nextCtrlPort = self.EXECMGRLOG + 1
+        # The static port allocations must be processed first.
+        # Read the config file and make a list with statically assigned
+        # entries at the front, dynamic entries at the back.
+
+        # In case a host appears as both 'localhost' and another name,
+        # ensure that 'localhost' ports are not reused on other hosts.
+        localPorts = set()
+        remotePorts = set()
+
+        configlist = []         # start out with empty list
 
         # for each line in the configuration...
         for line in configfile:
@@ -164,6 +197,7 @@ class ProcMgr:
             # skip comment lines
             if (line[0] =='#'):
                 continue
+
             # extract fields from line
             fields = line.split(None, 3)
             if len(fields) != 4:
@@ -172,13 +206,71 @@ class ProcMgr:
                 print 'ERR: invalid config line: <<%s>>' % line.strip()
                 continue
 
+            found_digit = False
+            for cc in fields[2]:
+                if cc in string.digits:
+                    # found a digit among FLAGS, indicating static port assignment
+                    found_digit = True
+                    break
+
+            if found_digit:
+                # static port assignments at the beginning of the list
+                configlist.insert(0, line)
+            else:
+                # dynamic port assignments at the end of the list
+                configlist.append(line)
+
+        # for each line in the list...
+        for line in configlist:
+            # extract fields from line
+            fields = line.split(None, 3)
             self.host = fields[0]
+
+            # initialize dictionaries used for port assignments
+            if not self.host in nextCtrlPort:
+                # on each host, two ports are reserved for a master server: ctrl and log
+                nextCtrlPort[self.host] = self.EXECMGRCTRL + 2
+                staticPorts[self.host] = set()
+
             self.uniqueid = fields[1]
 
-            # assign ports dynamically, in config file order
-            self.ctrlport = str(nextCtrlPort)       # string
-            self.logport = str(nextCtrlPort + 1)    # string
-            nextCtrlPort = nextCtrlPort + 2         # integer
+            # If any digits are found in FLAGS field, it indicates a static port assigment.
+            #  - extract port number
+            #  - add 'k' ("keep") flag indicating a static task
+            self.staticPort = None
+            tmpsum = 0
+            for cc in fields[2]:
+                if cc in string.digits:
+                    tmpsum *= 10
+                    tmpsum += (ord(cc) - ord('0'))
+            if tmpsum > 0:
+                # assign the port statically
+                if tmpsum in staticPorts[self.host]:
+                    print 'ERR: port #%d duplicated in the config file' % tmpsum
+                else:
+                    # avoid dup: update the set of statically assigned ports
+                    staticPorts[self.host].add(tmpsum)
+                self.ctrlport = str(tmpsum)                             # string
+                fields[2] += 'k'                                        # keep flag
+            else:
+                # assign port dynamically
+                tmpport = nextCtrlPort[self.host]
+                # avoid dup: check the set of statically assigned ports
+                if (self.host == 'localhost'):
+                    while (tmpport in staticPorts[self.host]) or (tmpport in remotePorts):
+                        tmpport += 1
+                else:
+                    while (tmpport in staticPorts[self.host]) or (tmpport in localPorts):
+                        tmpport += 1
+
+                self.ctrlport = str(tmpport)                            # string
+                nextCtrlPort[self.host] = tmpport + 1                   # integer
+
+                # update set of local or remote ports to avoid conflict
+                if (self.host == 'localhost'):
+                    localPorts.add(tmpport)
+                else:
+                    remotePorts.add(tmpport)
 
             self.flags = fields[2]
             for nextflag in self.flags:
@@ -188,12 +280,13 @@ class ProcMgr:
             self.pid = "-"
             self.ppid = "-"
             self.getid = "-"
-            # open a connection to the logging port (procServ)
+            # open a connection to the control port (procServ)
             try:
-                self.telnet.open(self.host, self.logport)
+                self.telnet.open(self.host, self.ctrlport)
             except:
                 # telnet failed
                 self.tmpstatus = self.STATUS_NOCONNECT
+                # TODO ping each host first, as telnet could fail due to an error
             else:
                 # telnet succeeded: gather status from procServ banner
                 ok = self.readLogPortBanner()
@@ -209,12 +302,12 @@ class ProcMgr:
                 (self.getid != self.uniqueid)):
                 print "ERR: found \'%s\', expected \'%s\' on host %s" % \
                     (self.getid, self.uniqueid, self.host)
-
-            # add an entry to the dictionary
-            key = makekey(self.host, self.uniqueid)
-            self.d[key] = \
-                [ self.tmpstatus, self.pid, self.cmd, self.ctrlport, self.logport, self.ppid, self.flags, self.getid]
-                # DICT_STATUS  DICT_PID  DICT_CMD  DICT_CTRL      DICT_LOG      DICT_PPID  DICT_FLAGS  DICT_GETID
+            else:
+                # add an entry to the dictionary
+                key = makekey(self.host, self.uniqueid)
+                self.d[key] = \
+                  [ self.tmpstatus, self.pid, self.cmd, self.ctrlport, self.ppid, self.flags, self.getid]
+                  # DICT_STATUS  DICT_PID  DICT_CMD  DICT_CTRL      DICT_PPID  DICT_FLAGS  DICT_GETID
 
         # close the config file
         configfile.close()
@@ -223,6 +316,8 @@ class ProcMgr:
         response = self.telnet.read_until(self.MSG_BANNER_END, 1)
         if not string.count(response, self.MSG_BANNER_END):
             self.tmpstatus = self.STATUS_ERROR
+            # when reading banner fails, set the ID so the error output includes name instead of '-'
+            self.getid = self.uniqueid
             return 0
         if search('SHUT DOWN', response):
             self.tmpstatus = self.STATUS_SHUTDOWN
@@ -244,7 +339,7 @@ class ProcMgr:
     #
     # status
     #
-    def status(self, id_list, verbose=0):
+    def status(self, id_list, verbose=0, only_static=0):
 
         if self.isEmpty():
             if verbose:
@@ -263,6 +358,11 @@ class ProcMgr:
                 if key2uniqueid(key) not in id_list:
                     continue
 
+            if only_static and ('k' not in self.d[key][self.DICT_FLAGS]):
+                # only_static flag was passed in and this entry does not 
+                # have the 'k' flag set: skip this entry
+                continue
+                
             if (self.d[key][self.DICT_STATUS] == self.STATUS_NOCONNECT):
                 showId = key2uniqueid(key)
             else:
@@ -275,10 +375,60 @@ class ProcMgr:
                     self.d[key][self.DICT_CTRL], \
                     self.d[key][self.DICT_CMD])
             if verbose:
-                print "                                       PPID: %s  LOGPORT: %s" \
-                        % (self.d[key][self.DICT_PPID], self.d[key][self.DICT_LOG])
+                print "                                       PPID: %s  Flags:" \
+                        % (self.d[key][self.DICT_PPID]),
+                if 'X' in self.d[key][self.DICT_FLAGS]:
+                    print "X",
+                if 's' in self.d[key][self.DICT_FLAGS]:
+                    print "s",
+                if 'k' in self.d[key][self.DICT_FLAGS]:
+                    print "k",
+                if '-' in self.d[key][self.DICT_FLAGS]:
+                    print "-",
+                print ""
+                
         # done
         return 1
+
+    #
+    # getStatus - machine readable status
+    #
+    def getStatus(self, id_list=[], verbose=0, only_static=0):
+
+        resultlist = list()
+
+        if self.isEmpty():
+          if verbose:
+            print "(configuration is empty)"
+        else:
+          # get contents of dictionary (sorted by key)
+          for key in sorted(self.d.iterkeys()):
+            # start with empty dictionary
+            statusdict = dict()
+
+            if len(id_list) > 0:
+              # if id_list is nonempty and UniqueID is not in it,
+              # skip this entry
+              if key2uniqueid(key) not in id_list:
+                continue
+
+            if only_static and ('k' not in self.d[key][self.DICT_FLAGS]):
+              # only_static flag was passed in and this entry does not 
+              # have the 'k' flag set: skip this entry
+              continue
+                
+            if (self.d[key][self.DICT_STATUS] == self.STATUS_NOCONNECT):
+              statusdict['showId'] = key2uniqueid(key)
+            else:
+              statusdict['showId'] = self.d[key][self.DICT_GETID]
+
+            statusdict['status'] = self.d[key][self.DICT_STATUS]
+            statusdict['host'] = key2host(key)
+            # add dictionary to list
+            resultlist.append(statusdict)
+              
+        # done
+        return resultlist
 
     #
     # restart
@@ -290,7 +440,7 @@ class ProcMgr:
         connected = False
         telnetCount = 0
         host = key2host(key)
-        while (not connected) and (telnetCount < 10):
+        while (not connected) and (telnetCount < 2):
             telnetCount = telnetCount + 1
             try:
                 self.telnet.open(host, value[self.DICT_CTRL])
@@ -333,7 +483,12 @@ class ProcMgr:
     #
     # start
     #
+    # RETURNS: 0 if any processes were started, otherwise 1.
+    #
     def start(self, id_list, verbose=0, logpathbase=None, coresize=0):
+
+        rv = 1                  # return value
+        started_count = 0       # count successful start commands
 
         # create list of entries with X flag enabled (empty for now)
         Xlist = list()
@@ -377,13 +532,18 @@ class ProcMgr:
                     #
                     logpath = '%s/%s' % (logpathbase, time.strftime('%Y/%m'))
                     try:
-                        mkdir_p(logpath)
+                      mkdir_p(logpath)
                     except:
-                        # mkdir
-                        print 'ERR: mkdir %s failed' % logpath
-                        redirect_string = ''
+                      # mkdir
+                      print 'ERR: mkdir %s failed' % logpath
+                      redirect_string = ''
                     else:
+                      try:
                         os.chmod(logpath, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+                      except:
+                        print 'ERR: chmod %s failed' % logpath
+                        redirect_string = ''
+                      else:
                         time_string = time.strftime('%d_%H:%M:%S')
                         logfile = '%s/%s_%s.log' % (logpath, time_string, key)
                         if verbose:
@@ -391,10 +551,9 @@ class ProcMgr:
                         redirect_string = '>& %s' % logfile
 
                 startcmd = \
-                        '/reg/g/pcds/package/procServ-2.4.0/procServ --noautorestart --name %s %s --allow -l %s --coresize %d %s %s %s' % \
+                        '/reg/g/pcds/package/procServ-2.4.0/procServ --noautorestart --name %s %s --allow --coresize %d %s %s %s' % \
                         (key2uniqueid(key), \
                         waitflag, \
-                        value[self.DICT_LOG], \
                         coresize, \
                         value[self.DICT_CTRL], \
                         value[self.DICT_CMD],
@@ -402,13 +561,14 @@ class ProcMgr:
                 # is this host already in the dictionary?
                 if starthost in startdict:
                     # yes: add to set of start commands
-                    startdict[starthost].append(startcmd)
+                    startdict[starthost].append([startcmd, key])
                 else:
                     # no: initialize set of start commands
-                    startdict[starthost] = [startcmd]
+                    startdict[starthost] = [[startcmd, key]]
             elif value[self.DICT_STATUS] == self.STATUS_SHUTDOWN:
                 # restart
-                self.restart(key, value, verbose)
+                if self.restart(key, value, verbose):
+                    started_count += 1
 
         # now use the newly created dictionary to run start command(s)
         # on each host
@@ -418,17 +578,19 @@ class ProcMgr:
             if (host == 'localhost'):
                 # process list of commands
                 while len(value) > 0:
-                    args = value.pop()
                     # send command
+                    args, key = value.pop()
                     if verbose:
                         print 'Run locally: %s' % args
 
-#                   yy = subprocess.Popen(args.split(), stdout=nullOut, stderr=nullOut, shell=False)
                     yy = subprocess.Popen(args, stdout=nullOut, stderr=nullOut, shell=True)
                     yy.wait()
                     if (yy.returncode != 0):
-                        print 'ERR: failed to run %s (procServ returned %d)' % \
-                            (args.split()[11], yy.returncode)
+                        print "ERR: failed to run '%s' (procServ returned %d)" % \
+                            (args, yy.returncode)
+                    else:
+                        self.setStatus([key], self.STATUS_RUNNING)
+                        started_count += 1
             else:
                 # open a connection to the procmgr control port (procServ)
                 try:
@@ -436,7 +598,7 @@ class ProcMgr:
                 except:
                     # telnet failed
                     print 'ERR: telnet to procmgr (%s port %d) failed' % \
-                            (host, self.EXECMGRLOG)
+                            (host, self.EXECMGRCTRL)
                     print '>>> Please start the procServ process on host %s!' % host
                 else:
                     # telnet succeeded
@@ -452,13 +614,27 @@ class ProcMgr:
 
                     # process list of commands
                     while len(value) > 0:
+
+                        nextcmd, nextkey = value.pop()
+
+                        if verbose:
+                            print 'Run on %s: %s' % (host, nextcmd)
+
                         # send command
-                        self.telnet.write('%s\n' % value.pop());
+                        self.telnet.write('%s\n' % nextcmd);
                         # wait for prompt
                         response = self.telnet.read_until(self.MSG_PROMPT, 2)
                         if not string.count(response, self.MSG_PROMPT):
                             print 'ERR: no prompt at %s port %s' % \
                                 (host, self.EXECMGRCTRL)
+                        else:
+                            #
+                            # If X flag is set, procServ --wait is used so
+                            # the next state is actually STATUS_SHUTDOWN.
+                            # It will be STATUS_RUNNING after restart, below.
+                            #
+                            self.setStatus([nextkey], self.STATUS_RUNNING)
+                            started_count += 1
 
                     # close telnet connection
                     self.telnet.close()
@@ -477,12 +653,17 @@ class ProcMgr:
                 print 'ERR: %s not available' % self.PATH_XTERM
 
         for item in Xlist:
-            started = self.restart(item[0], item[1], verbose)
+            if self.restart(item[0], item[1], verbose):
+                started_count += 1
                         
         # done
         # cleanup
         nullOut.close()
-        return 1
+
+        if started_count > 0:
+            rv = 0
+
+        return rv
 
     #
     # isEmpty
@@ -493,26 +674,29 @@ class ProcMgr:
     #
     # stopDictionary
     #
-    def stopDictionary(self, sigchilddict, sigparentdict, verbose, sigdelay):
+    def stopDictionary(self, childdict, parentdict, verbose, sigdelay):
         rv = 0      # return value
 
         # for redirecting to /dev/null
         nullOut = open(os.devnull, 'w')
 
         # use the sigchild dictionary to run kill command on each host
-        for host, value in sigchilddict.iteritems():
+        for host, value in childdict.iteritems():
 
             if (host == 'localhost'):
                 # local...
                 # send the kill command (SIGINT)
-                args = 'kill -2 %s' % value
+                args = 'kill -2 %s' % value[0]
                 if verbose:
-                    print 'localhost: ', args
+                    print 'localhost:', args
                 yy = subprocess.Popen(args.split(), stdout=nullOut, stderr=nullOut)
                 yy.wait()
-                if (yy.returncode != 0):
+                if (yy.returncode == 0):
+                    # change status to SHUTDOWN
+                    self.setStatus(value[1], self.STATUS_SHUTDOWN)
+                else:
                     print 'ERR: failed to signal %d (kill returned %d)' % \
-                        (value, yy.returncode)
+                        (value[0], yy.returncode)
                     rv = 1
             else:
                 # remote...
@@ -534,42 +718,48 @@ class ProcMgr:
                     response = self.telnet.read_until(self.MSG_PROMPT, 2)
                     if not string.count(response, self.MSG_PROMPT):
                         print 'ERR: no prompt at %s port %s' % \
-                            (key2host(key), self.EXECMGRCTRL)
+                            (host, self.EXECMGRCTRL)
                         rv = 1
                     if verbose:
-                        print 'host %s: kill -2 %s' % (host, value)
+                        print 'host %s: kill -2 %s' % (host, value[0])
                     # send the kill command (SIGINT)
-                    self.telnet.write('kill -2 %s\n' % value);
+                    self.telnet.write('kill -2 %s\n' % value[0]);
 
                     # wait for prompt (procServ)
                     response = self.telnet.read_until(self.MSG_PROMPT, 2)
-                    if not string.count(response, self.MSG_PROMPT):
+                    if string.count(response, self.MSG_PROMPT):
+                        # change status to SHUTDOWN
+                        self.setStatus(value[1], self.STATUS_SHUTDOWN)
+                    else:
                         print 'ERR: no prompt at %s port %s' % \
-                            (key2host(key), self.EXECMGRCTRL)
+                            (host, self.EXECMGRCTRL)
                         rv = 1
 
                     # close telnet connection
                     self.telnet.close()
 
         # if 1 or more children were signalled, wait
-        if len(sigchilddict) > 0:
+        if len(childdict) > 0:
             if sigdelay > 0:
                 sleep(sigdelay)
 
         # use the sigparent dictionary to run kill command on each host
-        for host, value in sigparentdict.iteritems():
+        for host, value in parentdict.iteritems():
 
             if (host == 'localhost'):
                 # local...
                 # send the kill command (SIGTERM)
-                args = 'kill %s' % value
+                args = 'kill %s' % value[0]
                 if verbose:
-                    print 'localhost: ', args
+                    print 'localhost:', args
                 yy = subprocess.Popen(args.split(), stdout=nullOut, stderr=nullOut)
                 yy.wait()
-                if (yy.returncode != 0):
-                    print 'ERR: failed to signal %d (kill returned %d)' % \
-                        (value, yy.returncode)
+                if (yy.returncode == 0):
+                    # change status to NOCONNECT
+                    self.setStatus(value[1], self.STATUS_NOCONNECT)
+                else:
+                    print 'ERR: failed to signal %s (kill returned %d)' % \
+                        (value[0], yy.returncode)
                     rv = 1
             else:
                 # remote...
@@ -589,20 +779,25 @@ class ProcMgr:
 
                     # wait for prompt (procServ)
                     response = self.telnet.read_until(self.MSG_PROMPT, 2)
-                    if not string.count(response, self.MSG_PROMPT):
+                    if string.count(response, self.MSG_PROMPT):
+                        # change status to NOCONNECT
+                        self.setStatus(value[1], self.STATUS_NOCONNECT)
+                    else:
                         print 'ERR: no prompt at %s port %s' % \
-                            (key2host(key), self.EXECMGRCTRL)
+                            (host, self.EXECMGRCTRL)
+                        # change status to ERROR
+                        self.setStatus(value[1], self.STATUS_ERROR)
                         rv = 1
                     if verbose:
-                        print 'host %s: kill %s' % (host, value)
+                        print 'host %s: kill %s' % (host, value[0])
                     # send the kill command (SIGTERM)
-                    self.telnet.write('kill %s\n' % value);
+                    self.telnet.write('kill %s\n' % value[0]);
 
                     # wait for prompt (procServ)
                     response = self.telnet.read_until(self.MSG_PROMPT, 2)
                     if not string.count(response, self.MSG_PROMPT):
                         print 'ERR: no prompt at %s port %s' % \
-                            (key2host(key), self.EXECMGRCTRL)
+                            (host, self.EXECMGRCTRL)
                         rv = 1
 
                     # close telnet connection
@@ -622,7 +817,7 @@ class ProcMgr:
     #
     # stop
     #
-    def stop(self, id_list, verbose=0, sigdelay=1):
+    def stop(self, id_list, verbose=0, sigdelay=1, only_static=0):
         rv = 0      # return value
 
         if self.isEmpty():
@@ -633,8 +828,8 @@ class ProcMgr:
             #
             # create dictionaries mapping hosts to set of PIDs to be signalled
             #
-            sigchilddict = dict()
-            sigparentdict = dict()
+            childdict = dict()
+            parentdict = dict()
             for key, value in self.d.iteritems():
 
                 if len(id_list) > 0:
@@ -647,38 +842,86 @@ class ProcMgr:
                     # skip this entry
                     if 'k' in value[self.DICT_FLAGS]:
                         if verbose and value[self.DICT_STATUS] != self.STATUS_NOCONNECT:
-                            print '\'%s\' not stopped: k flag is set in config file' % \
+                            print '\'%s\' not stopped: this is a static task' % \
                                 key2uniqueid(key)
                         continue
+
+                if only_static and ('k' not in self.d[key][self.DICT_FLAGS]):
+                    # only_static flag was passed in and this entry does not 
+                    # have the 'k' flag set: skip this entry
+                    continue
+                    
+                if (self.d[key][self.DICT_STATUS] == self.STATUS_NOCONNECT):
+                    showId = key2uniqueid(key)
+                else:
+                    showId = self.d[key][self.DICT_GETID]
                 
                 # if process is RUNNING and has 's' in its flag, SIGINT it first
                 if (value[self.DICT_STATUS] == self.STATUS_RUNNING) and \
                    ('s' in value[self.DICT_FLAGS]):
                     sigchildhost = key2host(key)
                     sigchildstring = value[self.DICT_PID]
-                    if sigchildhost not in sigchilddict:
+                    if sigchildhost not in childdict:
                         # first PID for this host
-                        sigchilddict[sigchildhost] = sigchildstring
+                        childdict[sigchildhost] = [sigchildstring, [key]]
                     else:
                         # not the first PID for this host
-                        sigchilddict[sigchildhost] += (' ' + sigchildstring)
+                        childdict[sigchildhost][0] += (' ' + sigchildstring)
+                        childdict[sigchildhost][1].append(key)
 
                 # if process is not NOCONNECT, SIGTERM its parent (procServ)
                 if value[self.DICT_STATUS] != self.STATUS_NOCONNECT:
                     sigparenthost = key2host(key)
                     sigparentstring = value[self.DICT_PPID]
-                    if sigparenthost not in sigparentdict:
+                    if sigparenthost not in parentdict:
                         # first PID for this host
-                        sigparentdict[sigparenthost] = sigparentstring
+                        parentdict[sigparenthost] = [sigparentstring, [key]]
                     else:
                         # not the first PID for this host
-                        sigparentdict[sigparenthost] += (' ' + sigparentstring)
+                        parentdict[sigparenthost][0] += (' ' + sigparentstring)
+                        parentdict[sigparenthost][1].append(key)
 
-            rv = self.stopDictionary(sigchilddict, sigparentdict,
-                                     verbose, sigdelay)
+            rv = self.stopDictionary(childdict, parentdict, verbose, sigdelay)
 
         # done
         return rv
+
+    #
+    # getProcessCounts
+    #
+    # RETURNS: Two values: static process count, dynamic process count
+    #
+    def getProcessCounts(self):
+
+        # count the processes that are not NOCONNECT
+        staticProcessCount = 0
+        dynamicProcessCount = 0
+        for key, value in self.d.iteritems():
+            if (value[self.DICT_STATUS] != self.STATUS_NOCONNECT):
+                if ('k' in self.d[key][self.DICT_FLAGS]):
+                    staticProcessCount += 1
+                else:
+                    dynamicProcessCount += 1
+
+        return staticProcessCount, dynamicProcessCount
+
+    #
+    # setStatus
+    #
+    # This method sets the status for each process in a specified list.
+    # 
+    # RETURNS: 0 on success, 1 on error.
+    #
+    def setStatus(self, key_list, newStatus):
+
+        for key in key_list:
+            if key in self.d:
+                self.d[key][self.DICT_STATUS] = newStatus
+            else:
+                print "ERR: setStatus: key '%s' not found" % key
+                return 1
+
+        return 0
 
 #
 # main
