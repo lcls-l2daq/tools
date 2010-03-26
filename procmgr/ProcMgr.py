@@ -341,13 +341,12 @@ class ProcMgr:
     #
     def status(self, id_list, verbose=0, only_static=0):
 
+        nonePrinted = 1
+
         if self.isEmpty():
             if verbose:
                 print "(configuration is empty)"
             return 1
-
-        # print heading
-        print "Host          UniqueID     Status     PID    PORT   Command+Args"
 
         # print contents of dictionary (sorted by key)
         for key in sorted(self.d.iterkeys()):
@@ -362,7 +361,12 @@ class ProcMgr:
                 # only_static flag was passed in and this entry does not 
                 # have the 'k' flag set: skip this entry
                 continue
-                
+
+            if (nonePrinted == 1):
+              # print heading, once
+              print "Host          UniqueID     Status     PID    PORT   Command+Args"
+              nonePrinted = 0
+
             if (self.d[key][self.DICT_STATUS] == self.STATUS_NOCONNECT):
                 showId = key2uniqueid(key)
             else:
@@ -387,6 +391,9 @@ class ProcMgr:
                     print "-",
                 print ""
                 
+        if (nonePrinted == 1):
+          print "(none found)"
+
         # done
         return 1
 
