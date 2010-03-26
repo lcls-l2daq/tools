@@ -87,7 +87,7 @@ if command == 'start':
                         shutil.copy(configfile, lastconfig)
 
                     if os.path.exists(lastconfig):
-                        os.symlink(lastconfig, runconfig)
+                        os.symlink(os.path.basename(lastconfig), runconfig)
                     else:
                         print "%s: '%s' not found" % (sys.argv[0], lastconfig)
                         rv = 1
