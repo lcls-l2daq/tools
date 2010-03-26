@@ -11,6 +11,7 @@
 # source function library
 . /etc/rc.d/init.d/functions
 
+PROCMGRDUSERDEFAULT=nobody
 CONFIGFILE=/etc/procmgrd.conf
 
 # read config
@@ -27,11 +28,16 @@ if [ "${PROCMGRDBIN}Y" == "Y" ]; then
     exit 1
 fi
 
+if [ "${PROCMGRDUSER}Z" == "Z" ]; then
+    PROCMGRDUSER=${PROCMGRDUSERDEFAULT}
+    echo "$0 Warning: PROCMGRDUSER not set in $CONFIGFILE.  Using default value: $PROCMGRDUSER"
+fi
+
 launch1()
 {
     ctrlport=$(( PORTBASE + ( 100 * $1 ) ))
     logport=$(( ctrlport + 1 ))
-    daemon --user=amoopr ${PROCMGRDBIN}$1 --allow --ignore '^D' -l $logport --coresize 0 -c /tmp $ctrlport /bin/tcsh -f
+    daemon --user=${PROCMGRDUSER} ${PROCMGRDBIN}$1 --allow --ignore '^D' -l $logport --coresize 0 -c /tmp $ctrlport /bin/tcsh -f
 }
 
 start()
@@ -46,7 +52,7 @@ start()
 
 stop()
 {
-    pkill -u amoopr procmgrd
+    pkill -u ${PROCMGRDUSER} procmgrd
     RETVAL=$?
     echo
 }
