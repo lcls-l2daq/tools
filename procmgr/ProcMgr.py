@@ -285,8 +285,8 @@ class ProcMgr:
           if ((self.tmpstatus != self.STATUS_NOCONNECT) and \
               (self.tmpstatus != self.STATUS_ERROR) and \
               (self.getid != self.uniqueid)):
-              print "ERR: found \'%s\', expected \'%s\' on host %s" % \
-                  (self.getid, self.uniqueid, self.host)
+              print "ERR: found \'%s\', expected \'%s\' on host %s port %s" % \
+                  (self.getid, self.uniqueid, self.host, self.ctrlport)
           else:
               # add an entry to the dictionary
               key = makekey(self.host, self.uniqueid)
