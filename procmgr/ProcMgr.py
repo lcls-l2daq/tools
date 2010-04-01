@@ -75,36 +75,18 @@ def mkdir_p(path):
 # Returns: non-negative platform number, or -1 on error.
 #
 def deduce_platform(configfilename):
-    # open the config file
-    configfile = open(configfilename, 'r')
-    rv=-1
-
-    # for each line in the configuration...
-    for line in configfile:
-        # skip comment lines
-        if (line[0]=='#'):
-            continue
-
-        xyz = line.split(" -p", 1)
-        if len(xyz) == 2:
-            zzz = xyz[1].split()[0]
-            try:
-                rv = string.atoi(zzz)
-            except:
-                rv = -1
-            else:
-                # success
-                break
-
-    if (rv < 0):
-        rv = -1
-
-    # close the config file
-    configfile.close()
+    rv = -1   # return -1 on error
+    cc = {'platform': None, 'procmgr_config': None,
+          'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host'}
+    try:
+      execfile(configfilename, {}, cc)
+      if type(cc['platform']) == type('') and cc['platform'].isdigit():
+        rv = int(cc['platform'])
+    except:
+      print 'deduce_platform Error:', sys.exc_info()[1]
 
     return rv
 
-    
 class ProcMgr:
 
     # index into arrays managed by this class
@@ -142,9 +124,7 @@ class ProcMgr:
     # platform initialized in __init__
     PLATFORM = -1
 
-    # Because a static port assignment can be specifed in the FLAGS field of the config file,
-    # digits are considered valid flags for error checking 
-    valid_flag_list = ['X', 'k', 's', '-', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9'] 
+    valid_flag_list = ['X', 'k', 's'] 
 
     def __init__(self, configfilename, platform, baseport=29000):
         self.pid = self.STRING_NOPID
@@ -157,9 +137,6 @@ class ProcMgr:
 
         # configure the port numbers
         self.EXECMGRCTRL = baseport
-
-        # open the config file
-        configfile = open(configfilename, 'r')
 
         # create new empty 'self' dictionary
         self.d = dict()
@@ -188,129 +165,134 @@ class ProcMgr:
 
         configlist = []         # start out with empty list
 
-        # for each line in the configuration...
-        for line in configfile:
-            line = line.strip()
-            # skip empty lines
-            if (line ==''):
-                continue
-            # skip comment lines
-            if (line[0] =='#'):
-                continue
+        config = {'platform': repr(self.PLATFORM), 'procmgr_config': None,
+                  'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host'}
+        try:
+          execfile(configfilename, {}, config)
+        except:
+          print 'deduce_platform Error:', sys.exc_info()[1]
 
-            # extract fields from line
-            fields = line.split(None, 3)
-            if len(fields) != 4:
-                # ...skip bad line
-                print 'ERR: len = %d' % len(fields)
-                print 'ERR: invalid config line: <<%s>>' % line.strip()
-                continue
-
-            found_digit = False
-            for cc in fields[2]:
-                if cc in string.digits:
-                    # found a digit among FLAGS, indicating static port assignment
-                    found_digit = True
-                    break
-
-            if found_digit:
+        if type(config['procmgr_config']) == type([]):
+          for dd in config['procmgr_config']:
+            if type(dd) == type({}):
+              if dd.has_key('port'):
                 # static port assignments at the beginning of the list
-                configlist.insert(0, line)
-            else:
+                configlist.insert(0, dd)
+              else:
                 # dynamic port assignments at the end of the list
-                configlist.append(line)
-
-        # for each line in the list...
-        for line in configlist:
-            # extract fields from line
-            fields = line.split(None, 3)
-            self.host = fields[0]
-
-            # initialize dictionaries used for port assignments
-            if not self.host in nextCtrlPort:
-                # on each host, two ports are reserved for a master server: ctrl and log
-                nextCtrlPort[self.host] = self.EXECMGRCTRL + 2
-                staticPorts[self.host] = set()
-
-            self.uniqueid = fields[1]
-
-            # If any digits are found in FLAGS field, it indicates a static port assigment.
-            #  - extract port number
-            #  - add 'k' ("keep") flag indicating a static task
-            self.staticPort = None
-            tmpsum = 0
-            for cc in fields[2]:
-                if cc in string.digits:
-                    tmpsum *= 10
-                    tmpsum += (ord(cc) - ord('0'))
-            if tmpsum > 0:
-                # assign the port statically
-                if tmpsum in staticPorts[self.host]:
-                    print 'ERR: port #%d duplicated in the config file' % tmpsum
-                else:
-                    # avoid dup: update the set of statically assigned ports
-                    staticPorts[self.host].add(tmpsum)
-                self.ctrlport = str(tmpsum)                             # string
-                fields[2] += 'k'                                        # keep flag
+                configlist.append(dd)
             else:
-                # assign port dynamically
-                tmpport = nextCtrlPort[self.host]
-                # avoid dup: check the set of statically assigned ports
-                if (self.host == 'localhost'):
-                    while (tmpport in staticPorts[self.host]) or (tmpport in remotePorts):
-                        tmpport += 1
-                else:
-                    while (tmpport in staticPorts[self.host]) or (tmpport in localPorts):
-                        tmpport += 1
+              print 'Error: procmgr_config entry not key:value:', dd
+        else:
+          print 'Error: procmgr_config not a list', config['procmgr_config']
 
-                self.ctrlport = str(tmpport)                            # string
-                nextCtrlPort[self.host] = tmpport + 1                   # integer
+        # for each entry in the list...
+        for entry in configlist:
+          # ...process the fields
 
-                # update set of local or remote ports to avoid conflict
-                if (self.host == 'localhost'):
-                    localPorts.add(tmpport)
-                else:
-                    remotePorts.add(tmpport)
+          # --- cmd (required) ---
+          if entry.has_key('cmd'):
+            self.cmd = entry['cmd']
+          else:
+            print 'Error: procmgr_config entry missing cmd:', entry
+            self.cmd = 'error'
 
-            self.flags = fields[2]
+          # --- id (required) ---
+          if entry.has_key('id'):
+            self.uniqueid = entry['id']
+          else:
+            print 'Error: procmgr_config entry missing id:', entry
+            self.uniqueid = 'error'
+
+          # --- host (optional) ---
+          if entry.has_key('host'):
+            self.host = entry['host']
+          else:
+            self.host = 'localhost'
+
+          # --- flags (optional) ---
+          if entry.has_key('flags'):
+            self.flags = entry['flags']
             for nextflag in self.flags:
-                if (nextflag not in self.valid_flag_list):
-                    print 'ERR: invalid flag:', nextflag
-            self.cmd = fields[3].rstrip()
-            self.pid = "-"
-            self.ppid = "-"
-            self.getid = "-"
-            # open a connection to the control port (procServ)
+              if (nextflag not in self.valid_flag_list):
+                print 'ERR: invalid flag:', nextflag
+          else:
+            self.flags = '-'
+
+          # initialize dictionaries used for port assignments
+          if not self.host in nextCtrlPort:
+              # on each host, two ports are reserved for a master server: ctrl and log
+              nextCtrlPort[self.host] = self.EXECMGRCTRL + 2
+              staticPorts[self.host] = set()
+
+          # --- port (optional) ---
+          tmpsum = 0
+          if entry.has_key('port'):
             try:
-                self.telnet.open(self.host, self.ctrlport)
+              tmpsum = int(entry['port'])
             except:
-                # telnet failed
-                self.tmpstatus = self.STATUS_NOCONNECT
-                # TODO ping each host first, as telnet could fail due to an error
-            else:
-                # telnet succeeded: gather status from procServ banner
-                ok = self.readLogPortBanner()
-                if not ok:
-                    # reading procServ banner failed
-                    print "ERR: failed to read procServ banner for \'%s\' on host %s" \
-                            % (self.uniqueid, self.host)
-                # close connection to the logging port (procServ)
-                self.telnet.close()
+              print 'Error: malformed port value:', entry
 
-            if ((self.tmpstatus != self.STATUS_NOCONNECT) and \
-                (self.tmpstatus != self.STATUS_ERROR) and \
-                (self.getid != self.uniqueid)):
-                print "ERR: found \'%s\', expected \'%s\' on host %s" % \
-                    (self.getid, self.uniqueid, self.host)
+          if tmpsum:
+            # assign the port statically
+            if tmpsum in staticPorts[self.host]:
+                print 'ERR: port #%d duplicated in the config file' % tmpsum
             else:
-                # add an entry to the dictionary
-                key = makekey(self.host, self.uniqueid)
-                self.d[key] = \
-                  [ self.tmpstatus, self.pid, self.cmd, self.ctrlport, self.ppid, self.flags, self.getid]
-                  # DICT_STATUS  DICT_PID  DICT_CMD  DICT_CTRL      DICT_PPID  DICT_FLAGS  DICT_GETID
+                # avoid dup: update the set of statically assigned ports
+                staticPorts[self.host].add(tmpsum)
+            self.ctrlport = str(tmpsum)                             # string
+            self.flags += 'k'
+          else:
+              # assign port dynamically
+              tmpport = nextCtrlPort[self.host]
+              # avoid dup: check the set of statically assigned ports
+              if (self.host == 'localhost'):
+                  while (tmpport in staticPorts[self.host]) or (tmpport in remotePorts):
+                      tmpport += 1
+              else:
+                  while (tmpport in staticPorts[self.host]) or (tmpport in localPorts):
+                      tmpport += 1
 
-        # close the config file
-        configfile.close()
+              self.ctrlport = str(tmpport)                            # string
+              nextCtrlPort[self.host] = tmpport + 1                   # integer
+
+              # update set of local or remote ports to avoid conflict
+              if (self.host == 'localhost'):
+                  localPorts.add(tmpport)
+              else:
+                  remotePorts.add(tmpport)
+
+          self.pid = "-"
+          self.ppid = "-"
+          self.getid = "-"
+          # open a connection to the control port (procServ)
+          try:
+              self.telnet.open(self.host, self.ctrlport)
+          except:
+              # telnet failed
+              self.tmpstatus = self.STATUS_NOCONNECT
+              # TODO ping each host first, as telnet could fail due to an error
+          else:
+              # telnet succeeded: gather status from procServ banner
+              ok = self.readLogPortBanner()
+              if not ok:
+                  # reading procServ banner failed
+                  print "ERR: failed to read procServ banner for \'%s\' on host %s" \
+                          % (self.uniqueid, self.host)
+              # close connection to the logging port (procServ)
+              self.telnet.close()
+
+          if ((self.tmpstatus != self.STATUS_NOCONNECT) and \
+              (self.tmpstatus != self.STATUS_ERROR) and \
+              (self.getid != self.uniqueid)):
+              print "ERR: found \'%s\', expected \'%s\' on host %s" % \
+                  (self.getid, self.uniqueid, self.host)
+          else:
+              # add an entry to the dictionary
+              key = makekey(self.host, self.uniqueid)
+              self.d[key] = \
+                [ self.tmpstatus, self.pid, self.cmd, self.ctrlport, self.ppid, self.flags, self.getid]
+                # DICT_STATUS  DICT_PID  DICT_CMD  DICT_CTRL      DICT_PPID  DICT_FLAGS  DICT_GETID
 
     def readLogPortBanner(self):
         response = self.telnet.read_until(self.MSG_BANNER_END, 1)
@@ -387,8 +369,6 @@ class ProcMgr:
                     print "s",
                 if 'k' in self.d[key][self.DICT_FLAGS]:
                     print "k",
-                if '-' in self.d[key][self.DICT_FLAGS]:
-                    print "-",
                 print ""
                 
         if (nonePrinted == 1):
