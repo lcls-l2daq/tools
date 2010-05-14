@@ -1,4 +1,5 @@
 #!/bin/env python
+
 import sys
 import os
 import platform
@@ -11,64 +12,56 @@ from PyQt4.QtCore import *
 from PyQt4.QtGui import *
 from ProcMgr import ProcMgr, deduce_platform, key2host, key2uniqueid
 import ui_procStat
+import subprocess
+
 
 __version__ = "0.3"
 
-# OutDir Full Path Example: /reg/d/pcds/pds/s0/amo/e7/e7-r0263-s00-c00.xtc.tobedeleted
-sOutDirPrefix1 = "/reg/d/pcds/pds/"
+# OutDir Full Path Example: daq-sxr-ana01: /u2/pcds/pds/sxr/e19/e19-r0026-s00-c00.xtc
+sOutDirPrefix1 = "/u2/pcds/pds/"
 sOutFileExtension = ""
 bProcMgrThreadError = False
 sErrorOutDirNotExist = "Output Dir Not Exist"
 
+
 class CustomIOError(Exception):
   pass
 
-def getOutputFileName(iExperiment, sExpType):
+def getOutputFileName(iExperiment, sExpType,eventNodes):
   if iExperiment < 0:
     return []
     
-  sExpSubDir = "e%d" % (iExperiment)
-  
-  lsMostRecentOutputFile = []  
-  
-  if not os.path.isdir(sOutDirPrefix1): 
-    raise CustomIOError, sErrorOutDirNotExist
-      
-  #refresh output file status    
-  lsSrcDirs = os.listdir( sOutDirPrefix1 )
-  for sSrcDir in lsSrcDirs:
+  sExpSubDir = "e%d" % (iExperiment)  
+  formFileStatusDatabase = []
+  zeroFilesFlag = False
 
-    sExpDir = os.path.join( sOutDirPrefix1, sSrcDir, sExpType, sExpSubDir )
-    if not os.path.isdir(sExpDir): continue
-    
-    iMostRecentFileTime = -1
-    sMostRecentOutputFile = ""
-    
-    lsOutputFiles = os.listdir( sExpDir )    
-    for sOutputFile in lsOutputFiles:
-    
-      #if not sOutputFile.endswith(sOutFileExtension): continue
-      sFilePath = os.path.join( sExpDir, sOutputFile )
-      try:
-        iFileTime = os.path.getmtime( sFilePath )
+  noOfEventNodes = len(eventNodes)
+  
 
+  for sIndex in range(noOfEventNodes):
+
+    # form filepath, command, and ssh to remote event nodes 
+    sExpDir = os.path.join( sOutDirPrefix1,sExpType, sExpSubDir )
+    sshCommand = '/usr/bin/ssh %(host)s ls -rtlB   %(dir)s | /usr/bin/tail -1' %   {'host': eventNodes[sIndex], 'dir': sExpDir}
+    process = subprocess.Popen(sshCommand, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)  
+    output,stderr = process.communicate()
+    status = process.poll() 
+    if output == "total 0\n":
+      zeroFilesFlag = True   
+    # extract the output and arrange it for graphical interface    
+    if not zeroFilesFlag:
+      splittedOutput = output.split()
+      try:    
+        extractFileName = splittedOutput[8]
       except:
-        # Get some exception when accessing the file
-        # Possbile reasons:
-        #   1. The other process is moving or renaming the file
-        #   2. The file system is being disconnected      
-        # Solution:
-        #   Ignore this file and continue to test next one
-        continue
+        print 'ERROR:: %s' % output        
+        raise CustomIOError
+      completeFilePath = '%(host)s: %(dirPath)s/%(file)s '% {'host':eventNodes[sIndex], 'dirPath':sExpDir,'file':extractFileName}    
+      extractTime = splittedOutput[5]+'  '+splittedOutput[6]+'  '+splittedOutput[7]    
+      extractSize = splittedOutput[4]  
+      formFileStatusDatabase.append( { "fn": completeFilePath, "size": extractSize, "mtime": extractTime } )     
 
-      if iFileTime > iMostRecentFileTime:
-        iMostRecentFileTime = iFileTime
-        sMostRecentOutputFile = sFilePath
-
-    if sMostRecentOutputFile != "":
-      lsMostRecentOutputFile.append( sMostRecentOutputFile )
-          
-  return lsMostRecentOutputFile
+  return formFileStatusDatabase
 
 def printStackTrace():
   print( "---- Printing program call stacks for debug ----" )
@@ -76,9 +69,9 @@ def printStackTrace():
   print( "------------------------------------------------" )
   return
 
-def procMgrThreadWrapper(sConfigFile, iExperiment, sExpType, iPlatform, fQueryInterval, evgProcMgr ):
+def procMgrThreadWrapper(sConfigFile, iExperiment, sExpType, iPlatform, fQueryInterval, evgProcMgr,eventNodes ):
   try:
-    procMgrThread(sConfigFile, iExperiment, sExpType, iPlatform, fQueryInterval, evgProcMgr )
+    procMgrThread(sConfigFile, iExperiment, sExpType, iPlatform, fQueryInterval, evgProcMgr,eventNodes )
   except:
     sErrorReport = "procMgrThreadWrapper(): procMgrThread(ConfigFile = %s, Exp Id = %d, Exp Type = %s, Platform = %d, Query Interval = %f ) Failed" %\
      (sConfigFile, iExperiment, sExpType, iPlatform, float(fQueryInterval) )
@@ -89,7 +82,7 @@ def procMgrThreadWrapper(sConfigFile, iExperiment, sExpType, iPlatform, fQueryIn
   return
   
   
-def procMgrThread(sConfigFile, iExperiment, sExpType, iPlatform, fQueryInterval, evgProcMgr ):
+def procMgrThread(sConfigFile, iExperiment, sExpType, iPlatform, fQueryInterval, evgProcMgr,eventNodes ):
   
   locale.setlocale( locale.LC_ALL, "" ) # set locale for printing formatted numbers later  
     
@@ -111,13 +104,12 @@ def procMgrThread(sConfigFile, iExperiment, sExpType, iPlatform, fQueryInterval,
       print( "procMgrThread(): ProcMgr(%s, %d) Failed" % (sConfigFile, iPlatform) )
       printStackTrace()
       evgProcMgr.emit(SIGNAL("ProcMgrGeneralError"), sConfigFile, iPlatform ) # Send out the signal to notify the main window      
-
-    lsFnOutputFile = []
-    try:    
-      lsFnOutputFile = getOutputFileName( iExperiment, sExpType )
+    
+    try:        
+      fileStatusDatabase = getOutputFileName( iExperiment, sExpType,eventNodes )
       
     except CustomIOError:
-      print( "Output directory (%s) does not exist" % (sOutDirPrefix1) )
+      print( "Error in ssh or Output Directory::(%s)" % (sOutDirPrefix1) )
       printStackTrace()
       evgProcMgr.emit(SIGNAL("OutputDirError"), sOutDirPrefix1 ) # Send out the signal to notify the main window      
         
@@ -126,27 +118,9 @@ def procMgrThread(sConfigFile, iExperiment, sExpType, iPlatform, fQueryInterval,
       print( sErrorReport )
       printStackTrace()
       evgProcMgr.emit(SIGNAL("ThreadGeneralError"), sErrorReport ) # Send out the signal to notify the main window      
-      
-    ldOutputFileStatus = []
-        
-    # refresh Output File Status
-    if lsFnOutputFile != []:
-      for sFnOutputFile in lsFnOutputFile:
-        try:
-          iFileTime = os.path.getmtime( sFnOutputFile )
-          iFileSize = os.path.getsize( sFnOutputFile )
-          sTimeDescription = time.asctime( time.localtime( iFileTime ) )          
-        except: 
-          # Get some exception when accessing the file
-          # Possbile reasons:
-          #   1. The other process is moving or renaming the file
-          #   2. The file system is being disconnected
-          continue
-          
-        ldOutputFileStatus.append( { "fn": sFnOutputFile, "size": locale.format("%d",iFileSize,True), "mtime": sTimeDescription } )
         
     # Send out the signal to notify the main window
-    evgProcMgr.emit(SIGNAL("Updated"), ldProcStatus, ldOutputFileStatus, iExperiment, sExpType)    
+    evgProcMgr.emit(SIGNAL("Updated"), ldProcStatus, fileStatusDatabase, iExperiment, sExpType)    
     time.sleep(fQueryInterval )
       
   return
@@ -330,10 +304,11 @@ class WinProcStat(QMainWindow, ui_procStat.Ui_mainWindow):
 def showUsage():
   print( """\
 Usage: %s  [-e | --experiment <Experiment Id>]  [-t | --type <Experiment Type>]  [-p | --platform <Platform Id>]  [-i | --interval <ProcMgr Query Interval>]  <Config file> 
-  -e | --experiment <Experiment Id>               Set experiment id (default: No id, and no output file status displayed)
-  -t | --type       <Experiment Type>             Set experiment type (default: amo)
-  -p | --platform   <Platform Id>                 Set platform id (default: id is deduced from config file)
-  -i | --interval   <ProcMgr Query Interval>      Query interval in seconds (default: 3 seconds)
+  -e | --experiment <Experiment Id>*               Set experiment id (default: No id, and no output file status displayed)
+  -t | --type       <Experiment Type>*             Set experiment type (default: amo)
+  -p | --platform   <Platform Id>                  Set platform id (default: id is deduced from config file)
+  -i | --interval   <ProcMgr Query Interval>       Query interval in seconds (default: 3 seconds)
+  -n | --eventnodes <eventNode0+eventNode1+...>*   Names of Event Nodes conected with '+' sign
   
 Program Version %s\
 """ % ( __file__, __version__ ) )
@@ -343,24 +318,49 @@ def main():
   iExperiment = -1
   sExpType = "amo"
   iPlatform = -1
-  fProcmgrQueryInterval = 3.0
+  fProcmgrQueryInterval = 5.0
+  eventNodes = []
+  eventNodesDefined = False
+  exptTypeDefined = False
+  exptIdDefined = False
   
   (llsOptions, lsRemainder) = getopt.getopt(sys.argv[1:], \
-   "e:t:vhp:i:", \
-   ["experiment", "type", "version", "help", "platform=", "interval=" ])
+   "e:t:vhp:i:n:", \
+   ["experiment", "type", "version", "help", "platform=", "interval=","eventnodes"])
    
   for (sOpt, sArg) in llsOptions:
     if sOpt in ("-e", "--experiment" ):
       iExperiment = int(sArg)
+      exptIdDefined = True
     elif sOpt in ("-t", "--type" ):
-      iExperiment = sArg
+      sExpType = sArg
+      exptTypeDefined = True
+    elif sOpt in ("-n", "--eventnodes" ):
+      eventNodes = sArg.split('+')
+      print('eventnodes = %s' % eventNodes)
+      eventNodesDefined = True
     elif sOpt in ("-v", "-h", "--version", "--help" ):
       showUsage()
       return 1
     elif sOpt in ('-p', '--platform' ):
       iPlatform = int(sArg)
     elif sOpt in ('-i', '--interval' ):
-      fProcmgrQueryInterval = float(sArg)        
+      fProcmgrQueryInterval = float(sArg)   
+
+
+  if not exptTypeDefined:
+    print 'Expt Type Not Defined -- See Help:'
+    showUsage()
+    return 1
+  if not eventNodesDefined:
+    print 'Event Nodes Not Defined -- See Help:'
+    showUsage()
+    return 1
+  if not exptIdDefined:
+    print 'Expt ID Not Defined -- See Help:'
+    showUsage()
+    return 1
+
 
   if len(lsRemainder) < 1:
     print( __file__ + ": Config file is not specified" )
@@ -384,7 +384,7 @@ def main():
   win = WinProcStat( evgProcMgr )
   win.show()  
   
-  thread.start_new_thread( procMgrThreadWrapper, (sConfigFile, iExperiment, sExpType, iPlatform, fProcmgrQueryInterval, evgProcMgr) )  
+  thread.start_new_thread( procMgrThreadWrapper, (sConfigFile, iExperiment, sExpType, iPlatform, fProcmgrQueryInterval, evgProcMgr,eventNodes) )  
   
   app.exec_()  
       
