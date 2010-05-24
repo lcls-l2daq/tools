@@ -13,7 +13,7 @@ rv = 1      # return value
 
 command_list = [ 'start', 'stop', 'status' ]
 
-usage = "usage: %prog { start | stop | status } configfile [OPTION]... [UNIQUEID]..."
+usage = "usage: %prog { start | stop | status } configfile [-h] [-v] [-p <platform>] [-c <coresize>] [-t <secs>] [-o <logpath>] [UNIQUEID]..."
 
 parser = OptionParser(usage=usage)
 
