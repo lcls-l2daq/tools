@@ -682,7 +682,7 @@ class ProcMgr:
                     # change status to SHUTDOWN
                     self.setStatus(value[1], self.STATUS_SHUTDOWN)
                 else:
-                    print 'ERR: failed to signal %d (kill returned %d)' % \
+                    print 'ERR: failed to signal %s (kill returned %d)' % \
                         (value[0], yy.returncode)
                     rv = 1
             else:
