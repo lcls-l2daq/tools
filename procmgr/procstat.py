@@ -46,19 +46,22 @@ def getOutputFileName(iExperiment, sExpType,eventNodes):
     process = subprocess.Popen(sshCommand, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)  
     output,stderr = process.communicate()
     status = process.poll() 
+    print output
+    if "No such file or directory" in output:
+      zeroFilesFlag = True
     if output == "total 0\n":
       zeroFilesFlag = True   
     # extract the output and arrange it for graphical interface    
     if not zeroFilesFlag:
       splittedOutput = output.split()
       try:    
-        extractFileName = splittedOutput[8]
+        extractFileName = splittedOutput[-1]
       except:
         print 'ERROR:: %s' % output        
         raise CustomIOError
       completeFilePath = '%(host)s: %(dirPath)s/%(file)s '% {'host':eventNodes[sIndex], 'dirPath':sExpDir,'file':extractFileName}    
-      extractTime = splittedOutput[5]+'  '+splittedOutput[6]+'  '+splittedOutput[7]    
-      extractSize = splittedOutput[4]  
+      extractTime = splittedOutput[-4]+'  '+splittedOutput[-3]+'  '+splittedOutput[-2]    
+      extractSize = splittedOutput[-5]  
       formFileStatusDatabase.append( { "fn": completeFilePath, "size": extractSize, "mtime": extractTime } )     
 
   return formFileStatusDatabase
