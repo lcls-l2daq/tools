@@ -40,7 +40,7 @@ class XtcClean:
     lHostFile   = []
     lHosts      = self.dictExpToHosts[self.sExpType]
     for (iHost,sHost) in enumerate(lHosts):      
-      sCmdLs  = ( "/usr/bin/ssh -o ConnectTimeout=%d %s /bin/ls -rt " + \
+      sCmdLs  = ( "/usr/bin/ssh -x -o ConnectTimeout=%d %s /bin/ls -rt " + \
                 "/u2/pcds/pds/%s/e%d/*.xtc.tobedeleted 2> /dev/null" ) % \
                 (self.iConnectTimeOut, sHost, self.sExpType, self.iExpId)
       lsCmdOut = map( str.strip, os.popen(sCmdLs).readlines() )
@@ -61,8 +61,8 @@ class XtcClean:
       return True
 
     if self.iCleanType == 0 or self.iCleanType > 2:
-      print "List complete. Use -c (--clean) or " + \
-        "--force option to commit the deletion of files."
+      print "List complete. Use -c (--clean) or --force option to commit the deletion\n" + \
+        " of files."
       return True
 
 
@@ -73,25 +73,57 @@ class XtcClean:
         return True
       print # Print an extra line, because the above input produced a line return
 
+    # !! for debug only
+    if self.iExpId != 1000:
+      print "Debug veresion, please specify exp id 1000"
+      return True
+      
     for (iHost,sHost) in enumerate(lHosts):
       if lHostFile[iHost] == 0: continue
-      sCmdLs = ( "/ust/bin/ssh -o ConnectTimeout=%d %s /bin/rm -v " + \
+      iDelNo        = self.getDelNo(sHost)
+      sFnDelList    = "/u2/pcds/pds/%s/e%d/deletedlist%02d.txt" % (self.sExpType, self.iExpId, iDelNo)
+
+      print "Generating Delete List %s:%s" % (sHost, sFnDelList)
+      sCmdGenDel    = ( "/usr/bin/ssh -x -o ConnectTimeout=%d %s \"/bin/ls -lrt " + \
+                "/u2/pcds/pds/%s/e%d/*.xtc.tobedeleted > %s\" 2> /dev/null" ) % \
+                (self.iConnectTimeOut, sHost, self.sExpType, self.iExpId, sFnDelList)
+      
+      sCmdGenDelOut = os.popen(sCmdGenDel).read()
+      
+      sCmdRm        = ( "/usr/bin/ssh -x -o ConnectTimeout=%d %s /bin/rm -v " + \
                 "/u2/pcds/pds/%s/e%d/*.xtc.tobedeleted 2> /dev/null" ) % \
                 (self.iConnectTimeOut, sHost, self.sExpType, self.iExpId)
       
-      lsCmdOut      = map( str.strip, os.popen(sCmdLs).readlines() )
-      iFilesDeleted = len(lsCmdOut)
+      lsCmdRmOut    = map( str.strip, os.popen(sCmdRm).readlines() )
+      iFilesDeleted = len(lsCmdRmOut)
       
-      if len(lsCmdOut) != lHostFile[iHost]:
+      if iFilesDeleted != lHostFile[iHost]:
         print "%s: Expected to delete %d files, but in reality %d files deleted" %\
           ( sHost, lHostFile[iHost], iFilesDeleted )
       else:
         print "%s: %d files deleted" % (sHost, iFilesDeleted)
         
       print "  [Deletion History]"
-      for sLine in lsCmdOut:
+      for sLine in lsCmdRmOut:
         print "  " + sLine
       print
+
+  def getDelNo(self, sHost):
+    sCmdLsDel = ( "/usr/bin/ssh -x -o ConnectTimeout=%d %s /bin/ls -rt " + \
+                  "/u2/pcds/pds/%s/e%d/deletedlist*.txt 2> /dev/null" ) % \
+                  (self.iConnectTimeOut, sHost, self.sExpType, self.iExpId)
+    lsCmdLsDelOut = map( str.strip, os.popen(sCmdLsDel).readlines() )
+
+    iTestDelNo    = len(lsCmdLsDelOut)    
+    while True:
+      sCmdLsDel1  = ( "/usr/bin/ssh -x -o ConnectTimeout=%d %s /bin/ls -rt " + \
+                "/u2/pcds/pds/%s/e%d/deletedlist%02d.txt 2> /dev/null" ) % \
+                (self.iConnectTimeOut, sHost, self.sExpType, self.iExpId, iTestDelNo)
+      sCmdLsDel1Out = os.popen(sCmdLsDel1).read()
+      if len(sCmdLsDel1Out) < 1: break
+      iTestDelNo += 1
+   
+    return iTestDelNo    
   
   def switchUser(self):
     if os.geteuid() != 0:
@@ -112,13 +144,15 @@ class XtcClean:
 
 def showUsage():
   print( """\
-Usage: %s [-t | --type <Experiment Type>]* [-e | --exp <Experiment Id>]*
-  [-c|--clean] [--force] [-v] [-h]
+Usage: %s [-t | --type <Experiment Type>]* [-e | --exp
+  <Experiment Id>]* [-c|--clean] [--force] [-v] [-h]
 
   -t | --type       <Experiment Type>  *Set experiment type (amo, sxr, xpp)
   -e | --exp        <Experiment Id>    *Set experiment id
-  -c | --clean                         Execute the real clean-up, with yes/no prompt
-       --force                         Force the real clean-up, without yes/no prompt
+  -c | --clean                         Execute the real clean-up, with yes/no
+                                         prompt
+       --force                         Force the real clean-up, without yes/no
+                                         prompt
 
   * required
 
