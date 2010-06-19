@@ -15,10 +15,9 @@ __version__ = "0.1"
 class XtcClean:
   # static data
   dictExpToHosts = {
-    "amo": ["daq-amo-ana01", "daq-amo-ana02", "daq-amo-ana03", "daq-amo-ana04",
-            "daq-amo-dss01", "daq-amo-dss02", "daq-amo-dss03", "daq-amo-dss04"],
-    "sxr": ["daq-sxr-ana01", "daq-sxr-ana02", "daq-sxr-ana03", "daq-sxr-ana04"],
-    "xpp": ["daq-xpp-ana01", "daq-xpp-ana02", "daq-xpp-ana03", "daq-xpp-ana04"]
+    "amo": ["daq-amo-dss01", "daq-amo-dss02", "daq-amo-dss03", "daq-amo-dss04"],
+    "sxr": ["daq-sxr-dss01", "daq-sxr-dss02", "daq-sxr-dss03", "daq-sxr-dss04"],
+    "xpp": ["daq-xpp-dss01", "daq-xpp-dss02", "daq-xpp-dss03", "daq-xpp-dss04"]
   }
   iConnectTimeOut = 3
     
