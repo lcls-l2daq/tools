@@ -73,9 +73,9 @@ class XtcClean:
       print # Print an extra line, because the above input produced a line return
 
     # !! for debug only
-    if self.iExpId != 1000:
-      print "Debug veresion, please specify exp id 1000"
-      return True
+    #if self.iExpId != 1000:
+    #  print "Debug veresion, please specify exp id 1000"
+    #  return True
       
     for (iHost,sHost) in enumerate(lHosts):
       if lHostFile[iHost] == 0: continue
