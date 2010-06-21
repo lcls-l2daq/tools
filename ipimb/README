@@ -1,0 +1,17 @@
+Stand-alone scripts for running one or more IPIMBs.
+
+See the sample scripts for basic operation:
+   - sampleNoise.csh is a calibration script for testing a board in the 
+     absence of an external trigger
+   - sampleSignalExtTrigger.csh reads signal using an external trigger and 
+     fixed parameters
+   - sampleSweepExtTrigger.csh reads signal using an external trigger while
+     sweeping the delay timing, aka "scope mode" 
+
+The user will likely want to tune a few of the parameters to suit the
+situation, in particular --serial (the PCIe port addressed - see the
+portmap file), --diodebias (the bias in volts, here set to 0 for safety), 
+and --delay for the sampleSignalExtTrigger script.
+
+Multiple boards at ports m, n, o, p, ... can be read out by specifying 
+--serial m,n,o,p,...
