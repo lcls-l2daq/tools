@@ -1,0 +1,1 @@
+python lusi-ipm.py --serial 3 --calibrate 0,1,2,3 --calv 1 --calpol high --ref 5 --chargeamp 100 --cal_range 100 --diodebias 0 --window 1500000 --calstrobe 400000 --delay 95000 --nevents 100 sampleNoise.csv
