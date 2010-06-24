@@ -46,7 +46,7 @@ def getOutputFileName(iExperiment, sExpType,eventNodes):
     process = subprocess.Popen(sshCommand, shell=True,stdout=subprocess.PIPE, stderr=subprocess.STDOUT)  
     output,stderr = process.communicate()
     status = process.poll() 
-    print output
+    zeroFilesFlag = False
     if "No such file or directory" in output:
       zeroFilesFlag = True
     if output == "total 0\n":
