@@ -392,7 +392,7 @@ try:
 					fCaptureFile.write("Board,Sample(#),CAL_Voltage(V),Timestamp(tick),rg_config(hex),cal_rg_config(hex),Trigger to Sample Delay(ns),Ch0(V),Ch1(V),Ch2(V),Ch3(V)\n")
 		else:
 			if fCaptureFile != None:
-				if MULITFILE_MODE:
+				if MULTIFILE_MODE:
 					for j in range(nIPMB):
 						fCaptureFile[j].write("Sample(#),Timestamp(tick),rg_config(hex),cal_rg_config(hex),Trigger to Sample Delay(ns),Ch0(V),Ch1(V),Ch2(V),Ch3(V)\n")
 				else:
