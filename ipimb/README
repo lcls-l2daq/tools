@@ -15,3 +15,7 @@ and --delay for the sampleSignalExtTrigger script.
 
 Multiple boards at ports m, n, o, p, ... can be read out by specifying 
 --serial m,n,o,p,...
+
+For the sampleNoise script I find the system runs at 125 Hz:
+Captured 1000 samples ... done.
+total acquisition section time in s: 8.00127792358

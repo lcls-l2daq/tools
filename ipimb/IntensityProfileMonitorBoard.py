@@ -298,7 +298,7 @@ class IntensityProfileMonitorBoard:
 					self.ser.write("".join([chr(i) for i in w]))
 					t = time.time()
 					self.writeTime += t-t0
-					time.sleep(0.001)
+##					time.sleep(0.001)
 ##					print "just keep writing"
 
 			elif PEXPECTSERIAL:
