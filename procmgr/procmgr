@@ -82,9 +82,9 @@ if command == 'start':
                 # copy cnf to cnf.last, then link to cnf.running to cnf.last
                 try:
                     if not os.path.exists(lastconfig):
-                        shutil.copy(configfile, lastconfig)
+                        shutil.copyfile(configfile, lastconfig)
                     elif filecmp.cmp(configfile, lastconfig) == 0:
-                        shutil.copy(configfile, lastconfig)
+                        shutil.copyfile(configfile, lastconfig)
 
                     if os.path.exists(lastconfig):
                         os.symlink(os.path.basename(lastconfig), runconfig)
