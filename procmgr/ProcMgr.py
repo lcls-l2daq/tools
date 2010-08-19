@@ -525,17 +525,19 @@ class ProcMgr:
                       print 'ERR: mkdir %s failed' % logpath
                       redirect_string = ''
                     else:
+                      time_string = time.strftime('%d_%H:%M:%S')
+                      logfile = '%s/%s_%s.log' % (logpath, time_string, key)
+                      if verbose:
+                          print 'log file:', logfile
+                      redirect_string = '>& %s' % logfile
+
+                    pbits = (stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+                    if (os.stat(logpath).st_mode & pbits) != pbits:
                       try:
                         os.chmod(logpath, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
                       except:
                         print 'ERR: chmod %s failed' % logpath
                         redirect_string = ''
-                      else:
-                        time_string = time.strftime('%d_%H:%M:%S')
-                        logfile = '%s/%s_%s.log' % (logpath, time_string, key)
-                        if verbose:
-                            print 'log file:', logfile
-                        redirect_string = '>& %s' % logfile
 
                 startcmd = \
                         '/reg/g/pcds/package/procServ-2.4.0/procServ --noautorestart --name %s %s --allow --coresize %d %s %s %s' % \
