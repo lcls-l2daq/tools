@@ -1,7 +1,7 @@
 # Python module that implements driver code for the LUSI Intensity Profile/Monitor Board
 #
-# Copyright 2009, Stanford University
-# Author: Remi Machet <rmachet@slac.stanford.edu>
+# Copyright 2009/2010, Stanford University
+# Authors: Remi Machet <rmachet@slac.stanford.edu>, Philip Hart <PhilipH@slac.stanford.edu>
 #
 # Released under the GPLv2 licence <http://www.gnu.org/licenses/gpl-2.0.html>
 #
