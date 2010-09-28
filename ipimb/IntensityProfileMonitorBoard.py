@@ -1,7 +1,7 @@
 # Python module that implements driver code for the LUSI Intensity Profile/Monitor Board
 #
-# Copyright 2009/2010, Stanford University
-# Authors: Remi Machet <rmachet@slac.stanford.edu>, Philip Hart <PhilipH@slac.stanford.edu>
+# Copyright 2009, Stanford University
+# Author: Philip Hart <philiph@slac.stanford.edu>, Remi Machet <rmachet@slac.stanford.edu>
 #
 # Released under the GPLv2 licence <http://www.gnu.org/licenses/gpl-2.0.html>
 #
@@ -32,6 +32,8 @@ INPUT_BIAS_STEPS = 65536
 CLOCK_PERIOD = 8
 ADC_RANGE = 3.3
 ADC_STEPS = 65536
+
+DataPacketLength = 16
 
 def CRC(lst):
 	crc = 0xffff
@@ -73,9 +75,6 @@ class IntensityProfileMonitorBoard:
 		self.firstTimeThroughCommand = True ## drop command words until SOF is seen
 		if PYSERIAL:
 			self.ser = serial.Serial(port=iCOMPort, baudrate=iBaudrate, timeout=iTimeOut)
-			import termios
-##			iflag, oflag, cflag, lflag, ispeed, ospeed, cc = termios.tcgetattr(self.ser.fd)
-##			print iflag, oflag, cflag, lflag, ispeed, ospeed, cc
 			self.ser.read(self.ser.inWaiting())	# Clear buffers
 			self.clearBuffer()
 		elif PEXPECTSERIAL:
@@ -120,8 +119,8 @@ class IntensityProfileMonitorBoard:
 
 	def clearData(self): ## to be called after configuration to clear any data taken unconfigured
 ##		print 'length of data queue: %d' %(len(self.lstData))
-		nDataPackets = len(self.lstData)/12
-		for i in range(nDataPackets*12):
+		nDataPackets = len(self.lstData)/DataPacketLength
+		for i in range(nDataPackets*DataPacketLength):
 			self.lstData.pop(0)
 		if DEBUG:
 			print 'length of data queue after clearing: %d' %(len(self.lstData))
@@ -129,6 +128,13 @@ class IntensityProfileMonitorBoard:
 
 	def getDataCommandLength(self):
 		return len(self.lstData), len(self.lstCommands)
+
+        def setTimestampCounter(self, upper, lower):
+		self.WriteRegister(self.reg.timestamp0, upper)
+		self.WriteRegister(self.reg.timestamp1, lower)
+		up = self.ReadRegister(self.reg.timestamp0)
+		low = self.ReadRegister(self.reg.timestamp1)
+		return up, low
 
 	def SetCalibrationMode(self, lstbChannels):
 		val = self.ReadRegister(self.reg.rg_config)
@@ -207,11 +213,11 @@ class IntensityProfileMonitorBoard:
 		if i != originalSetting:
 			self.WriteRegister(self.reg.biasdac_data_config, i)	
 			print 'Have changed input bias setting from 0x%x to 0x%x, pausing to allow diode bias to settle' %(originalSetting, i)
-			for i in range(50):
-				time.sleep(0.1)
+			for i in range(10):
+				time.sleep(0.5)
 				n = self.ser.inWaiting()
-				if n>24:
-					packetsToClear = (n-12)/12
+				if n>DataPacketLength*2:
+					packetsToClear = (n-DataPacketLength)/DataPacketLength
 					for j in range(packetsToClear):
 						self.WaitData() ## for trigger-during-config operation: dump data on floor
 
@@ -230,7 +236,13 @@ class IntensityProfileMonitorBoard:
 		if delay > 0xffff:
 			raise RuntimeError, "Trigger delay cannot be more than %dns" % (0xffff*CLOCK_PERIOD)
 		self.WriteRegister(self.reg.trig_delay, delay)
-	
+
+	def SetTriggerPreSampleDelay(self, lTriggerPreSampleDelay):
+		delay = (lTriggerPreSampleDelay+CLOCK_PERIOD-1)/CLOCK_PERIOD
+		if delay > 0xffff:
+			raise RuntimeError, "Trigger presample delay cannot be more than %dns" % (0xffff*CLOCK_PERIOD)
+		self.WriteRegister(self.reg.trig_ps_delay, delay)
+
 	def CalibrationStart(self, lCalStrobeLength=0xff):
 		length = (lCalStrobeLength+CLOCK_PERIOD-1)/CLOCK_PERIOD
 		if length > 0xffff:
@@ -251,11 +263,11 @@ class IntensityProfileMonitorBoard:
 	def WriteRegister(self, lRegAddr, lRegValue):
 		cmd = IntensityProfileMonitorBoardCommand(True, lRegAddr, lRegValue)
 		self.writeCommand(cmd)
-
+	
 	def WaitData(self):
-		while self.inWaiting(False) < 12:
+		while self.inWaiting(False) < DataPacketLength:
 			pass
-		data = IntensityProfileMonitorBoardData(self.read(False, 12))
+		data = IntensityProfileMonitorBoardData(self.read(False, DataPacketLength))
 		if not data.CheckCRC():
 			raise RuntimeError, "Invalid data packet CRC"
 		return data
@@ -291,15 +303,10 @@ class IntensityProfileMonitorBoard:
 				print "Ser W: %s" % (" ".join([hex(i) for i in w]))
 ##                        print "Ser W, chr: %s" %("".join([chr(i) for i in w]))
 			if PYSERIAL:
-				foo = 0
-				while foo==0:
-					foo += 1
-					t0 = time.time()
-					self.ser.write("".join([chr(i) for i in w]))
-					t = time.time()
-					self.writeTime += t-t0
-##					time.sleep(0.001)
-##					print "just keep writing"
+				t0 = time.time()
+				self.ser.write("".join([chr(i) for i in w]))
+				t = time.time()
+				self.writeTime += t-t0
 
 			elif PEXPECTSERIAL:
 				self.ser.cmd("".join([chr(i) for i in w]))
@@ -469,6 +476,7 @@ class IntensityProfileMonitorBoardRegisters:
 		self.errors = 0x0d
 		self.cal_strobe = 0x0e
 		self.trig_delay = 0x0f
+		self.trig_ps_delay = 0x10
 
 class IntensityProfileMonitorBoardCommand:
 	def __init__(self, bWrite, lAddr, lData = 0):
@@ -521,7 +529,7 @@ class IntensityProfileMonitorBoardResponse:
 
 class IntensityProfileMonitorBoardData:
 	def __init__(self, lstPacket):
-		if len(lstPacket) != 12:
+		if len(lstPacket) != DataPacketLength:
 			raise RuntimeError, "Invalid data packet size %d" % (len(lstPacket))
 		self.Timestamp = 0
 		self.Config0 = 0
@@ -531,8 +539,12 @@ class IntensityProfileMonitorBoardData:
 		self.Ch1 = 0
 		self.Ch2 = 0
 		self.Ch3 = 0
+		self.Ch0_ps = 0
+		self.Ch1_ps = 0
+		self.Ch2_ps = 0
+		self.Ch3_ps = 0
 		self.Checksum = 0
-		self[0:12] = lstPacket
+		self[0:DataPacketLength] = lstPacket
 	def __setslice__(self, i, j, s):
 		for count in range(i, j):
 			if count == 0:
@@ -558,6 +570,14 @@ class IntensityProfileMonitorBoardData:
 			elif count == 10:
 				self.Ch3 = s[count-i]
 			elif count == 11:
+				self.Ch0_ps = s[count-i]
+			elif count == 12:
+				self.Ch1_ps = s[count-i]
+			elif count == 13:
+				self.Ch2_ps = s[count-i]
+			elif count == 14:
+				self.Ch3_ps = s[count-i]
+			elif count == 15:
 				self.Checksum = s[count-i]
 	def __getslice__(self, i, j):
 		lst = []
@@ -585,13 +605,21 @@ class IntensityProfileMonitorBoardData:
 			elif count == 10:
 				lst.append(self.Ch3)
 			elif count == 11:
+				lst.append(self.Ch0_ps)
+			elif count == 12:
+				lst.append(self.Ch1_ps)
+			elif count == 13:
+				lst.append(self.Ch2_ps)
+			elif count == 14:
+				lst.append(self.Ch3_ps)
+			elif count == 15:
 				lst.append(self.Checksum)
 		return lst
 	def CheckCRC(self):
-		if CRC(self[0:11]) == self.Checksum:
+		if CRC(self[0:(DataPacketLength-1)]) == self.Checksum:
 			return True
-		print 'Data CRC problem: checksum is',  CRC(self[0:11]), 'expected ', self.Checksum
-		print 'Data:', self[0:11]
+		print 'Data CRC problem: checksum is',  CRC(self[0:(DataPacketLength-1)]), 'expected ', self.Checksum
+		print 'Data:', self[0:(DataPacketLength)]
 		return False
 	def GetTimestamp_ticks(self):
 		return self.Timestamp
@@ -605,4 +633,12 @@ class IntensityProfileMonitorBoardData:
 		return (float(self.Ch2)*ADC_RANGE)/(ADC_STEPS-1)
 	def GetCh3_V(self):
 		return (float(self.Ch3)*ADC_RANGE)/(ADC_STEPS-1)
+	def GetCh0_ps_V(self):
+		return (float(self.Ch0_ps)*ADC_RANGE)/(ADC_STEPS-1)
+	def GetCh1_ps_V(self):
+		return (float(self.Ch1_ps)*ADC_RANGE)/(ADC_STEPS-1)
+	def GetCh2_ps_V(self):
+		return (float(self.Ch2_ps)*ADC_RANGE)/(ADC_STEPS-1)
+	def GetCh3_ps_V(self):
+		return (float(self.Ch3_ps)*ADC_RANGE)/(ADC_STEPS-1)
 	

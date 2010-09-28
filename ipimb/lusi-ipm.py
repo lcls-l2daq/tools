@@ -88,6 +88,9 @@ sCalibrationPolarity = "low"
 # Trigger delay: delay between trigger and ADC sampling in ns
 lSampleDelayMin_ns = 89000
 lSampleDelayMax_ns = 0xffff*8
+# Trigger delay: delay between trigger and ADC sampling in ns
+lPreSampleDelayMin_ns = 8900
+lPreSampleDelayMax_ns = 8900
 # Length of the calibration pulse (time the calibration voltage will be applied) in ns
 lCalibrationStrobeLengthMin_ns = 128
 lCalibrationStrobeLengthMax_ns = 128
@@ -163,6 +166,11 @@ try:
 			print "\t(<delay_min>-<delay_max>) the delay will be varied"
 			print "\tlinearly within the range."
 			print "\t(default is %dns to %dns)" % (lSampleDelayMin_ns, lSampleDelayMax_ns)
+			print "--ps_delay <ps_delay_ns>: delay in nano-seconds between trigger"
+			print "\tand presampling of the ADC. If <ps_delay_ns> is a range"
+			print "\t(<ps_delay_min>-<ps_delay_max>) the delay will be varied"
+			print "\tlinearly within the range."
+			print "\t(default is %dns to %dns)" % (lPreSampleDelayMin_ns, lPreSampleDelayMax_ns)
 			print "\nRegister read mode:"
 			print "--read <regaddr>: Set program in register read, <regaddr> is the"
 			print "\taddress to read."
@@ -273,6 +281,13 @@ try:
 				lSampleDelayMax_ns = lSampleDelayMin_ns
 			else:
 				[lSampleDelayMin_ns, lSampleDelayMax_ns] = [strConvert(l,"long") for l in sys.argv[i].split("-")]
+		elif sys.argv[i] == "--ps_delay":
+			i += 1
+			if len(sys.argv[i].split("-")) == 1:
+				lPreSampleDelayMin_ns = strConvert(sys.argv[i],"long")
+				lPreSampleDelayMax_ns = lPreSampleDelayMin_ns
+			else:
+				[lPreSampleDelayMin_ns, lPreSampleDelayMax_ns] = [strConvert(l,"long") for l in sys.argv[i].split("-")]
 		elif sys.argv[i] == "--read":
 			i += 1
 			lRegAddr = strConvert(sys.argv[i],"int")
@@ -313,6 +328,8 @@ try:
 		ipmb.append(IntensityProfileMonitorBoard.IntensityProfileMonitorBoard(iComPort[i]))
 
 		lStatus = ipmb[i].ReadRegister(ipmb[i].reg.status)
+		up, low = ipmb[i].setTimestampCounter(0x12345, 0x987654)
+		print "set timestamp counter to 0x1234500987654, read 0x%x%x\n" %(up, low)
 		# Detect the mode selected and do the appropriate thing
 	        if sMode == "Status":
 			print "Status Register: 0x%08x" % (lStatus)
@@ -387,16 +404,16 @@ try:
 			if fCaptureFileName != None:
 				if MULTIFILE_MODE:
 					for j in range(nIPMB):
-						fCaptureFile[j].write("Sample(#),CAL_Voltage(V),Timestamp(tick),rg_config(hex),cal_rg_config(hex),Trigger to Sample Delay(ns),Ch0(V),Ch1(V),Ch2(V),Ch3(V)\n")
+						fCaptureFile[j].write("Sample(#),CAL_Voltage(V),Timestamp(tick),rg_config(hex),cal_rg_config(hex),Trigger to Sample Delay(ns),Ch0(V),Ch1(V),Ch2(V),Ch3(V),Ch0_ps(V),Ch1_ps(V),Ch2_ps(V),Ch3_ps(V)\n")
 				else:
-					fCaptureFile.write("Board,Sample(#),CAL_Voltage(V),Timestamp(tick),rg_config(hex),cal_rg_config(hex),Trigger to Sample Delay(ns),Ch0(V),Ch1(V),Ch2(V),Ch3(V)\n")
+					fCaptureFile.write("Board,Sample(#),CAL_Voltage(V),Timestamp(tick),rg_config(hex),cal_rg_config(hex),Trigger to Sample Delay(ns),Ch0(V),Ch1(V),Ch2(V),Ch3(V),Ch0_ps(V),Ch1_ps(V),Ch2_ps(V),Ch3_ps(V)\n")
 		else:
 			if fCaptureFile != None:
 				if MULTIFILE_MODE:
 					for j in range(nIPMB):
-						fCaptureFile[j].write("Sample(#),Timestamp(tick),rg_config(hex),cal_rg_config(hex),Trigger to Sample Delay(ns),Ch0(V),Ch1(V),Ch2(V),Ch3(V)\n")
+						fCaptureFile[j].write("Sample(#),Timestamp(tick),rg_config(hex),cal_rg_config(hex),Trigger to Sample Delay(ns),Ch0(V),Ch1(V),Ch2(V),Ch3(V), data.GetCh0_ps_V(), data.GetCh1_ps_V(), data.GetCh2_ps_V(), data.GetCh3_ps_V()\n")
 				else:
-					fCaptureFile.write("Board,Sample(#),Timestamp(tick),rg_config(hex),cal_rg_config(hex),Trigger to Sample Delay(ns),Ch0(V),Ch1(V),Ch2(V),Ch3(V)\n")
+					fCaptureFile.write("Board,Sample(#),Timestamp(tick),rg_config(hex),cal_rg_config(hex),Trigger to Sample Delay(ns),Ch0(V),Ch1(V),Ch2(V),Ch3(V), data.GetCh0_ps_V(), data.GetCh1_ps_V(), data.GetCh2_ps_V(), data.GetCh3_ps_V()\n")
 		if lNumEvents > 1:
 			fChargeAmpRefStep = (fChargeAmpRef_V_high - fChargeAmpRef_V_low) / (lNumEvents - 1)
 		else:
@@ -421,6 +438,11 @@ try:
 			lSampleDelayStep = 1
 		lSampleDelay = lSampleDelayMin_ns
 		if lNumEvents > 1:
+			lPreSampleDelayStep = (lPreSampleDelayMax_ns - lPreSampleDelayMin_ns) / (lNumEvents - 1)
+		else:
+			lPreSampleDelayStep = 1
+		lPreSampleDelay = lPreSampleDelayMin_ns
+		if lNumEvents > 1:
 			lCalibrationStrobeLengthStep = (lCalibrationStrobeLengthMax_ns - lCalibrationStrobeLengthMin_ns) / (lNumEvents - 1)
 		else:
 			lCalibrationStrobeLengthStep = 1
@@ -433,6 +455,7 @@ try:
 		for i in range(nIPMB): ipmb[i].SetChannelAcquisitionWindow(lAcqLength, lAcqDelay_ns)
 ##			print 'lAcqLength, lAcqDelay_ns', lAcqLength, lAcqDelay_ns
 		for i in range(nIPMB): ipmb[i].SetTriggerDelay(lSampleDelay)
+		for i in range(nIPMB): ipmb[i].SetTriggerPreSampleDelay(lPreSampleDelay)
 ##			print 'lSampleDelay', lSampleDelay
 		startTime = time.time()
 		if not bCalibrate:
@@ -460,6 +483,8 @@ try:
 ##			print 'lAcqLength, lAcqDelay_ns', lAcqLength, lAcqDelay_ns
 			if lSampleDelayStep != 0:
 				for j in range(nIPMB): ipmb[j].SetTriggerDelay(lSampleDelay)
+			if lPreSampleDelayStep != 0:
+				for j in range(nIPMB): ipmb[j].SetTriggerPreSampleDelay(lPreSampleDelay)
 ##			print 'lSampleDelay', lSampleDelay
 			t0 = time.time()
 ##			time.sleep(0.0001)
@@ -497,28 +522,32 @@ try:
 					for j in range(nIPMB):
 						data = dataArray[j]
 						if MULTIFILE_MODE:
-							fCaptureFile[j].write("%d,%f,0x%x,0x%04x,0x%04x,%d,%f,%f,%f,%f\n" 
+							fCaptureFile[j].write("%d,%f,0x%x,0x%04x,0x%04x,%d,%f,%f,%f,%f,%f,%f,%f,%f\n" 
 									      %(iEvent, fCalibrationData, data.GetTimestamp_ticks(),
 										data.Config0, data.Config1, data.GetTriggerDelay_ns(),
-										data.GetCh0_V(), data.GetCh1_V(), data.GetCh2_V(), data.GetCh3_V()))
+										data.GetCh0_V(), data.GetCh1_V(), data.GetCh2_V(), data.GetCh3_V(),
+										data.GetCh0_ps_V(), data.GetCh1_ps_V(), data.GetCh2_ps_V(), data.GetCh3_ps_V()))
 						else:
-							fCaptureFile.write("%d, %d,%f,0x%x,0x%04x,0x%04x,%d,%f,%f,%f,%f\n"
+							fCaptureFile.write("%d, %d,%f,0x%x,0x%04x,0x%04x,%d,%f,%f,%f,%f\,%f,%f,%f,%fn"
 									   %(j, iEvent, fCalibrationData, data.GetTimestamp_ticks(),
 									     data.Config0, data.Config1, data.GetTriggerDelay_ns(),
-									     data.GetCh0_V(), data.GetCh1_V(), data.GetCh2_V(), data.GetCh3_V()))
+									     data.GetCh0_V(), data.GetCh1_V(), data.GetCh2_V(), data.GetCh3_V(),
+									     data.GetCh0_ps_V(), data.GetCh1_ps_V(), data.GetCh2_ps_V(), data.GetCh3_ps_V()))
 				else:
 					for j in range(nIPMB):
 						data = dataArray[j]
 						if MULTIFILE_MODE:
-							fCaptureFile[j].write("%d,0x%x,0x%04x,0x%04x,%d,%f,%f,%f,%f\n"
+							fCaptureFile[j].write("%d,0x%x,0x%04x,0x%04x,%d,%f,%f,%f,%f,%f,%f,%f,%f\n"
 									      %(iEvent, data.GetTimestamp_ticks(),
 										data.Config0, data.Config1, data.GetTriggerDelay_ns(),
-										data.GetCh0_V(), data.GetCh1_V(), data.GetCh2_V(), data.GetCh3_V()))
+										data.GetCh0_V(), data.GetCh1_V(), data.GetCh2_V(), data.GetCh3_V(),
+										data.GetCh0_ps_V(), data.GetCh1_ps_V(), data.GetCh2_ps_V(), data.GetCh3_ps_V()))
 						else:	
-							fCaptureFile.write("%d, %d,0x%x,0x%04x,0x%04x,%d,%f,%f,%f,%f\n"
+							fCaptureFile.write("%d, %d,0x%x,0x%04x,0x%04x,%d,%f,%f,%f,%f,%f,%f,%f,%f\n"
 									   %(j, iEvent, data.GetTimestamp_ticks(),
 									     data.Config0, data.Config1, data.GetTriggerDelay_ns(),
-									     data.GetCh0_V(), data.GetCh1_V(), data.GetCh2_V(), data.GetCh3_V()))
+									     data.GetCh0_V(), data.GetCh1_V(), data.GetCh2_V(), data.GetCh3_V(),
+									     data.GetCh0_ps_V(), data.GetCh1_ps_V(), data.GetCh2_ps_V(), data.GetCh3_ps_V()))
 				print "\rCaptured %d samples ..." % (iEvent+1),
 				sys.stdout.flush()
 			fChargeAmpRef += fChargeAmpRefStep
@@ -537,6 +566,10 @@ try:
 			# Wrap around needed when nevents is infinite
 			if lSampleDelay > lSampleDelayMax_ns:
 				lSampleDelay = lSampleDelayMin_ns
+			lPreSampleDelay += lPreSampleDelayStep
+			# Wrap around needed when nevents is infinite
+			if lPreSampleDelay > lPreSampleDelayMax_ns:
+				lPreSampleDelay = lPreSampleDelayMin_ns
 			lCalibrationStrobeLength += lCalibrationStrobeLengthStep
 			# Wrap around needed when nevents is infinite
 			if lCalibrationStrobeLength > lCalibrationStrobeLengthMax_ns:
