@@ -349,7 +349,7 @@ class IntensityProfileMonitorBoard:
 						n = n-1
 						continue
 				if self.firstTimeThroughCommand:	
-					if ((w0 & 0x40) == 0) and ((w0 & 0x10) != 0) and (w0==0xdc): ## 0xdc hack
+					if ((w0 & 0x40) == 0) and ((w0 & 0x10) != 0):## and (w0==0xdc): ## 0xdc hack
 						if DEBUG:
 							print "First time through, SOF for command not set: found %d chars in buffer, %d words in cr list, %d words in data list" %(n, len(self.lstCommands), len(self.lstData))
 						n = n-1
@@ -358,10 +358,6 @@ class IntensityProfileMonitorBoard:
 				if self.firstTimeThroughData and ((w0 & 0x10) == 0):
 					if (w0 & 0x20) != 0:
 						print 'SOF and EOF found, something is wrong parsing data, try next word: 0x%x' %(w0)
-						n = n-1
-						continue
-					if (w0 != 0xc0):
-						print 'SOF is bogus, something is wrong parsing data, try next word: 0x%x' %(w0)
 						n = n-1
 						continue
 					self.firstTimeThroughData = False

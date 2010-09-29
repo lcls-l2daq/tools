@@ -328,8 +328,8 @@ try:
 		ipmb.append(IntensityProfileMonitorBoard.IntensityProfileMonitorBoard(iComPort[i]))
 
 		lStatus = ipmb[i].ReadRegister(ipmb[i].reg.status)
-		up, low = ipmb[i].setTimestampCounter(0x12345, 0x987654)
-		print "set timestamp counter to 0x1234500987654, read 0x%x%x\n" %(up, low)
+##		up, low = ipmb[i].setTimestampCounter(0x12345, 0x987654)
+##		print "set timestamp counter to 0x1234500987654, read 0x%x%x\n" %(up, low)
 		# Detect the mode selected and do the appropriate thing
 	        if sMode == "Status":
 			print "Status Register: 0x%08x" % (lStatus)
