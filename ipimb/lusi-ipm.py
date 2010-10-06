@@ -408,7 +408,7 @@ try:
 				else:
 					fCaptureFile.write("Board,Sample(#),CAL_Voltage(V),Timestamp(tick),rg_config(hex),cal_rg_config(hex),Trigger to Sample Delay(ns),Ch0(V),Ch1(V),Ch2(V),Ch3(V),Ch0_ps(V),Ch1_ps(V),Ch2_ps(V),Ch3_ps(V)\n")
 		else:
-			if fCaptureFile != None:
+			if fCaptureFileName != None:
 				if MULTIFILE_MODE:
 					for j in range(nIPMB):
 						fCaptureFile[j].write("Sample(#),Timestamp(tick),rg_config(hex),cal_rg_config(hex),Trigger to Sample Delay(ns),Ch0(V),Ch1(V),Ch2(V),Ch3(V), data.GetCh0_ps_V(), data.GetCh1_ps_V(), data.GetCh2_ps_V(), data.GetCh3_ps_V()\n")
@@ -506,7 +506,7 @@ try:
 			dataArray = []
 			for j in range(nIPMB):
 				dataArray.append(ipmb[j].WaitData())
-			if fCaptureFile == None:
+			if fCaptureFileName == None:
 				if bCalibrate:
 					for j in range(nIPMB):
 						data = dataArray[j]
@@ -574,7 +574,7 @@ try:
 			# Wrap around needed when nevents is infinite
 			if lCalibrationStrobeLength > lCalibrationStrobeLengthMax_ns:
 				lCalibrationStrobeLength = lCalibrationStrobeLengthMin_ns
-		if fCaptureFile != None:
+		if fCaptureFileName != None:
 			print "done."
 		print 'total acquisition section time in s:', time.time()-startTime
 ##	print time.ctime()
