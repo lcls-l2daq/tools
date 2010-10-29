@@ -1,4 +1,5 @@
-Stand-alone scripts for running one or more IPIMBs.
+Stand-alone scripts for running one or more IPIMBs with firmware version C04-8.
+The box should have a label identifying the version, which must match this.
 
 See the sample scripts for basic operation:
    - sampleNoise.csh is a calibration script for testing a board in the 
@@ -11,7 +12,9 @@ See the sample scripts for basic operation:
 The user will likely want to tune a few of the parameters to suit the
 situation, in particular --serial (the PCIe port addressed - see the
 portmap file), --diodebias (the bias in volts, here set to 0 for safety), 
-and --delay for the sampleSignalExtTrigger script.
+and --delay for the sampleSignalExtTrigger script.  The user hopefully does
+not need to worry about the presample delay setting; presampling can be turned
+off entirely by setting it to 0xffff, as is done in the sweep script.
 
 Multiple boards at ports m, n, o, p, ... can be read out by specifying 
 --serial m,n,o,p,...
