@@ -8,13 +8,16 @@ See the sample scripts for basic operation:
      fixed parameters
    - sampleSweepExtTrigger.csh reads signal using an external trigger while
      sweeping the delay timing, aka "scope mode" 
+   - sampleSingleChannelCalibration.csh is a calibration script for running
+     a charge injection calibration on a channel (0 by default) over all 
+     gain ranges; one must not apply an external trigger during the test
 
 The user will likely want to tune a few of the parameters to suit the
 situation, in particular --serial (the PCIe port addressed - see the
 portmap file), --diodebias (the bias in volts, here set to 0 for safety), 
 and --delay for the sampleSignalExtTrigger script.  The user hopefully does
 not need to worry about the presample delay setting; presampling can be turned
-off entirely by setting it to 0xffff, as is done in the sweep script.
+off entirely by setting 0xffff*8 = 524280, as is done in the sweep script.
 
 Multiple boards at ports m, n, o, p, ... can be read out by specifying 
 --serial m,n,o,p,...
