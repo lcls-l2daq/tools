@@ -17,7 +17,8 @@ class XtcClean:
   dictExpToHosts = {
     "amo": ["daq-amo-dss01", "daq-amo-dss02", "daq-amo-dss03", "daq-amo-dss04"],
     "sxr": ["daq-sxr-dss01", "daq-sxr-dss02", "daq-sxr-dss03", "daq-sxr-dss04"],
-    "xpp": ["daq-xpp-dss01", "daq-xpp-dss02", "daq-xpp-dss03", "daq-xpp-dss04"]
+    "xpp": ["daq-xpp-dss01", "daq-xpp-dss02", "daq-xpp-dss03", "daq-xpp-dss04"],
+    "cxi": ["daq-cxi-dss01", "daq-cxi-dss02"]
   }
   iConnectTimeOut = 3
     
