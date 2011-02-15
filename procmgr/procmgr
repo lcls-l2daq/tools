@@ -30,9 +30,10 @@ parser.add_option("-c", type="int", dest="coresize", metavar="<coresize>",
 parser.add_option("-t", type="int", dest="sigint_delay", metavar="<secs>",
                   default=1, help="for stop: delay between SIGINT and SIGTERM (default=1)")
 
+homedir = os.path.expanduser('~')
 parser.add_option("-o", type="string", dest="logpath", metavar="<logpath>",
-                  default="/reg/g/pcds/pds/logfiles",
-                  help="output directory (default=/reg/g/pcds/pds/logfiles)")
+                  default=homedir,
+                  help="output directory (default=%s)" % homedir)
 
 (options, args) = parser.parse_args()
 
@@ -128,6 +129,16 @@ elif command == 'stop':
                 os.remove(runconfig)
                 print "%s: removed '%s'" % (sys.argv[0], runconfig)
                 rv = 0
+        elif os.path.isfile(lastconfig):
+            # stop dynamic processes
+            print "%s: using config file '%s'" % (sys.argv[0], lastconfig)
+            handle = ProcMgr(lastconfig,options.platform)
+            handle.stop(args, verbose=options.verbose, sigdelay=options.sigint_delay, only_static=0)
+        elif os.path.isfile(configfile):
+            # stop dynamic processes
+            print "%s: using config file '%s'" % (sys.argv[0], configfile)
+            handle = ProcMgr(configfile,options.platform)
+            handle.stop(args, verbose=options.verbose, sigdelay=options.sigint_delay, only_static=0)
         elif len(args) == 0:
             # nothing to stop
             print "%s: no dynamic processes running ('%s' not found)" % (sys.argv[0], runconfig)

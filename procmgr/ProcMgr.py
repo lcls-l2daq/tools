@@ -129,7 +129,8 @@ def mkdir_p(path):
 def deduce_platform(configfilename):
     rv = -1   # return -1 on error
     cc = {'platform': None, 'procmgr_config': None,
-          'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host'}
+          'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host',
+          'rtprio':'rtprio'}
     try:
       execfile(configfilename, {}, cc)
       if type(cc['platform']) == type('') and cc['platform'].isdigit():
@@ -149,7 +150,8 @@ def deduce_instrument(configfilename):
     rv = 'AMO'
     valid_instruments = ['AMO','SXR','XPP','XCS','CXI','MEC','TST']
     cc = {'platform': None, 'procmgr_config': None,
-          'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host'}
+          'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host',
+          'rtprio':'rtprio'}
     try:
       execfile(configfilename, {}, cc)
       if type(cc['instrument']) == type('') and cc['instrument'].isalpha():
@@ -276,7 +278,8 @@ class ProcMgr:
         configlist = []         # start out with empty list
 
         config = {'platform': repr(self.PLATFORM), 'procmgr_config': None,
-                  'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host'}
+                  'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host',
+                  'rtprio':'rtprio'}
         try:
           execfile(configfilename, {}, config)
         except:
@@ -329,6 +332,21 @@ class ProcMgr:
                 print 'ERR: invalid flag:', nextflag
           else:
             self.flags = '-'
+
+          # --- real-time priority (optional) ---
+          self.rtprio = None
+          tmpsum = 0
+          if entry.has_key('rtprio'):
+            try:
+              tmpsum = int(entry['rtprio'])
+            except:
+              print 'Error: malformed rtprio value:', entry
+            if tmpsum:
+              # check if rtprio is in valid range
+              if (tmpsum < 1) or (tmpsum > 99):
+                print 'Error: rtprio not in range 1-99:', entry
+              else:
+                self.rtprio = tmpsum
 
           # initialize dictionaries used for port assignments
           if not self.host in nextCtrlPort:
@@ -1036,7 +1054,7 @@ if __name__ == '__main__':
     # collect the status, reading from the config file
     print '-------- calling ProcMgr(%s)' % sys.argv[1]
     try:
-        procMgr = ProcMgr(sys.argv[1], platform=2)
+        procMgr = ProcMgr(sys.argv[1])
     except IOError:
         print "%s: error while accessing %s" % (sys.argv[0], sys.argv[1])
         sys.exit(1)
