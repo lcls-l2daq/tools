@@ -26,7 +26,7 @@ import traceback
 usage = "usage: %prog configfile [OPTION]..."
 
 required_keys = ['id', 'cmd']
-optional_keys = ['host', 'flags', 'port']
+optional_keys = ['host', 'flags', 'port', 'rtprio']
 known_keys = required_keys + optional_keys
 
 #
@@ -82,7 +82,8 @@ if os.path.isfile(configfile) != 1:
 #  - id, cmd, flags, port, host = keyword strings
 #
 config = {'platform': options.platform, 'procmgr_config': None,
-          'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host'}
+          'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host',
+          'rtprio':'rtprio'}
 
 try:
   execfile(configfile, {}, config)
