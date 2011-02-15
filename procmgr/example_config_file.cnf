@@ -1,5 +1,6 @@
 # default platform number, represented as a string
 if not platform: platform = '1'
+instrument = 'AMO;
 
 # list of processes to run
 #   required fields: id, cmd
