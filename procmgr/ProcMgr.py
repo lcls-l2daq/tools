@@ -31,6 +31,58 @@ def getConfigFileNames(argconfig, partition):
     return (run_name, last_name)
 
 #
+# getCurrentExperiment
+#
+# This function returns the current experiment ID from the
+# offline database based on the experiment (AMO, SXR, XPP, etc.)
+#
+# RETURNS:  Two values:  experiment number, experiment name
+#
+
+def getCurrentExperiment(exp):
+
+    exp = exp.upper()
+    exp_id = -1
+    exp_name = ''
+    
+    # Issue mysql command to get experiment ID
+    mysqlcmd = 'echo "select exper_id from expswitch WHERE exper_id IN ( SELECT experiment.id FROM experiment, instrument WHERE experiment.instr_id=instrument.id AND instrument.name=\''+exp+'\' ) ORDER BY switch_time DESC LIMIT 1" | /usr/bin/mysql -N -h psdb -u regdb regdb'
+
+    p = subprocess.Popen([mysqlcmd],
+                         shell = True,
+                         stdin = subprocess.PIPE,
+                         stdout = subprocess.PIPE,
+                         stderr = subprocess.PIPE,
+                         close_fds = True)
+    out, err = subprocess.Popen.communicate(p)
+    
+    if len(err) == 0 and len(out) != 0:
+        exp_id = out.strip()
+    else:
+        if len(err) != 0:
+            print "Unable to get current experiment ID from offline database: ", err
+            return (int(exp_id), exp_name)
+
+    # Issue mysql command to get experiment name
+    mysqlcmd = 'echo "SELECT name FROM experiment WHERE experiment.id='+exp_id+'" | /usr/bin/mysql -N -h psdb -u regdb regdb'
+
+    p = subprocess.Popen([mysqlcmd],
+                         shell = True,
+                         stdin = subprocess.PIPE,
+                         stdout = subprocess.PIPE,
+                         stderr = subprocess.PIPE,
+                         close_fds = True)
+    out, err = subprocess.Popen.communicate(p)
+    
+    if len(err) == 0:
+        exp_name = out.strip()
+    else:
+        print "Unable to get current experiment name from offline database: ", err
+
+    return (int(exp_id), exp_name)
+
+
+#
 # The ProcMgr class maintains a dictionary with keys of
 # the form "<host>:<uniqueid>".  The following helper functions
 # are used to convert back and forth among <key>, <host>, and <uniqueid>.
@@ -87,6 +139,56 @@ def deduce_platform(configfilename):
 
     return rv
 
+
+#
+# deduce_instrument - deduce instrument (AMO, SXR, etc) from contents of config file
+#
+# Returns: 'AMO' by default
+#
+def deduce_instrument(configfilename):
+    rv = 'AMO'
+    valid_instruments = ['AMO','SXR','XPP','XCS','CXI','MEC','TST']
+    cc = {'platform': None, 'procmgr_config': None,
+          'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host'}
+    try:
+      execfile(configfilename, {}, cc)
+      if type(cc['instrument']) == type('') and cc['instrument'].isalpha():
+        rv = cc['instrument'].upper()
+    except:
+      print 'deduce_instrument Error:', sys.exc_info()[1]        
+
+    if rv not in valid_instruments:
+        print 'deduce_instrument Error: Invalid instrument ', rv
+
+    return rv
+
+#
+# parse_cmd
+#
+# Parse the cmd string looking for -E, -e, or -f and replacing
+# 'expname' and 'expnum' with current experiment name and number
+# from database
+#
+# Caution:  If the string 'expname' or 'expnum' appears anywhere
+# else in the command, it will also be replaced
+#
+def parse_cmd(cmd, expnum, expname):
+    # if -E (experiment name) is passed in, replace 'expname' with current
+    if cmd.find('-E') != -1 and cmd.find('expname') != -1:
+        cmd = cmd.replace('expname',expname)
+
+    # if -e (experiment number) is passed in, replace 'expnum' with current
+    if cmd.find('-e') != -1 and cmd.find('expnum') != -1:
+        cmd = cmd.replace('expnum', str(expnum))
+
+    # if -f (filename) and 'expname' are passed in, replace 'expname' with current
+    if cmd.find('-f') != -1 and cmd.find('expname') != -1:
+        fname = cmd.split('-f')[1].strip()
+        newfname = fname.replace('expname', expname)
+        cmd = cmd.replace(fname, newfname)
+    return cmd
+
+
 class ProcMgr:
 
     # index into arrays managed by this class
@@ -124,6 +226,9 @@ class ProcMgr:
     # platform initialized in __init__
     PLATFORM = -1
 
+    # instrument initialized in __init__
+    INSTRUMENT = ''
+    
     valid_flag_list = ['X', 'k', 's'] 
 
     def __init__(self, configfilename, platform, baseport=29000):
@@ -153,6 +258,11 @@ class ProcMgr:
 
         if (self.PLATFORM > 0):
             self.EXECMGRCTRL += (self.PLATFORM * 100)
+
+        # initialize the experiment
+        # (only used by online_ami to get current experiment)
+        self.INSTRUMENT = deduce_instrument(configfilename)
+        (expnum, expname) = getCurrentExperiment(self.INSTRUMENT)
 
         # The static port allocations must be processed first.
         # Read the config file and make a list with statically assigned
@@ -192,7 +302,8 @@ class ProcMgr:
 
           # --- cmd (required) ---
           if entry.has_key('cmd'):
-            self.cmd = entry['cmd']
+            # Do something special if -E, -e, or -f appear in cmd string
+            self.cmd = parse_cmd(entry['cmd'], expnum, expname)
           else:
             print 'Error: procmgr_config entry missing cmd:', entry
             self.cmd = 'error'
@@ -925,7 +1036,7 @@ if __name__ == '__main__':
     # collect the status, reading from the config file
     print '-------- calling ProcMgr(%s)' % sys.argv[1]
     try:
-        procMgr = ProcMgr(sys.argv[1])
+        procMgr = ProcMgr(sys.argv[1], platform=2)
     except IOError:
         print "%s: error while accessing %s" % (sys.argv[0], sys.argv[1])
         sys.exit(1)

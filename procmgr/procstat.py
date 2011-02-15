@@ -10,12 +10,12 @@ import locale
 import traceback
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-from ProcMgr import ProcMgr, deduce_platform, key2host, key2uniqueid
+from ProcMgr import ProcMgr, deduce_platform, key2host, key2uniqueid, getCurrentExperiment
 import ui_procStat
 import subprocess
 
 
-__version__ = "0.3"
+__version__ = "0.4"
 
 # OutDir Full Path Example: daq-sxr-ana01: /u2/pcds/pds/sxr/e19/e19-r0026-s00-c00.xtc
 sOutDirPrefix1 = "/u2/pcds/pds/"
@@ -31,9 +31,9 @@ def getOutputFileName(iExperiment, sExpType,eventNodes):
   if iExperiment < 0:
     return []
     
-  sExpSubDir = "e%d" % (iExperiment)  
+  sExpSubDir = "e%d" % (iExperiment)
   formFileStatusDatabase = []
-  zeroFilesFlag = False
+  zeroFilesFlag = False 
 
   noOfEventNodes = len(eventNodes)
   
@@ -303,7 +303,7 @@ class WinProcStat(QMainWindow, ui_procStat.Ui_mainWindow):
             __version__, platform.python_version(),
             QT_VERSION_STR, PYQT_VERSION_STR, platform.system()))  
     return
-    
+  
 def showUsage():
   print( """\
 Usage: %s  [-e | --experiment <Experiment Id>]  [-t | --type <Experiment Type>]  [-p | --platform <Platform Id>]  [-i | --interval <ProcMgr Query Interval>]  <Config file> 
@@ -360,10 +360,14 @@ def main():
     showUsage()
     return 1
   if not exptIdDefined:
-    print 'Expt ID Not Defined -- See Help:'
-    showUsage()
-    return 1
-
+    print "Reading current experiment from offline database"
+    iExperiment = getCurrentExperiment(sExpType)[0]
+    if iExperiment != -1:
+      exptIdDefined = True
+    else:
+      print 'Expt ID Not Defined -- See Help:'
+      showUsage()
+      return 1
 
   if len(lsRemainder) < 1:
     print( __file__ + ": Config file is not specified" )
