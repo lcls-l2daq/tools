@@ -10,7 +10,7 @@ import locale
 import traceback
 import subprocess
 
-__version__ = "0.1"
+__version__ = "0.2"
 
 class XtcClean:
   # static data
@@ -141,6 +141,60 @@ class XtcClean:
 
     return True
 
+#
+# getCurrentExperiment
+#
+# This function returns the current experiment ID from the
+# offline database based on the experiment (AMO, SXR, XPP, etc.)
+#
+# RETURNS:  Two values:  experiment number, experiment name
+#
+
+def getCurrentExperiment(exp):
+
+    exp = exp.upper()
+    exp_id = -1
+    exp_name = ''
+    
+    # Issue mysql command to get experiment ID
+    mysqlcmd = 'echo "select exper_id from expswitch WHERE exper_id IN ( SELECT experiment.id FROM experiment, instrument WHERE experiment.instr_id=instrument.id AND instrument.name=\''+exp+'\' ) ORDER BY switch_time DESC LIMIT 1" | /usr/bin/mysql -N -h psdb -u regdb regdb'
+
+    p = subprocess.Popen([mysqlcmd],
+                         shell = True,
+                         stdin = subprocess.PIPE,
+                         stdout = subprocess.PIPE,
+                         stderr = subprocess.PIPE,
+                         close_fds = True)
+    out, err = subprocess.Popen.communicate(p)
+
+    if len(err) == 0 and len(out) != 0:
+        exp_id = out.strip()
+    else:
+        if len(err) != 0: print "Unable to get current experiment ID from offline database: ", err
+        if len(out) == 0: print "No current experiment ID in offline database for experiment", exp
+        print "Try using -e | --exp option"
+        return (int(exp_id), exp_name)
+
+    # Issue mysql command to get experiment name
+    mysqlcmd = 'echo "SELECT name FROM experiment WHERE experiment.id='+exp_id+'" | mysql -N -h psdb -u regdb regdb'
+
+    p = subprocess.Popen([mysqlcmd],
+                         shell = True,
+                         stdin = subprocess.PIPE,
+                         stdout = subprocess.PIPE,
+                         stderr = subprocess.PIPE,
+                         close_fds = True)
+    out, err = subprocess.Popen.communicate(p)
+    
+    if len(err) == 0:
+        exp_name = out.strip()
+    else:
+        print "Unable to get current experiment name from offline database: ", err
+
+    return (int(exp_id), exp_name)
+
+
+
 
 def showUsage():
   print( """\
@@ -212,9 +266,12 @@ def main():
     showUsage()
     return 2
   if iExpId == -1:
-    print "Experiment ID Not Defined -- See Help below.\n"
-    showUsage()
-    return 2
+    print "Reading current experiment from offline database"
+    iExpId = getCurrentExperiment(sExpType)[0]
+    if iExpId == -1:
+      print "Experiment ID Not Defined -- See Help below.\n"
+      showUsage()
+      return 2
 
   xtcClean = XtcClean( sExpType, iExpId, iCleanType )
   xtcClean.run()
