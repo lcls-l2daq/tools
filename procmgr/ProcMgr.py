@@ -144,23 +144,21 @@ def deduce_platform(configfilename):
 #
 # deduce_instrument - deduce instrument (AMO, SXR, etc) from contents of config file
 #
-# Returns: 'AMO' by default
+# Returns: '' by default
 #
 def deduce_instrument(configfilename):
-    rv = 'AMO'
-    valid_instruments = ['AMO','SXR','XPP','XCS','CXI','MEC','TST']
-    cc = {'platform': None, 'procmgr_config': None,
+    rv = ''
+    cc = {'instrument': None, 'platform': None, 'procmgr_config': None,
           'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host',
           'rtprio':'rtprio'}
+
     try:
       execfile(configfilename, {}, cc)
       if type(cc['instrument']) == type('') and cc['instrument'].isalpha():
         rv = cc['instrument'].upper()
+
     except:
       print 'deduce_instrument Error:', sys.exc_info()[1]        
-
-    if rv not in valid_instruments:
-        print 'deduce_instrument Error: Invalid instrument ', rv
 
     return rv
 
@@ -232,6 +230,7 @@ class ProcMgr:
     INSTRUMENT = ''
     
     valid_flag_list = ['X', 'k', 's'] 
+    valid_instruments = ['AMO','SXR','XPP','XCS','CXI','MEC']
 
     def __init__(self, configfilename, platform, baseport=29000):
         self.pid = self.STRING_NOPID
@@ -264,7 +263,11 @@ class ProcMgr:
         # initialize the experiment
         # (only used by online_ami to get current experiment)
         self.INSTRUMENT = deduce_instrument(configfilename)
-        (expnum, expname) = getCurrentExperiment(self.INSTRUMENT)
+        if self.INSTRUMENT not in self.valid_instruments:
+            if self.INSTRUMENT != '':  print 'ERR: Invalid instrument ', self.INSTRUMENT
+            (expnum, expname) = (-1, '')
+        else:
+            (expnum, expname) = getCurrentExperiment(self.INSTRUMENT)
 
         # The static port allocations must be processed first.
         # Read the config file and make a list with statically assigned
