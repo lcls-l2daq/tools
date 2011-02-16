@@ -306,8 +306,26 @@ class ProcMgr:
         for entry in configlist:
           # ...process the fields
 
+          # --- real-time priority (optional) ---
+          self.rtprio = None
+          tmpsum = 0
+          if entry.has_key('rtprio'):
+            try:
+              tmpsum = int(entry['rtprio'])
+            except:
+              print 'Error: malformed rtprio value:', entry
+            if tmpsum:
+              # check if rtprio is in valid range
+              if (tmpsum < 1) or (tmpsum > 99):
+                print 'Error: rtprio not in range 1-99:', entry
+              else:
+                self.rtprio = tmpsum
+
           # --- cmd (required) ---
           if entry.has_key('cmd'):
+            # if real-time priority is set (see above), use /usr/bin/chrt
+            if (self.rtprio):
+              entry['cmd'] = '/usr/bin/chrt -f %d %s' % (self.rtprio, entry['cmd'])
             # Do something special if -E, -e, or -f appear in cmd string
             self.cmd = parse_cmd(entry['cmd'], expnum, expname)
           else:
@@ -335,21 +353,6 @@ class ProcMgr:
                 print 'ERR: invalid flag:', nextflag
           else:
             self.flags = '-'
-
-          # --- real-time priority (optional) ---
-          self.rtprio = None
-          tmpsum = 0
-          if entry.has_key('rtprio'):
-            try:
-              tmpsum = int(entry['rtprio'])
-            except:
-              print 'Error: malformed rtprio value:', entry
-            if tmpsum:
-              # check if rtprio is in valid range
-              if (tmpsum < 1) or (tmpsum > 99):
-                print 'Error: rtprio not in range 1-99:', entry
-              else:
-                self.rtprio = tmpsum
 
           # initialize dictionaries used for port assignments
           if not self.host in nextCtrlPort:
