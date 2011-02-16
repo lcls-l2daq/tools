@@ -1,10 +1,9 @@
 # default platform number, represented as a string
 if not platform: platform = '1'
-instrument = 'AMO'
 
 # list of processes to run
 #   required fields: id, cmd
-#   optional fields: host, port, flags
+#   optional fields: host, port, flags, rtprio
 procmgr_config = [
  {id:'hello', cmd:'/usr/bin/top', flags:'X'}
 ]
