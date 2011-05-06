@@ -472,7 +472,6 @@ try:
 		for i in range(nIPMB): ipmb[i].SetTriggerDelay(lSampleDelay)
 		for i in range(nIPMB): ipmb[i].SetTriggerPreSampleDelay(lPreSampleDelay)
 		for i in range(nIPMB): ipmb[i].SetAdcDelay(lADCDelay)
-		print 'ADC delay', lADCDelay
 ##			print 'lSampleDelay', lSampleDelay
 		startTime = time.time()
 		if not bCalibrate:

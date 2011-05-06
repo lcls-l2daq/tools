@@ -238,9 +238,9 @@ class IntensityProfileMonitorBoard:
                 delay = (lAdcDelay+CLOCK_PERIOD-1)/CLOCK_PERIOD
                 if delay > 0xffff:
                         raise RuntimeError, "ADC cannot be more than %dns" % (0xffff*CLOCK_PERIOD)
-		print 'writing adc delay register, value 0x%x, converted to 0x%x' %(lAdcDelay, delay)
+##		print 'writing adc delay register, value 0x%x, converted to 0x%x' %(lAdcDelay, delay)
                 self.WriteRegister(self.reg.adc_delay, delay)
-		print 'reading adc delay register back: 0x%x' %(self.ReadRegister(self.reg.adc_delay))
+##		print 'reading adc delay register back: 0x%x' %(self.ReadRegister(self.reg.adc_delay))
 
 	def CalibrationStart(self, lCalStrobeLength=0xff):
 		length = (lCalStrobeLength+CLOCK_PERIOD-1)/CLOCK_PERIOD
@@ -605,7 +605,6 @@ class IntensityProfileMonitorBoardData:
 				lst.append(self.Ch3)
 			elif count == 11:
 				lst.append(self.Ch0_ps)
-				print 'ch0_ps: ', self.Ch0_ps
 			elif count == 12:
 				lst.append(self.Ch1_ps)
 			elif count == 13:
