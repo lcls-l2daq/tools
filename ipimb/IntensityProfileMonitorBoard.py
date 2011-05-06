@@ -5,13 +5,11 @@
 #
 # Released under the GPLv2 licence <http://www.gnu.org/licenses/gpl-2.0.html>
 #
-
 PYSERIAL = [True, False][0]
 PEXPECTSERIAL = False
 TCPSERIAL = False
 UDPSERIAL = False##True
 DEBUG = [True, False][1]
-
 if PYSERIAL:
         import serial as serial
 elif PEXPECTSERIAL:
@@ -20,17 +18,17 @@ else:
         import socket
 import time
 
-CHARGEAMP_REF_MAX = 10
+CHARGEAMP_REF_MAX = 12
 CHARGEAMP_REF_STEPS = 65536
 
-CALIBRATION_V_MAX = 10
+CALIBRATION_V_MAX = 12
 CALIBRATION_V_STEPS = 65536
 
 INPUT_BIAS_MAX = 200
 INPUT_BIAS_STEPS = 65536
 
 CLOCK_PERIOD = 8
-ADC_RANGE = 3.3
+ADC_RANGE = 5.0
 ADC_STEPS = 65536
 
 DataPacketLength = 16
@@ -136,34 +134,34 @@ class IntensityProfileMonitorBoard:
 		low = self.ReadRegister(self.reg.timestamp1)
 		return up, low
 
-	def SetCalibrationMode(self, lstbChannels):
-		val = self.ReadRegister(self.reg.rg_config)
+	def SetCalibrationMode(self, lstbChannels):	#mlf Changed to Cal_rg_config from rg_config, bit 3
+		val = self.ReadRegister(self.reg.cal_rg_config)
 		val &= 0x7777
 		shift = 3
 		for b in lstbChannels:
 			if b:
 				val |= 1<<shift
 			shift+=4
-		self.WriteRegister(self.reg.rg_config, val)
+		self.WriteRegister(self.reg.cal_rg_config, val)
 
-	def SetCalibrationDivider(self, lstlChannels):
+	def SetCalibrationDivider(self, lstlChannels):	#mlf Changed to 2 bit encoding instead of 3
 		val = self.ReadRegister(self.reg.cal_rg_config)
-		val &= 0x8888
+		val &= 0xCCCC
 		shift = 0
 		for l in lstlChannels:
 			if l<=1:
 				val |= 1<<shift
-			elif l<=100:
+			elif l<=2:
 				val |= 2<<shift
-			elif l<=10000:
-				val |= 4<<shift
+			elif l<=3:
+				val |= 3<<shift
 			shift+=4
 		self.WriteRegister(self.reg.cal_rg_config, val)		
 
-	def SetCalibrationPolarity(self, lstbChannels):
+	def SetCalibrationPolarity(self, lstbChannels):	#mlf Changed to bit 2 from bit 3
 		val = self.ReadRegister(self.reg.cal_rg_config)
-		val &= 0x7777
-		shift = 3
+		val &= 0xBBBB
+		shift = 2
 		for b in lstbChannels:
 			if b:
 				val |= 1<<shift
@@ -174,37 +172,30 @@ class IntensityProfileMonitorBoard:
 	def SetChargeAmplifierRef(self, fRefVoltage):
 		i = int((fRefVoltage/CHARGEAMP_REF_MAX)*(CHARGEAMP_REF_STEPS-1))
 		if i >= CHARGEAMP_REF_STEPS:
-			raise RuntimeError, "Invalid charge amplifier reference of %fV, max is %fV" \
-					% (fRefVoltage, CHARGEAMP_REF_MAX)
+			raise RuntimeError, "Invalid charge amplifier reference of %fV, max is %fV" %(fRefVoltage, CHARGEAMP_REF_MAX)
 		self.WriteRegister(self.reg.bias_data, i)	
 
 	def SetCalibrationVoltage(self, fCalibrationVoltage):
 		i = int((fCalibrationVoltage/CALIBRATION_V_MAX)*(CALIBRATION_V_STEPS-1))
 		if i >= CALIBRATION_V_STEPS:
-			raise RuntimeError, "Invalid Calibration Bias of %fV, max is %fV" \
-					% (fCalibrationVoltage, CALIBRATION_V_MAX)
+			raise RuntimeError, "Invalid Calibration Bias of %fV, max is %fV" %(fCalibrationVoltage, CALIBRATION_V_MAX)
 		self.WriteRegister(self.reg.cal_data, i)
 		t0 = time.time()
-		time.sleep(0.00005) ## DAC says it needs 10 us to settle
+		time.sleep(0.001) ## DAC says it needs 10 us to settle
 		t = time.time()
 		self.sleepTime += t-t0
 
-	def SetChargeAmplifierMultiplier(self, lstlChannels):
+	def SetChargeAmplifierMultiplier(self, lstlChannels):	#mlf Changed to 15 range choices, 1 through 8 normal
 		val = self.ReadRegister(self.reg.rg_config)
-		val &= 0x8888
+		val &= 0x0
 		shift = 0
 		for l in lstlChannels:
-			if l<=1:
-				val |= 4<<shift
-			elif l<=100:
-				val |= 2<<shift
-			elif l<=10000:
-				val |= 1<<shift
+			val |= l<<shift
 			shift+=4
 		if DEBUG:
 			print 'SCAM: ', hex(val)
 		self.WriteRegister(self.reg.rg_config, val)		
-	
+		
 	def SetInputBias(self, fBiasVoltage):
 		i = int((fBiasVoltage/INPUT_BIAS_MAX)*(INPUT_BIAS_STEPS-1))
 		if i >= INPUT_BIAS_STEPS:
@@ -228,7 +219,7 @@ class IntensityProfileMonitorBoard:
 		delay = (lAcqDelay+CLOCK_PERIOD-1)/CLOCK_PERIOD
 		if delay > 0xfff:
 			raise RuntimeError, "Acquisition window cannot be delayed more than %dns" % (0xfff*CLOCK_PERIOD)
-		self.WriteRegister(self.reg.reset, (length<<12) | (delay & 0xfff))	
+		self.WriteRegister(self.reg.reset, (length<<12) | (delay & 0xfff))
                 #print "Reset set to 0x%08x\n" % (self.ReadRegister(self.reg.reset))
 
 	def SetTriggerDelay(self, lTriggerDelay):
@@ -242,6 +233,14 @@ class IntensityProfileMonitorBoard:
 		if delay > 0xffff:
 			raise RuntimeError, "Trigger presample delay cannot be more than %dns" % (0xffff*CLOCK_PERIOD)
 		self.WriteRegister(self.reg.trig_ps_delay, delay)
+
+        def SetAdcDelay(self, lAdcDelay):
+                delay = (lAdcDelay+CLOCK_PERIOD-1)/CLOCK_PERIOD
+                if delay > 0xffff:
+                        raise RuntimeError, "ADC cannot be more than %dns" % (0xffff*CLOCK_PERIOD)
+		print 'writing adc delay register, value 0x%x, converted to 0x%x' %(lAdcDelay, delay)
+                self.WriteRegister(self.reg.adc_delay, delay)
+		print 'reading adc delay register back: 0x%x' %(self.ReadRegister(self.reg.adc_delay))
 
 	def CalibrationStart(self, lCalStrobeLength=0xff):
 		length = (lCalStrobeLength+CLOCK_PERIOD-1)/CLOCK_PERIOD
@@ -259,19 +258,22 @@ class IntensityProfileMonitorBoard:
 			print 'response from register:', resp.Data
 			raise RuntimeError, "Invalid CRC accessing register 0x%02x" % (lRegAddr)
 		return resp.Data
-	
+
 	def WriteRegister(self, lRegAddr, lRegValue):
 		cmd = IntensityProfileMonitorBoardCommand(True, lRegAddr, lRegValue)
 		self.writeCommand(cmd)
-	
+
 	def WaitData(self):
+		i = 0
 		while self.inWaiting(False) < DataPacketLength:
+			#i+=1
+			#print 'in inWaiting, waiting ', i
 			pass
 		data = IntensityProfileMonitorBoardData(self.read(False, DataPacketLength))
 		if not data.CheckCRC():
 			raise RuntimeError, "Invalid data packet CRC"
 		return data
-	
+
 	def read(self, bCommand, lBytes):
 		lst = []
 		if bCommand:
@@ -288,7 +290,7 @@ class IntensityProfileMonitorBoard:
 			print 'read com/resp', bCommand, ', bytes expected', lBytes, ', cr list len', len(self.lstCommands), ', data list len', len(self.lstData), ', list length', len(lst), [hex(b) for b in lst], [hex(b) for b in self.lstCommands]##, [hex(b) for b in self.lstData]
 ##			pass
 		return lst
-		
+
 	def writeCommand(self, lstBytes):
 		count = 0
 		string = ""
@@ -307,7 +309,6 @@ class IntensityProfileMonitorBoard:
 				self.ser.write("".join([chr(i) for i in w]))
 				t = time.time()
 				self.writeTime += t-t0
-
 			elif PEXPECTSERIAL:
 				self.ser.cmd("".join([chr(i) for i in w]))
                         else:
@@ -325,8 +326,10 @@ class IntensityProfileMonitorBoard:
 
 	def inWaiting(self, bCommand):
 		if PYSERIAL:
+##			time.sleep(0.0001)
 			t0 = time.time()
 			n = self.ser.inWaiting()
+			# print "have found %d bytes in inWaiting" %(n)
 			while n >= 3:
 				w0 = ord(self.ser.read(1))
 				# Out of sync: bit 8 must be set
@@ -473,6 +476,7 @@ class IntensityProfileMonitorBoardRegisters:
 		self.cal_strobe = 0x0e
 		self.trig_delay = 0x0f
 		self.trig_ps_delay = 0x10
+		self.adc_delay = 0x11   ## super-expert register
 
 class IntensityProfileMonitorBoardCommand:
 	def __init__(self, bWrite, lAddr, lData = 0):
@@ -486,8 +490,7 @@ class IntensityProfileMonitorBoardCommand:
 		return self.lst[i]
 	def __len__(self):
 		return len(self.lst)
-		
-
+	
 class IntensityProfileMonitorBoardResponse:
 	def __init__(self, lstPacket):
 		if len(lstPacket) != 4:
@@ -522,7 +525,7 @@ class IntensityProfileMonitorBoardResponse:
 		if CRC(self[0:3]) == self.Checksum:
 			return True
 		return False
-
+	
 class IntensityProfileMonitorBoardData:
 	def __init__(self, lstPacket):
 		if len(lstPacket) != DataPacketLength:
@@ -602,6 +605,7 @@ class IntensityProfileMonitorBoardData:
 				lst.append(self.Ch3)
 			elif count == 11:
 				lst.append(self.Ch0_ps)
+				print 'ch0_ps: ', self.Ch0_ps
 			elif count == 12:
 				lst.append(self.Ch1_ps)
 			elif count == 13:

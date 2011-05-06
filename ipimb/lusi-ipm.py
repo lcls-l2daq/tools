@@ -59,7 +59,7 @@ fCalData_V_low = 2.5
 fCalData_V_high = 2.5
 # Length of time the charge amplifier is NOT in reset
 # ie when the signal is sampled
-lAcqDelay_ns = 0##xFFF
+lAcqDelay_ns = 0xFFF
 lAcqLength_ns_low = 100*1024
 lAcqLength_ns_high = 100*1024
 # ADC Bias voltage in Volts
@@ -91,6 +91,9 @@ lSampleDelayMax_ns = 0xffff*8
 # Trigger delay: delay between trigger and ADC sampling in ns
 lPreSampleDelayMin_ns = 8900
 lPreSampleDelayMax_ns = 8900
+# ADC_delay: delay between ADC samples
+lADCDelayMin_ns = 1000
+lADCDelayMax_ns = 1000
 # Length of the calibration pulse (time the calibration voltage will be applied) in ns
 lCalibrationStrobeLengthMin_ns = 128
 lCalibrationStrobeLengthMax_ns = 128
@@ -288,6 +291,13 @@ try:
 				lPreSampleDelayMax_ns = lPreSampleDelayMin_ns
 			else:
 				[lPreSampleDelayMin_ns, lPreSampleDelayMax_ns] = [strConvert(l,"long") for l in sys.argv[i].split("-")]
+                elif sys.argv[i] == "--adc_delay":
+                        i += 1
+                        if len(sys.argv[i].split("-")) == 1:
+                                lADCDelayMin_ns = strConvert(sys.argv[i],"long")
+                                lADCDelayMax_ns = lADCDelayMin_ns
+                        else:
+                                [lADCDelayMin_ns, lADCDelayMax_ns] = [strConvert(l,"long") for l in sys.argv[i].split("-")]
 		elif sys.argv[i] == "--read":
 			i += 1
 			lRegAddr = strConvert(sys.argv[i],"int")
@@ -328,6 +338,7 @@ try:
 		ipmb.append(IntensityProfileMonitorBoard.IntensityProfileMonitorBoard(iComPort[i]))
 
 		lStatus = ipmb[i].ReadRegister(ipmb[i].reg.status)
+##		ipmb.SetTriggerPreSampleDelay(0x800)
 ##		up, low = ipmb[i].setTimestampCounter(0x12345, 0x987654)
 ##		print "set timestamp counter to 0x1234500987654, read 0x%x%x\n" %(up, low)
 		# Detect the mode selected and do the appropriate thing
@@ -379,8 +390,9 @@ try:
 	if sMode == "RegRead":
 		print 'assume one board'
 		lRegValue = ipmb[0].ReadRegister(lRegAddr)
-		print "0x%08x" % (lRegValue)
+		print "Register 0x%x value 0x%08x" % (lRegAddr, lRegValue)
 	elif sMode == "RegWrite":
+		print 'assume one board'
 		ipmb[0].WriteRegister(lRegAddr, lRegValue)
 	else:
 		for i in range(nIPMB): ipmb[i].SetCalibrationMode(lstCalibrateChannels)
@@ -439,9 +451,12 @@ try:
 		lSampleDelay = lSampleDelayMin_ns
 		if lNumEvents > 1:
 			lPreSampleDelayStep = (lPreSampleDelayMax_ns - lPreSampleDelayMin_ns) / (lNumEvents - 1)
+			lADCDelayStep = (lADCDelayMax_ns - lADCDelayMin_ns) / (lNumEvents - 1)
 		else:
 			lPreSampleDelayStep = 1
+			lADCDelayStep = 1
 		lPreSampleDelay = lPreSampleDelayMin_ns
+		lADCDelay = lADCDelayMin_ns
 		if lNumEvents > 1:
 			lCalibrationStrobeLengthStep = (lCalibrationStrobeLengthMax_ns - lCalibrationStrobeLengthMin_ns) / (lNumEvents - 1)
 		else:
@@ -456,6 +471,8 @@ try:
 ##			print 'lAcqLength, lAcqDelay_ns', lAcqLength, lAcqDelay_ns
 		for i in range(nIPMB): ipmb[i].SetTriggerDelay(lSampleDelay)
 		for i in range(nIPMB): ipmb[i].SetTriggerPreSampleDelay(lPreSampleDelay)
+		for i in range(nIPMB): ipmb[i].SetAdcDelay(lADCDelay)
+		print 'ADC delay', lADCDelay
 ##			print 'lSampleDelay', lSampleDelay
 		startTime = time.time()
 		if not bCalibrate:
@@ -485,6 +502,8 @@ try:
 				for j in range(nIPMB): ipmb[j].SetTriggerDelay(lSampleDelay)
 			if lPreSampleDelayStep != 0:
 				for j in range(nIPMB): ipmb[j].SetTriggerPreSampleDelay(lPreSampleDelay)
+			if lADCDelayStep != 0:
+				for j in range(nIPMB): ipmb[j].SetTriggerADCDelay(lADCDelay)
 ##			print 'lSampleDelay', lSampleDelay
 			t0 = time.time()
 ##			time.sleep(0.0001)
@@ -510,13 +529,13 @@ try:
 				if bCalibrate:
 					for j in range(nIPMB):
 						data = dataArray[j]
-						print "Board %d, Sample 0x%x: CAL %fV ts 0x%x ticks, rg_config 0x%04x, cal_rg_config 0x%04x, sample_delay %dns, ch0 %fV, ch1 %fV, ch2 %fV, ch3 %fV" \
-							% (j, iEvent, fCalibrationData, data.GetTimestamp_ticks(), data.Config0, data.Config1, data.GetTriggerDelay_ns(), data.GetCh0_V(), data.GetCh1_V(), data.GetCh2_V(), data.GetCh3_V())
+						print "Board %d, Sample 0x%x: CAL %fV ts 0x%x ticks, rg_config 0x%04x, cal_rg_config 0x%04x, sample_delay %dns, ch0 %fV, ch1 %fV, ch2 %fV, ch3 %fV, ch0_ps %fV, ch1_ps %fV, ch2_ps %fV, ch3_ps %fV" \
+							% (j, iEvent, fCalibrationData, data.GetTimestamp_ticks(), data.Config0, data.Config1, data.GetTriggerDelay_ns(), data.GetCh0_V(), data.GetCh1_V(), data.GetCh2_V(), data.GetCh3_V(), data.GetCh0_ps_V(), data.GetCh1_ps_V(), data.GetCh2_ps_V(), data.GetCh3_ps_V())
 				else:
 					for j in range(nIPMB):
 						data = dataArray[j]
-						print "Board %d, Sample %d: ts 0x%x ticks, rg_config 0x%04x, cal_rg_config 0x%04x, sample_delay %dns, ch0 %fV, ch1 %fV, ch2 %fV, ch3 %fV" \
-						      %(j, iEvent, data.GetTimestamp_ticks(), data.Config0, data.Config1, data.GetTriggerDelay_ns(), data.GetCh0_V(), data.GetCh1_V(), data.GetCh2_V(), data.GetCh3_V())
+						print "Board %d, Sample %d: ts 0x%x ticks, rg_config 0x%04x, cal_rg_config 0x%04x, sample_delay %dns, ch0 %fV, ch1 %fV, ch2 %fV, ch3 %fV, ch0_ps %fV, ch1_ps %fV, ch2_ps %fV, ch3_ps %fV" \
+						      %(j, iEvent, data.GetTimestamp_ticks(), data.Config0, data.Config1, data.GetTriggerDelay_ns(), data.GetCh0_V(), data.GetCh1_V(), data.GetCh2_V(), data.GetCh3_V(), data.GetCh0_ps_V(), data.GetCh1_ps_V(), data.GetCh2_ps_V(), data.GetCh3_ps_V())
 			else:
 				if bCalibrate:
 					for j in range(nIPMB):
@@ -570,6 +589,10 @@ try:
 			# Wrap around needed when nevents is infinite
 			if lPreSampleDelay > lPreSampleDelayMax_ns:
 				lPreSampleDelay = lPreSampleDelayMin_ns
+                        lADCDelay += lADCDelayStep
+                        # Wrap around needed when nevents is infinite
+                        if lADCDelay > lADCDelayMax_ns:
+                                lADCDelay = lADCDelayMin_ns
 			lCalibrationStrobeLength += lCalibrationStrobeLengthStep
 			# Wrap around needed when nevents is infinite
 			if lCalibrationStrobeLength > lCalibrationStrobeLengthMax_ns:
@@ -588,4 +611,5 @@ except SystemExit:
 	raise
 except:
 	print "ERROR: %s." % (sys.exc_value)
+	traceback.print_tb(sys.exc_traceback)
 	script_exit(2)
