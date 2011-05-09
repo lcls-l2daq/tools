@@ -675,7 +675,7 @@ class ProcMgr:
                         redirect_string = ''
 
                 startcmd = \
-                        '/reg/g/pcds/package/procServ-2.4.0/procServ --noautorestart --name %s %s --allow --coresize %d %s %s %s' % \
+                        '/reg/g/pcds/package/procServ-2.4.0-ts/procServ --noautorestart --name %s %s --allow --coresize %d %s %s %s' % \
                         (key2uniqueid(key), \
                         waitflag, \
                         coresize, \
