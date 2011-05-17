@@ -57,6 +57,8 @@ def entry_lint(dict):
         report_error('procmgr_config entry includes invalid value \'%s\' (not a string)' % str(value))
   return rv
 
+valid_instruments = ['AMO','SXR','XPP','XCS','CXI','MEC']
+
 parser = optparse.OptionParser(usage=usage)
 
 parser.add_option("-p", dest="platform", metavar="<platform>",
@@ -79,9 +81,10 @@ if os.path.isfile(configfile) != 1:
 # The following global variables are passed in when executing the config file:
 #  - platform = value passed on command line as a string, or None
 #  - procmgr_config = None
+#  - instrument = None
 #  - id, cmd, flags, port, host, rtprio = keyword strings
 #
-config = {'platform': options.platform, 'procmgr_config': None,
+config = {'platform': options.platform, 'procmgr_config': None, 'instrument': None,
           'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host',
           'rtprio':'rtprio'}
 
@@ -122,9 +125,16 @@ else:
       else:
         entry_id_list.append(entry_id)
 
+  if config['instrument']:
+      config['instrument'] = config['instrument'].upper()
+      if (config['instrument'] not in valid_instruments):
+          report_error('instrument \'%s\' not recognized' % config['instrument'])
+
 if options.verbose and config['procmgr_config']:
   print '-- platform -----------------------------------------'
   print config['platform']
+  print '-- instrument ---------------------------------------'
+  print config['instrument']
   print '-- procmgr_config -----------------------------------'
   print config['procmgr_config']
   print '-----------------------------------------------------'
