@@ -675,7 +675,7 @@ class ProcMgr:
                         redirect_string = ''
 
                 startcmd = \
-                        '/reg/g/pcds/package/procServ-2.4.0-ts/procServ --noautorestart --name %s %s --allow --coresize %d %s %s %s' % \
+                        '/reg/g/pcds/package/procServ-2.5.1/procServ --noautorestart --name %s %s --allow --coresize %d %s %s %s' % \
                         (key2uniqueid(key), \
                         waitflag, \
                         coresize, \
@@ -1052,17 +1052,26 @@ class ProcMgr:
 #
 if __name__ == '__main__':
     basename = os.path.splitext(os.path.basename(sys.argv[0]))[0]
-    usage = "Usage: %s configfile" % basename
-    if len(sys.argv) != 2:
+    usage = "Usage: %s configfile [platform]" % basename
+    default_platform = 1
+    if len(sys.argv) == 2:
+        platform = default_platform
+    elif len(sys.argv) != 3:
         print usage
         sys.exit(1)
+    else:
+        try:
+            platform = int(sys.argv[2])
+        except ValueError:
+            platform = default_platform
+            print "%s: invalid platform (%s), using default (%d)" % (sys.argv[0], sys.argv[2], platform)
 
     # collect the status, reading from the config file
-    print '-------- calling ProcMgr(%s)' % sys.argv[1]
+    print '-------- calling ProcMgr(%s, %d)' % (sys.argv[1], platform)
     try:
-        procMgr = ProcMgr(sys.argv[1])
+        procMgr = ProcMgr(sys.argv[1], platform)
     except IOError:
-        print "%s: error while accessing %s" % (sys.argv[0], sys.argv[1])
+        print "%s: error while accessing %s %d" % (sys.argv[0], sys.argv[1], platform)
         sys.exit(1)
 
     # error check
@@ -1082,11 +1091,11 @@ if __name__ == '__main__':
     del procMgr
 
     # collect the status again
-    print '-------- calling procMgr(%s)' % sys.argv[1]
+    print '-------- calling ProcMgr(%s, %d)' % (sys.argv[1], platform)
     try:
-        procMgr = procMgr(sys.argv[1])
+        procMgr = ProcMgr(sys.argv[1], platform)
     except IOError:
-        print "%s: error while accessing %s" % (sys.argv[0], sys.argv[1])
+        print "%s: error while accessing %d" % (sys.argv[0], sys.argv[1], platform)
         sys.exit(1)
 
     # error check
@@ -1106,11 +1115,11 @@ if __name__ == '__main__':
     del procMgr
 
     # collect the status again
-    print '-------- calling procMgr(%s)' % sys.argv[1]
+    print '-------- calling ProcMgr(%s, %d)' % (sys.argv[1], platform)
     try:
-        procMgr = procMgr(sys.argv[1])
+        procMgr = ProcMgr(sys.argv[1], platform)
     except IOError:
-        print "%s: error while accessing %s" % (sys.argv[0], sys.argv[1])
+        print "%s: error while accessing %s %d" % (sys.argv[0], sys.argv[1], platform)
         sys.exit(1)
 
     # show the status again
