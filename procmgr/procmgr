@@ -117,6 +117,10 @@ usage = "usage: %prog { start | stop | restart | status } configfile [-h] [-v] [
 
 parser = OptionParser(usage=usage)
 
+parser.add_option("--help-flags",
+                  action="store_true", dest="helpFlags", default=False,
+                  help="show flags help message and exit")
+
 parser.add_option("-v", "--verbose",
                   action="store_true", dest="verbose", default=False,
                   help="be verbose")
@@ -136,6 +140,10 @@ parser.add_option("-o", type="string", dest="logpath", metavar="<logpath>",
                   help="output directory (default=%s)" % homedir)
 
 (options, args) = parser.parse_args()
+
+if options.helpFlags:
+    print "supported flags in the procmgr configuration file:\n  X       open an xterm to monitor process output\n  k       do not stop process with '%s stop,' only with '%s stop UNIQUEID'\n          (statically assigning the port# in the procmgr configuration file adds the k flag)\n  s       when stopping the process, send SIGINT before SIGTERM" % (sys.argv[0], sys.argv[0])
+    sys.exit(0)
 
 if len(args) < 2:
     parser.error("at least two arguments required")
