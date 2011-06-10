@@ -18,7 +18,7 @@ class XtcClean:
     "amo": ["daq-amo-dss01", "daq-amo-dss02", "daq-amo-dss03", "daq-amo-dss04"],
     "sxr": ["daq-sxr-dss01", "daq-sxr-dss02", "daq-sxr-dss03", "daq-sxr-dss04"],
     "xpp": ["daq-xpp-dss01", "daq-xpp-dss02", "daq-xpp-dss03", "daq-xpp-dss04"],
-    "cxi": ["daq-cxi-dss01", "daq-cxi-dss02"]
+    "cxi": ["daq-cxi-dss01", "daq-cxi-dss02", "daq-cxi-dss03", "daq-cxi-dss04"]
   }
   iConnectTimeOut = 3
     
@@ -201,7 +201,7 @@ def showUsage():
 Usage: %s [-t | --type <Experiment Type>]* [-e | --exp
   <Experiment Id>]* [-c|--clean] [--force] [-v] [-h]
 
-  -t | --type       <Experiment Type>  *Set experiment type (amo, sxr, xpp)
+  -t | --type       <Experiment Type>  *Set experiment type (amo, sxr, xpp, cxi)
   -e | --exp        <Experiment Id>    *Set experiment id
   -c | --clean                         Execute the real clean-up, with yes/no
                                          prompt
