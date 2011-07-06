@@ -10,12 +10,12 @@ import locale
 import traceback
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-from ProcMgr import ProcMgr, deduce_platform, key2host, key2uniqueid, getCurrentExperiment
+from ProcMgr import ProcMgr, deduce_platform, key2host, key2uniqueid
 import ui_procStat
 import subprocess
 
 
-__version__ = "0.4"
+__version__ = "0.3"
 
 # OutDir Full Path Example: daq-sxr-ana01: /u2/pcds/pds/sxr/e19/e19-r0026-s00-c00.xtc
 sOutDirPrefix1 = "/u2/pcds/pds/"
@@ -31,9 +31,9 @@ def getOutputFileName(iExperiment, sExpType,eventNodes):
   if iExperiment < 0:
     return []
     
-  sExpSubDir = "e%d" % (iExperiment)
+  sExpSubDir = "e%d" % (iExperiment)  
   formFileStatusDatabase = []
-  zeroFilesFlag = False 
+  zeroFilesFlag = False
 
   noOfEventNodes = len(eventNodes)
   
@@ -51,6 +51,11 @@ def getOutputFileName(iExperiment, sExpType,eventNodes):
       zeroFilesFlag = True
     if output == "total 0\n":
       zeroFilesFlag = True   
+    if len(output.split()) < 5:
+      print 'getOutputFileName: sshCommand (%s)' % sshCommand
+      print 'getOutputFileName: output too short (%s)' % output
+      zeroFilesFlag = True
+
     # extract the output and arrange it for graphical interface    
     if not zeroFilesFlag:
       splittedOutput = output.split()
@@ -108,6 +113,7 @@ def procMgrThread(sConfigFile, iExperiment, sExpType, iPlatform, fQueryInterval,
       printStackTrace()
       evgProcMgr.emit(SIGNAL("ProcMgrGeneralError"), sConfigFile, iPlatform ) # Send out the signal to notify the main window      
     
+    fileStatusDatabase = None  # set default value
     try:        
       fileStatusDatabase = getOutputFileName( iExperiment, sExpType,eventNodes )
       
@@ -122,8 +128,11 @@ def procMgrThread(sConfigFile, iExperiment, sExpType, iPlatform, fQueryInterval,
       printStackTrace()
       evgProcMgr.emit(SIGNAL("ThreadGeneralError"), sErrorReport ) # Send out the signal to notify the main window      
         
-    # Send out the signal to notify the main window
-    evgProcMgr.emit(SIGNAL("Updated"), ldProcStatus, fileStatusDatabase, iExperiment, sExpType)    
+    if fileStatusDatabase != None:
+      # Send out the signal to notify the main window
+      evgProcMgr.emit(SIGNAL("Updated"), ldProcStatus, fileStatusDatabase, iExperiment, sExpType)    
+    else:
+      print( "No file status available -- skipping update" )
     time.sleep(fQueryInterval )
       
   return
@@ -303,7 +312,7 @@ class WinProcStat(QMainWindow, ui_procStat.Ui_mainWindow):
             __version__, platform.python_version(),
             QT_VERSION_STR, PYQT_VERSION_STR, platform.system()))  
     return
-  
+    
 def showUsage():
   print( """\
 Usage: %s  [-e | --experiment <Experiment Id>]  [-t | --type <Experiment Type>]  [-p | --platform <Platform Id>]  [-i | --interval <ProcMgr Query Interval>]  <Config file> 
@@ -360,14 +369,10 @@ def main():
     showUsage()
     return 1
   if not exptIdDefined:
-    print "Reading current experiment from offline database"
-    iExperiment = getCurrentExperiment(sExpType)[0]
-    if iExperiment != -1:
-      exptIdDefined = True
-    else:
-      print 'Expt ID Not Defined -- See Help:'
-      showUsage()
-      return 1
+    print 'Expt ID Not Defined -- See Help:'
+    showUsage()
+    return 1
+
 
   if len(lsRemainder) < 1:
     print( __file__ + ": Config file is not specified" )
