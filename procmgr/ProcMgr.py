@@ -46,7 +46,7 @@ def getCurrentExperiment(exp):
     exp_name = ''
     
     # Issue mysql command to get experiment ID
-    mysqlcmd = 'echo "select exper_id from expswitch WHERE exper_id IN ( SELECT experiment.id FROM experiment, instrument WHERE experiment.instr_id=instrument.id AND instrument.name=\''+exp+'\' ) ORDER BY switch_time DESC LIMIT 1" | /usr/bin/mysql -N -h psdb -u regdb regdb'
+    mysqlcmd = 'echo "select exper_id from expswitch WHERE exper_id IN ( SELECT experiment.id FROM experiment, instrument WHERE experiment.instr_id=instrument.id AND instrument.name=\''+exp+'\' ) ORDER BY switch_time DESC LIMIT 1" | /usr/bin/mysql -N -h psdb -u regdb_reader regdb'
 
     p = subprocess.Popen([mysqlcmd],
                          shell = True,
@@ -64,7 +64,7 @@ def getCurrentExperiment(exp):
             return (int(exp_id), exp_name)
 
     # Issue mysql command to get experiment name
-    mysqlcmd = 'echo "SELECT name FROM experiment WHERE experiment.id='+exp_id+'" | /usr/bin/mysql -N -h psdb -u regdb regdb'
+    mysqlcmd = 'echo "SELECT name FROM experiment WHERE experiment.id='+exp_id+'" | /usr/bin/mysql -N -h psdb -u regdb_reader regdb'
 
     p = subprocess.Popen([mysqlcmd],
                          shell = True,
