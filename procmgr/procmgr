@@ -55,10 +55,12 @@ def _stop(argv0, args, runconfig, lastconfig, configfile, options):
 #
 def _start(argv0, args, runconfig, lastconfig, configfile, options):
     _start_rv = 1   # return value
-    if os.path.exists(runconfig):
+    if (os.path.exists(runconfig)) and (len(args) == 0):
         print "It is necessary to stop the running config before starting '%s'." % configfile
         print "If this is incorrect, remove '%s'." % runconfig
     else:
+        if (os.path.exists(runconfig)):
+            configfile = runconfig
         try:
             print "%s: using config file '%s' to start" % (argv0, configfile)
             handle = ProcMgr(configfile, options.platform)
@@ -77,7 +79,8 @@ def _start(argv0, args, runconfig, lastconfig, configfile, options):
                         shutil.copyfile(configfile, lastconfig)
 
                     if os.path.exists(lastconfig):
-                        os.symlink(os.path.basename(lastconfig), runconfig)
+                        if not os.path.exists(runconfig):
+                            os.symlink(os.path.basename(lastconfig), runconfig)
                     else:
                         print "%s: '%s' not found" % (sys.argv0, lastconfig)
                         _start_rv = 1
