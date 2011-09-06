@@ -11,6 +11,7 @@ See the sample scripts for basic operation:
    - sampleSingleChannelCalibration.csh is a calibration script for running
      a charge injection calibration on a channel (0 by default) over all 
      gain ranges; one must not apply an external trigger during the test
+   - sampleRead.csh is a simple test of serial connectivity if all else fails
 
 The user will likely want to tune a few of the parameters to suit the
 situation, in particular --serial (the PCIe port addressed - see the
