@@ -8,6 +8,7 @@ from os import remove, symlink
 import sys
 import shutil
 import filecmp
+import stat
 
 #
 # _stop
@@ -73,10 +74,12 @@ def _start(argv0, args, runconfig, lastconfig, configfile, options):
             if (_start_rv == 0) and (dynamicCount > 0):
                 # copy cnf to cnf.last, then link to cnf.running to cnf.last
                 try:
-                    if not os.path.exists(lastconfig):
+                    if (not os.path.exists(lastconfig)) or (not filecmp.cmp(configfile, lastconfig)):
                         shutil.copyfile(configfile, lastconfig)
-                    elif filecmp.cmp(configfile, lastconfig) == 0:
-                        shutil.copyfile(configfile, lastconfig)
+                        # chmod a+rw
+                        os.chmod(lastconfig, stat.S_IRUSR | stat.S_IWUSR |
+                                             stat.S_IRGRP | stat.S_IWGRP |
+                                             stat.S_IROTH | stat.S_IWOTH)
 
                     if os.path.exists(lastconfig):
                         if not os.path.exists(runconfig):
