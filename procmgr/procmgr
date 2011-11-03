@@ -82,11 +82,11 @@ def _start(argv0, args, runconfig, lastconfig, configfile, options):
                         if not os.path.exists(runconfig):
                             os.symlink(os.path.basename(lastconfig), runconfig)
                     else:
-                        print "%s: '%s' not found" % (sys.argv0, lastconfig)
+                        print "%s: '%s' not found" % (sys.argv[0], lastconfig)
                         _start_rv = 1
                     
                 except IOError:
-                    print "%s: i/o error updating %s and %s" % (sys.argv0, runconfig, lastconfig)
+                    print "%s: i/o error updating %s and %s" % (sys.argv[0], runconfig, lastconfig)
                     _start_rv = 1
 
     return _start_rv
