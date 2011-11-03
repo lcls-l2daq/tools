@@ -674,12 +674,12 @@ class ProcMgr:
                         print 'ERR: chmod %s failed' % logpath
                         redirect_string = ''
 
-                cmdtmp = value[self.DICT_CMD]
-                if (os.path.isfile(value[self.DICT_CMD])):
-                  cmdtmp = os.path.realpath(value[self.DICT_CMD])
+                cmdSplit = value[self.DICT_CMD].split(None, 1)
+                if (os.path.isfile(cmdSplit[0])):
+                  cmdtmp = os.path.realpath(cmdSplit[0]) + ' ' + cmdSplit[1]
                 else:
-                  print 'ERR: %s not found' % value[self.DICT_CMD]
-                  cmdtmp = '/bin/false ' + value[self.DICT_CMD]
+                  print 'ERR: %s not found' % cmdSplit[0]
+                  cmdtmp = '/bin/echo \"File not found: ' + cmdSplit[0] + '"'
 
                 startcmd = \
                         '/reg/g/pcds/package/procServ-2.5.1/procServ --noautorestart --name %s %s --allow --coresize %d %s %s %s' % \
