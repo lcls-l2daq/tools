@@ -674,13 +674,20 @@ class ProcMgr:
                         print 'ERR: chmod %s failed' % logpath
                         redirect_string = ''
 
+                cmdtmp = value[self.DICT_CMD]
+                if (os.path.isfile(value[self.DICT_CMD])):
+                  cmdtmp = os.path.realpath(value[self.DICT_CMD])
+                else:
+                  print 'ERR: %s not found' % value[self.DICT_CMD]
+                  cmdtmp = '/bin/false ' + value[self.DICT_CMD]
+
                 startcmd = \
                         '/reg/g/pcds/package/procServ-2.5.1/procServ --noautorestart --name %s %s --allow --coresize %d %s %s %s' % \
                         (key2uniqueid(key), \
                         waitflag, \
                         coresize, \
                         value[self.DICT_CTRL], \
-                        value[self.DICT_CMD],
+                        cmdtmp,
                         redirect_string)
                 # is this host already in the dictionary?
                 if starthost in startdict:
