@@ -675,11 +675,12 @@ class ProcMgr:
                         redirect_string = ''
 
                 cmdSplit = value[self.DICT_CMD].split(None, 1)
-                if (os.path.isfile(cmdSplit[0])):
-                  cmdtmp = os.path.realpath(cmdSplit[0]) + ' ' + cmdSplit[1]
+                cmdZero = os.path.expanduser(cmdSplit[0])
+                if (os.path.isfile(cmdZero)):
+                  cmdtmp = os.path.realpath(cmdZero) + ' ' + cmdSplit[1]
                 else:
-                  print 'ERR: %s not found' % cmdSplit[0]
-                  cmdtmp = '/bin/echo \"File not found: ' + cmdSplit[0] + '"'
+                  print 'ERR: %s not found' % cmdZero
+                  cmdtmp = '/bin/echo \"File not found: ' + cmdZero + '"'
 
                 startcmd = \
                         '/reg/g/pcds/package/procServ-2.5.1/procServ --noautorestart --name %s %s --allow --coresize %d %s %s %s' % \
