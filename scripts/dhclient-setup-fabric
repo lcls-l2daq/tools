@@ -1,0 +1,35 @@
+#!/usr/bin/python
+#
+#  Usage  : dhclient-setup-fabric.py <base if> <fabric if> <fabric subnet> <fabric netmask>
+#  Example: dhclient-setup-fabric.py eth2 eth4 172.21.16 255.255.255.0
+import sys
+import subprocess
+import re
+import os
+
+if __name__ == '__main__':
+
+  basif = sys.argv[1]
+  fabif = sys.argv[2]
+  fabip = sys.argv[3]
+  fabnm = sys.argv[4]
+
+  p1 = subprocess.Popen(["ifconfig", basif], stdout=subprocess.PIPE)
+  p2 = subprocess.Popen(["grep", "inet addr"], stdin=p1.stdout, stdout=subprocess.PIPE)
+  interfaces = p2.communicate()[0]
+  pattern = '.*inet addr:.*\..*\..*\.(?P<h1>.*)  Bcast.*'
+  for line in interfaces.splitlines():
+    rematch = re.match(pattern, line)
+    if rematch is not None:
+#  Bring up the interface
+      node = rematch.group('h1')
+      address = fabip + '.' + node
+#      args = []
+#      args.append('%s' %(fabif))
+#      args.append('%s' %(address))
+#      args.append('netmask %s' %(fabnm))
+#      args.append('mtu 9000')
+#      subprocess.call(['/sbin/ifconfig',args])
+      args = 'ifconfig %s %s netmask %s mtu 9000' %(fabif,address,fabnm)
+      os.system(args)
+      break

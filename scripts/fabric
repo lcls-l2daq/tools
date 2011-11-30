@@ -1,0 +1,50 @@
+#! /bin/sh
+#
+# fabric	Configure 10 GB network
+#
+# chkconfig: 2345 27 80
+# description:  Start/Stop 10 GB network
+
+PATH=/sbin:/bin:/usr/bin:/usr/sbin:/opt/sbin:/usr/local/sbin
+
+if [ -r /etc/sysconfig/fabric ]
+then
+   . /etc/sysconfig/fabric
+else
+   echo "No fabric configuration" 2>&1
+   exit 1
+fi
+
+case "$1" in
+   start)
+	echo "Starting fabric"
+#
+#  Setup the fabric ethernet interface (no dhcp server on this subnet)
+#
+	modprobe sfc
+	dhclient-setup-fabric $BASIF $FABIF $FABNET $FABNM
+	touch /var/lock/subsys/fabric
+#
+#  Set the socket buffer size maximums
+#
+	sysctl -w net.core.rmem_max=134217728
+	sysctl -w net.core.wmem_max=134217728
+	sysctl -w kernel.core_pattern=core.%e
+#
+#  Turn on flow control on the 10Gb interface
+#
+###	ethtool --pause eth4 autoneg off tx on rx on
+	;;
+   stop)
+	echo "Stopping fabric"
+	ifconfig $FABIF down
+	rmmod sfc
+	rmmod mii
+	rm -f /var/lock/subsys/fabric
+	;;
+   *)
+	echo "Usage: fabric {start|stop}" 2>&1
+	exit 1
+esac
+
+exit 0 
