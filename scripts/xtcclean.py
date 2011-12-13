@@ -10,7 +10,7 @@ import locale
 import traceback
 import subprocess
 
-__version__ = "0.2"
+__version__ = "0.3"
 
 class XtcClean:
   # static data
@@ -26,7 +26,7 @@ class XtcClean:
     self.sExpType   = sExpType.lower()    
     self.iExpId     = iExpId
     self.iCleanType = iCleanType
-    
+
   def run(self):    
         
     if not self.dictExpToHosts.has_key(self.sExpType):
@@ -36,13 +36,21 @@ class XtcClean:
     if not self.switchUser():
       return False
 
+    path = "/u2/pcds/pds/%s/e%d" % (self.sExpType, self.iExpId)
+    self.run_path(path,'xtc')
+
+    path = "/u2/pcds/pds/%s/e%d/index" % (self.sExpType, self.iExpId)
+    self.run_path(path,'idx')
+      
+  def run_path(self, path, ftyp):
+
     bFilesFound = False
     lHostFile   = []
     lHosts      = self.dictExpToHosts[self.sExpType]
     for (iHost,sHost) in enumerate(lHosts):      
       sCmdLs  = ( "/usr/bin/ssh -x -o ConnectTimeout=%d %s /bin/ls -rt " + \
-                "/u2/pcds/pds/%s/e%d/*.xtc.tobedeleted 2> /dev/null" ) % \
-                (self.iConnectTimeOut, sHost, self.sExpType, self.iExpId)
+                "%s/\*.%s.tobedeleted 2> /dev/null" ) % \
+                (self.iConnectTimeOut, sHost, path, ftyp)
       lsCmdOut = map( str.strip, os.popen(sCmdLs).readlines() )
 
       lHostFile.append( len(lsCmdOut) )
@@ -80,19 +88,19 @@ class XtcClean:
       
     for (iHost,sHost) in enumerate(lHosts):
       if lHostFile[iHost] == 0: continue
-      iDelNo        = self.getDelNo(sHost)
-      sFnDelList    = "/u2/pcds/pds/%s/e%d/deletedlist%02d.txt" % (self.sExpType, self.iExpId, iDelNo)
+      iDelNo        = self.getDelNo(sHost,path)
+      sFnDelList    = "%s/deletedlist%02d.txt" % (path, iDelNo)
 
       print "Generating Delete List %s:%s" % (sHost, sFnDelList)
       sCmdGenDel    = ( "/usr/bin/ssh -x -o ConnectTimeout=%d %s \"/bin/ls -lrt " + \
-                "/u2/pcds/pds/%s/e%d/*.xtc.tobedeleted > %s\" 2> /dev/null" ) % \
-                (self.iConnectTimeOut, sHost, self.sExpType, self.iExpId, sFnDelList)
+                "%s/*.%s.tobedeleted > %s\" 2> /dev/null" ) % \
+                (self.iConnectTimeOut, sHost, path, ftyp, sFnDelList)
       
       sCmdGenDelOut = os.popen(sCmdGenDel).read()
       
       sCmdRm        = ( "/usr/bin/ssh -x -o ConnectTimeout=%d %s /bin/rm -v " + \
-                "/u2/pcds/pds/%s/e%d/*.xtc.tobedeleted 2> /dev/null" ) % \
-                (self.iConnectTimeOut, sHost, self.sExpType, self.iExpId)
+                "%s/*.%s.tobedeleted 2> /dev/null" ) % \
+                (self.iConnectTimeOut, sHost, path, ftyp)
       
       lsCmdRmOut    = map( str.strip, os.popen(sCmdRm).readlines() )
       iFilesDeleted = len(lsCmdRmOut)
@@ -108,17 +116,17 @@ class XtcClean:
         print "  " + sLine
       print
 
-  def getDelNo(self, sHost):
+  def getDelNo(self, sHost, path):
     sCmdLsDel = ( "/usr/bin/ssh -x -o ConnectTimeout=%d %s /bin/ls -rt " + \
-                  "/u2/pcds/pds/%s/e%d/deletedlist*.txt 2> /dev/null" ) % \
-                  (self.iConnectTimeOut, sHost, self.sExpType, self.iExpId)
+                  "%s/deletedlist*.txt 2> /dev/null" ) % \
+                  (self.iConnectTimeOut, sHost, path)
     lsCmdLsDelOut = map( str.strip, os.popen(sCmdLsDel).readlines() )
 
     iTestDelNo    = len(lsCmdLsDelOut)    
     while True:
       sCmdLsDel1  = ( "/usr/bin/ssh -x -o ConnectTimeout=%d %s /bin/ls -rt " + \
-                "/u2/pcds/pds/%s/e%d/deletedlist%02d.txt 2> /dev/null" ) % \
-                (self.iConnectTimeOut, sHost, self.sExpType, self.iExpId, iTestDelNo)
+                "%s/deletedlist%02d.txt 2> /dev/null" ) % \
+                (self.iConnectTimeOut, sHost, path, iTestDelNo)
       sCmdLsDel1Out = os.popen(sCmdLsDel1).read()
       if len(sCmdLsDel1Out) < 1: break
       iTestDelNo += 1
