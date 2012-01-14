@@ -18,7 +18,9 @@ class XtcClean:
     "amo": ["daq-amo-dss01", "daq-amo-dss02", "daq-amo-dss03", "daq-amo-dss04"],
     "sxr": ["daq-sxr-dss01", "daq-sxr-dss02", "daq-sxr-dss03", "daq-sxr-dss04"],
     "xpp": ["daq-xpp-dss01", "daq-xpp-dss02", "daq-xpp-dss03", "daq-xpp-dss04"],
-    "cxi": ["daq-cxi-dss01", "daq-cxi-dss02", "daq-cxi-dss03", "daq-cxi-dss04"]
+    "cxi": ["daq-cxi-dss01", "daq-cxi-dss02", "daq-cxi-dss03", "daq-cxi-dss04", "daq-cxi-dss05", "daq-cxi-dss06"],
+    "xcs": ["daq-xcs-dss01", "daq-xcs-dss02", "daq-xcs-dss03", "daq-xcs-dss04", "daq-xcs-dss05", "daq-xcs-dss06"],
+    "mec": ["daq-mec-dss01", "daq-mec-dss02", "daq-mec-dss03", "daq-mec-dss04", "daq-mec-dss05", "daq-mec-dss06"]
   }
   iConnectTimeOut = 3
     
@@ -36,9 +38,11 @@ class XtcClean:
     if not self.switchUser():
       return False
 
+    print "Searching for xtc files..."
     path = "/u2/pcds/pds/%s/e%d" % (self.sExpType, self.iExpId)
     self.run_path(path,'xtc')
 
+    print "Searching for index files..."
     path = "/u2/pcds/pds/%s/e%d/index" % (self.sExpType, self.iExpId)
     self.run_path(path,'idx')
       
