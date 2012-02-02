@@ -677,7 +677,10 @@ class ProcMgr:
                 cmdSplit = value[self.DICT_CMD].split(None, 1)
                 cmdZero = os.path.expanduser(cmdSplit[0])
                 if (os.path.isfile(cmdZero)):
-                  cmdtmp = os.path.realpath(cmdZero) + ' ' + cmdSplit[1]
+                  if (len(cmdSplit) > 1):
+                    cmdtmp = os.path.realpath(cmdZero) + ' ' + cmdSplit[1]
+                  else:
+                    cmdtmp = os.path.realpath(cmdZero)
                 else:
                   print 'ERR: %s not found' % cmdZero
                   cmdtmp = '/bin/echo \"File not found: ' + cmdZero + '"'
