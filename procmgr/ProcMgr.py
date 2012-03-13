@@ -409,7 +409,10 @@ class ProcMgr:
               # TODO ping each host first, as telnet could fail due to an error
           else:
               # telnet succeeded: gather status from procServ banner
-              ok = self.readLogPortBanner()
+              try: 
+                ok = self.readLogPortBanner()
+              except:
+                ok = False
               if not ok:
                   # reading procServ banner failed
                   print "ERR: failed to read procServ banner for \'%s\' on host %s" \
