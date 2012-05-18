@@ -37,41 +37,17 @@ class XtcClean:
 
     if not self.switchUser():
       return False
-
-    print "Searching for xtc files..."
-    path = "/u2/pcds/pds/%s/e%d" % (self.sExpType, self.iExpId)
-    self.run_path(path,'xtc')
-
-    print "Searching for index files..."
-    path = "/u2/pcds/pds/%s/e%d/index" % (self.sExpType, self.iExpId)
-    self.run_path(path,'idx')
       
-  def run_path(self, path, ftyp):
+    cwd = os.getcwd()
 
-    bFilesFound = False
-    lHostFile   = []
     lHosts      = self.dictExpToHosts[self.sExpType]
     for (iHost,sHost) in enumerate(lHosts):      
-      sCmdLs  = ( "/usr/bin/ssh -x -o ConnectTimeout=%d %s /bin/ls -rt " + \
-                "%s/\*.%s.tobedeleted 2> /dev/null" ) % \
-                (self.iConnectTimeOut, sHost, path, ftyp)
-      lsCmdOut = map( str.strip, os.popen(sCmdLs).readlines() )
-
-      lHostFile.append( len(lsCmdOut) )
-      if len(lsCmdOut) == 0: continue
-      
-      bFilesFound = True
-        
-      print "%s: %d Files" % (sHost, len(lsCmdOut))      
-      print "  First File: " + lsCmdOut[0]
-      print "              ............................"
-      print "   Last File: " + lsCmdOut[-1] + "\n"
-
-
-    if not bFilesFound:
-      print "No files are found. Please verify the experiment type and id."
-      return True
-
+      print "# %s:" % sHost
+      sCmd = ('/usr/bin/ssh -x -o ConnectTimeout=%d %s ' + \
+        '"cd %s;source env_xtcclean.bash;./xtccleanLocal.py -r -t %s -e %d"') % \
+                (self.iConnectTimeOut, sHost, cwd, self.sExpType, self.iExpId)              
+      os.system(sCmd)
+                
     if self.iCleanType == 0 or self.iCleanType > 2:
       print "List complete. Use -c (--clean) or --force option to commit the deletion\n" + \
         " of files."
@@ -89,54 +65,14 @@ class XtcClean:
     #if self.iExpId != 1000:
     #  print "Debug veresion, please specify exp id 1000"
     #  return True
-      
-    for (iHost,sHost) in enumerate(lHosts):
-      if lHostFile[iHost] == 0: continue
-      iDelNo        = self.getDelNo(sHost,path)
-      sFnDelList    = "%s/deletedlist%02d.txt" % (path, iDelNo)
-
-      print "Generating Delete List %s:%s" % (sHost, sFnDelList)
-      sCmdGenDel    = ( "/usr/bin/ssh -x -o ConnectTimeout=%d %s \"/bin/ls -lrt " + \
-                "%s/*.%s.tobedeleted > %s\" 2> /dev/null" ) % \
-                (self.iConnectTimeOut, sHost, path, ftyp, sFnDelList)
-      
-      sCmdGenDelOut = os.popen(sCmdGenDel).read()
-      
-      sCmdRm        = ( "/usr/bin/ssh -x -o ConnectTimeout=%d %s /bin/rm -v " + \
-                "%s/*.%s.tobedeleted 2> /dev/null" ) % \
-                (self.iConnectTimeOut, sHost, path, ftyp)
-      
-      lsCmdRmOut    = map( str.strip, os.popen(sCmdRm).readlines() )
-      iFilesDeleted = len(lsCmdRmOut)
-      
-      if iFilesDeleted != lHostFile[iHost]:
-        print "%s: Expected to delete %d files, but in reality %d files deleted" %\
-          ( sHost, lHostFile[iHost], iFilesDeleted )
-      else:
-        print "%s: %d files deleted" % (sHost, iFilesDeleted)
+    
+    for (iHost,sHost) in enumerate(lHosts):      
+      print "# %s:" % sHost
+      sCmd = ('/usr/bin/ssh -x -o ConnectTimeout=%d %s ' + \
+        '"cd %s;source env_xtcclean.bash;./xtccleanLocal.py -r -t %s -e %d --force"') % \
+                (self.iConnectTimeOut, sHost, cwd, self.sExpType, self.iExpId)              
+      os.system(sCmd)    
         
-      print "  [Deletion History]"
-      for sLine in lsCmdRmOut:
-        print "  " + sLine
-      print
-
-  def getDelNo(self, sHost, path):
-    sCmdLsDel = ( "/usr/bin/ssh -x -o ConnectTimeout=%d %s /bin/ls -rt " + \
-                  "%s/deletedlist*.txt 2> /dev/null" ) % \
-                  (self.iConnectTimeOut, sHost, path)
-    lsCmdLsDelOut = map( str.strip, os.popen(sCmdLsDel).readlines() )
-
-    iTestDelNo    = len(lsCmdLsDelOut)    
-    while True:
-      sCmdLsDel1  = ( "/usr/bin/ssh -x -o ConnectTimeout=%d %s /bin/ls -rt " + \
-                "%s/deletedlist%02d.txt 2> /dev/null" ) % \
-                (self.iConnectTimeOut, sHost, path, iTestDelNo)
-      sCmdLsDel1Out = os.popen(sCmdLsDel1).read()
-      if len(sCmdLsDel1Out) < 1: break
-      iTestDelNo += 1
-   
-    return iTestDelNo    
-  
   def switchUser(self):
     if os.geteuid() != 0:
       print "You need to become root to run this script."
@@ -210,10 +146,10 @@ def getCurrentExperiment(exp):
 
 def showUsage():
   print( """\
-Usage: %s [-t | --type <Experiment Type>]* [-e | --exp <Experiment Id>]
+Usage: %s [-t | --type <Experiment Type>]* [-e | --exp  <Experiment Id>]*
   [-c|--clean] [--force] [-v] [-h]
 
-  -t | --type       <Experiment Type>  *Set experiment type (amo, sxr, xpp, cxi)
+  -t | --type       <Experiment Type>  *Set experiment type (amo, sxr, xpp, xcs, cxi, mec)
   -e | --exp        <Experiment Id>    Set experiment id. Default: Active experiment (from offline sql database)
   -c | --clean                         Execute the real clean-up, with yes/no
                                          prompt
