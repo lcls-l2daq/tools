@@ -81,6 +81,21 @@ def getCurrentExperiment(exp):
 
     return (int(exp_id), exp_name)
 
+#
+# name2uniqueid - translate procServ name to uniqueid
+#
+# For example:
+#   '/reg/lab2/home/caf/2012/03/29_16:27:22_localhost:helloX.log' -> 'helloX'
+#
+def name2uniqueid(name):
+    rv = name
+    try:
+      if name.endswith(".log"):
+        rv = name[0:-4].split(":")[-1]
+    except:
+      rv = name
+
+    return (rv)
 
 #
 # The ProcMgr class maintains a dictionary with keys of
@@ -120,6 +135,19 @@ def mkdir_p(path):
     else:
         rv = 0
     return rv
+
+#
+# idFoundInList - look for match between ID and list of substrings
+#
+# Substring '.' is a special case that matches all IDs.
+#
+def idFoundInList(id, substrings):
+    found = False
+    for item in substrings:
+      if (id.find(item) != -1) or (item.strip() == '.'):
+        found = True
+        break
+    return found
 
 #
 # deduce_platform - deduce platform (-p) from contents of config file
@@ -229,14 +257,15 @@ class ProcMgr:
     # instrument initialized in __init__
     INSTRUMENT = ''
     
-    valid_flag_list = ['X', 'k', 's'] 
+    valid_flag_list = ['X', 'x', 'k', 's'] 
     valid_instruments = ['AMO','SXR','XPP','XCS','CXI','MEC']
 
-    def __init__(self, configfilename, platform, baseport=29000):
+    def __init__(self, configfilename, options, baseport=29000):
         self.pid = self.STRING_NOPID
         self.ppid = self.STRING_NOPID
         self.getid = None
         self.telnet = telnetlib.Telnet()
+        platform = options.platform
 
         # configure the default socket timeout in seconds
         socket.setdefaulttimeout(2.5)
@@ -354,6 +383,13 @@ class ProcMgr:
           else:
             self.flags = '-'
 
+          # update flags to reflect -x or -X on command line
+          # ...order matters: X flag takes priority over x flag
+          if idFoundInList(self.uniqueid, options.Xterm_list):
+            self.flags += 'X'
+          elif idFoundInList(self.uniqueid, options.xterm_list):
+            self.flags += 'x'
+
           # initialize dictionaries used for port assignments
           if not self.host in nextCtrlPort:
               # on each host, two ports are reserved for a master server: ctrl and log
@@ -420,11 +456,17 @@ class ProcMgr:
               # close connection to the logging port (procServ)
               self.telnet.close()
 
+          if self.getid.endswith(".log"):
+            # '/reg/lab2/home/caf/2012/03/29_16:27:22_localhost:helloX.log' -> 'helloX'
+            gotid = self.getid[0:-4].split(":")[-1]
+          else:
+            gotid = self.getid
+
           if ((self.tmpstatus != self.STATUS_NOCONNECT) and \
               (self.tmpstatus != self.STATUS_ERROR) and \
-              (self.getid != self.uniqueid)):
+              (gotid != self.uniqueid)):
               print "ERR: found \'%s\', expected \'%s\' on host %s port %s" % \
-                  (self.getid, self.uniqueid, self.host, self.ctrlport)
+                  (gotid, self.uniqueid, self.host, self.ctrlport)
           else:
               # add an entry to the dictionary
               key = makekey(self.host, self.uniqueid)
@@ -490,7 +532,7 @@ class ProcMgr:
             if (self.d[key][self.DICT_STATUS] == self.STATUS_NOCONNECT):
                 showId = key2uniqueid(key)
             else:
-                showId = self.d[key][self.DICT_GETID]
+                showId = name2uniqueid(self.d[key][self.DICT_GETID])
 
             print "%-13s %-12s %-10s %-5s  %-5s  %s" % \
                     (key2host(key), showId, \
@@ -499,15 +541,8 @@ class ProcMgr:
                     self.d[key][self.DICT_CTRL], \
                     self.d[key][self.DICT_CMD])
             if verbose:
-                print "                                       PPID: %s  Flags:" \
-                        % (self.d[key][self.DICT_PPID]),
-                if 'X' in self.d[key][self.DICT_FLAGS]:
-                    print "X",
-                if 's' in self.d[key][self.DICT_FLAGS]:
-                    print "s",
-                if 'k' in self.d[key][self.DICT_FLAGS]:
-                    print "k",
-                print ""
+                if self.d[key][self.DICT_GETID].endswith(".log"):
+                    print "  Logfile:", self.d[key][self.DICT_GETID]
                 
         if (nonePrinted == 1):
           print "(none found)"
@@ -615,7 +650,8 @@ class ProcMgr:
         rv = 1                  # return value
         started_count = 0       # count successful start commands
 
-        # create list of entries with X flag enabled (empty for now)
+        # create sets of entries with X or x flag enabled (empty for now)
+        xlist = list()
         Xlist = list()
 
         if self.isEmpty():
@@ -641,8 +677,12 @@ class ProcMgr:
                     continue
             if value[self.DICT_STATUS] == self.STATUS_NOCONNECT:
                 starthost = key2host(key)
+                # order matters: X flag takes priority over x flag
                 if 'X' in value[self.DICT_FLAGS]:
                     Xlist.append([key, value])
+                    waitflag = '--wait'
+                elif 'x' in value[self.DICT_FLAGS]:
+                    xlist.append([key, value])
                     waitflag = '--wait'
                 else:
                     waitflag = ''
@@ -655,19 +695,20 @@ class ProcMgr:
                     #
                     #  <logpath>/2009/08/21_10:35_atca01:opal1k.log
                     #
+#                   logpath = '%s/%s' % (logpathbase, time.strftime('%Y/%m'))
                     logpath = '%s/%s' % (logpathbase, time.strftime('%Y/%m'))
                     try:
                       mkdir_p(logpath)
                     except:
                       # mkdir
-                      print 'ERR: mkdir %s failed' % logpath
+                      print 'ERR: mkdir <%s> failed' % logpath
                       redirect_string = ''
                     else:
                       time_string = time.strftime('%d_%H:%M:%S')
                       logfile = '%s/%s_%s.log' % (logpath, time_string, key)
                       if verbose:
-                          print 'log file:', logfile
-                      redirect_string = '>& %s' % logfile
+                          print 'log file: <%s>', logfile
+                      redirect_string = '>& \"%s\"' % logfile
 
                     pbits = (stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
                     if (os.stat(logpath).st_mode & pbits) != pbits:
@@ -688,9 +729,15 @@ class ProcMgr:
                   print 'ERR: %s not found' % cmdZero
                   cmdtmp = '/bin/echo \"File not found: ' + cmdZero + '"'
 
+                # encode logfile path as part of procServ name
+                if (len(redirect_string) > 1):
+                  name = logfile
+                else:
+                  name = key2uniqueid(key)
+
                 startcmd = \
                         '/reg/g/pcds/package/procServ-2.5.1/procServ --noautorestart --name %s %s --allow --coresize %d %s %s %s' % \
-                        (key2uniqueid(key), \
+                       (name, \
                         waitflag, \
                         coresize, \
                         value[self.DICT_CTRL], \
@@ -777,21 +824,33 @@ class ProcMgr:
                     # close telnet connection
                     self.telnet.close()
 
-        for item in Xlist:
+        if len(xlist) > 0 or len(Xlist) > 0:
+          # is xterm available?
+          if not os.path.exists(self.PATH_XTERM):
+            print 'ERR: %s not available' % self.PATH_XTERM
+          else:
+            # order matters: start large xterms last so they will be on top
 
-            # is xterm available?
-            if os.path.exists(self.PATH_XTERM):
-                # yes: spawn xterm
-                args = [self.PATH_XTERM, "-T", item[0], \
-                        "-e", self.PATH_TELNET, key2host(item[0]), \
-                        item[1][self.DICT_CTRL]]
-                subprocess.Popen(args)
-            else:
-                # no: say xterm not available
-                print 'ERR: %s not available' % self.PATH_XTERM
-
-        for item in Xlist:
-            if self.restart(item[0], item[1], verbose):
+            # small xterm support
+            for item in xlist:
+              # spawn small xterm
+              args = [self.PATH_XTERM, "-T", item[0], \
+                      "-e", self.PATH_TELNET, key2host(item[0]), \
+                      item[1][self.DICT_CTRL]]
+              subprocess.Popen(args)
+            for item in xlist:
+              if self.restart(item[0], item[1], verbose):
+                started_count += 1
+                            
+            # large xterm support
+            for item in Xlist:
+              # spawn large xterm
+              args = [self.PATH_XTERM, "-bg", "midnightblue", "-fg", "white", "-fa", "18", "-T", item[0], \
+                      "-e", self.PATH_TELNET, key2host(item[0]), \
+                      item[1][self.DICT_CTRL]]
+              subprocess.Popen(args)
+            for item in Xlist:
+              if self.restart(item[0], item[1], verbose):
                 started_count += 1
                         
         # done

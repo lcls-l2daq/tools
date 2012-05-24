@@ -29,6 +29,8 @@ required_keys = ['id', 'cmd']
 optional_keys = ['host', 'flags', 'port', 'rtprio']
 known_keys = required_keys + optional_keys
 
+valid_flags = ['X', 'x', 's', 'k']
+
 #
 # report_error -
 #
@@ -53,8 +55,15 @@ def entry_lint(dict):
                      (str(key), repr(known_keys)))
       elif key == 'id':
         rv = value
+        if ':' in value:
+          report_error('procmgr_config entry includes invalid id \'%s\' (includes \':\')' % str(value))
       if type(value) != type(''):
         report_error('procmgr_config entry includes invalid value \'%s\' (not a string)' % str(value))
+      elif key == 'flags':
+        for buf in value:
+          if not buf in valid_flags:
+            report_error('procmgr_config entry includes invalid flag \'%s\' (not in %s)' %
+                         (buf, repr(valid_flags)))
   return rv
 
 valid_instruments = ['AMO','SXR','XPP','XCS','CXI','MEC']
