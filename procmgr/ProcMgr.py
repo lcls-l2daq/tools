@@ -707,7 +707,7 @@ class ProcMgr:
                       time_string = time.strftime('%d_%H:%M:%S')
                       logfile = '%s/%s_%s.log' % (logpath, time_string, key)
                       if verbose:
-                          print 'log file: <%s>', logfile
+                          print 'log file: <%s>' % logfile
                       redirect_string = '>& \"%s\"' % logfile
 
                     pbits = (stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
