@@ -579,7 +579,7 @@ class ProcMgr:
             if (self.d[key][self.DICT_STATUS] == self.STATUS_NOCONNECT):
               statusdict['showId'] = key2uniqueid(key)
             else:
-              statusdict['showId'] = self.d[key][self.DICT_GETID]
+              statusdict['showId'] = name2uniqueid(self.d[key][self.DICT_GETID])
 
             statusdict['status'] = self.d[key][self.DICT_STATUS]
             statusdict['host'] = key2host(key)
