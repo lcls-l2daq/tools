@@ -20,7 +20,7 @@ def _stop(argv0, args, runconfig, lastconfig, configfile, options):
         if os.path.isfile(runconfig):
             # stop dynamic processes
             print "%s: using config file '%s' to stop" % (argv0, runconfig)
-            handle = ProcMgr(runconfig, options)
+            handle = ProcMgr(runconfig, options.platform)
             handle.stop(args, verbose=options.verbose, sigdelay=options.sigint_delay, only_static=0)
             staticCount, dynamicCount = handle.getProcessCounts()
             if dynamicCount == 0:
@@ -30,12 +30,12 @@ def _stop(argv0, args, runconfig, lastconfig, configfile, options):
         elif os.path.isfile(lastconfig):
             # stop dynamic processes
             print "%s: using config file '%s' to stop" % (argv0, lastconfig)
-            handle = ProcMgr(lastconfig, options)
+            handle = ProcMgr(lastconfig, options.platform)
             handle.stop(args, verbose=options.verbose, sigdelay=options.sigint_delay, only_static=0)
         elif os.path.isfile(configfile):
             # stop dynamic processes
             print "%s: using config file '%s' to stop" % (argv0, configfile)
-            handle = ProcMgr(configfile, options)
+            handle = ProcMgr(configfile, options.platform)
             handle.stop(args, verbose=options.verbose, sigdelay=options.sigint_delay, only_static=0)
         elif len(args) == 0:
             # nothing to stop
@@ -44,7 +44,7 @@ def _stop(argv0, args, runconfig, lastconfig, configfile, options):
         else:
             # stop static processes listed on command line
             print "%s: using config file '%s' to stop" % (argv0, configfile)
-            _stop_rv = ProcMgr(configfile, options).stop(args, options.verbose,
+            _stop_rv = ProcMgr(configfile, options.platform).stop(args, options.verbose,
                     options.sigint_delay, only_static=1)
     except IOError:
         print "%s: i/o error" % argv0
@@ -65,7 +65,7 @@ def _start(argv0, args, runconfig, lastconfig, configfile, options):
             configfile = runconfig
         try:
             print "%s: using config file '%s' to start" % (argv0, configfile)
-            handle = ProcMgr(configfile, options)
+            handle = ProcMgr(configfile, options.platform, options.Xterm_list, options.xterm_list)
             _start_rv = handle.start(args, options.verbose, options.logpath, options.coresize)
             staticCount, dynamicCount = handle.getProcessCounts()
         except IOError:
@@ -103,11 +103,11 @@ def _status(argv0, args, lastconfig, configfile, options):
     try:
         if os.path.exists(lastconfig):
             print "%s: using config file '%s'" % (sys.argv[0], lastconfig)
-            _status_rv = ProcMgr(lastconfig, options).status(args, verbose=options.verbose,
+            _status_rv = ProcMgr(lastconfig, options.platform).status(args, verbose=options.verbose,
                          only_static=0)
         else:
             print "%s: using config file '%s'" % (sys.argv[0], configfile)
-            _status_rv = ProcMgr(configfile, options).status(args, verbose=options.verbose,
+            _status_rv = ProcMgr(configfile, options.platform).status(args, verbose=options.verbose,
                          only_static=1)
     except IOError:
         print "%s: i/o error" % sys.argv[0]

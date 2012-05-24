@@ -260,12 +260,11 @@ class ProcMgr:
     valid_flag_list = ['X', 'x', 'k', 's'] 
     valid_instruments = ['AMO','SXR','XPP','XCS','CXI','MEC']
 
-    def __init__(self, configfilename, options, baseport=29000):
+    def __init__(self, configfilename, platform, Xterm_list=[], xterm_list=[], baseport=29000):
         self.pid = self.STRING_NOPID
         self.ppid = self.STRING_NOPID
         self.getid = None
         self.telnet = telnetlib.Telnet()
-        platform = options.platform
 
         # configure the default socket timeout in seconds
         socket.setdefaulttimeout(2.5)
@@ -385,9 +384,9 @@ class ProcMgr:
 
           # update flags to reflect -x or -X on command line
           # ...order matters: X flag takes priority over x flag
-          if idFoundInList(self.uniqueid, options.Xterm_list):
+          if idFoundInList(self.uniqueid, Xterm_list):
             self.flags += 'X'
-          elif idFoundInList(self.uniqueid, options.xterm_list):
+          elif idFoundInList(self.uniqueid, xterm_list):
             self.flags += 'x'
 
           # initialize dictionaries used for port assignments
