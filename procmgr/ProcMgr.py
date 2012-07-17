@@ -1,5 +1,6 @@
 #!/usr/bin/python
 # ProcMgr.py - configure (start, stop, status) the DAQ processes
+# $Id$
 
 import os, sys, string, telnetlib, subprocess
 import stat, errno, time
@@ -463,7 +464,8 @@ class ProcMgr:
 
           if ((self.tmpstatus != self.STATUS_NOCONNECT) and \
               (self.tmpstatus != self.STATUS_ERROR) and \
-              (gotid != self.uniqueid)):
+              (gotid != self.uniqueid) and \
+              (not gotid.endswith(self.uniqueid+".log"))):
               print "ERR: found \'%s\', expected \'%s\' on host %s port %s" % \
                   (gotid, self.uniqueid, self.host, self.ctrlport)
           else:
