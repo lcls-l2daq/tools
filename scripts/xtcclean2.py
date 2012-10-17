@@ -17,15 +17,16 @@ class XtcClean:
   dictExpToHosts = {
     "amo": ["daq-amo-dss01", "daq-amo-dss02", "daq-amo-dss03", "daq-amo-dss04", "daq-amo-dss05", "daq-amo-dss06"],
     "sxr": ["daq-sxr-dss01", "daq-sxr-dss02", "daq-sxr-dss03", "daq-sxr-dss04", "daq-sxr-dss05", "daq-sxr-dss06"],
-    "xpp": ["daq-xpp-dss01", "daq-xpp-dss02", "daq-xpp-dss03", "daq-xpp-dss04", "daq-xpp-dss05", "daq-xpp-dss06"],
+    "xpp": ["daq-xpp-dss01", "daq-xpp-dss02", "daq-xpp-dss03", "daq-xpp-dss04", "daq-xpp-dss05", "daq-xpp-dss06", "daq-xpp-dss07"],
     "cxi": ["daq-cxi-dss01", "daq-cxi-dss02", "daq-cxi-dss03", "daq-cxi-dss04", "daq-cxi-dss05", "daq-cxi-dss06"],
     "xcs": ["daq-xcs-dss01", "daq-xcs-dss02", "daq-xcs-dss03", "daq-xcs-dss04", "daq-xcs-dss05", "daq-xcs-dss06"],
     "mec": ["daq-mec-dss01", "daq-mec-dss02", "daq-mec-dss03", "daq-mec-dss04", "daq-mec-dss05", "daq-mec-dss06"]
   }
   iConnectTimeOut = 3
     
-  def __init__(self, sExpType, iExpId, iCleanType):
+  def __init__(self, sExpType, sExpName, iExpId, iCleanType):
     self.sExpType   = sExpType.lower()    
+    self.sExpName   = sExpName.lower()    
     self.iExpId     = iExpId
     self.iCleanType = iCleanType
 
@@ -43,9 +44,14 @@ class XtcClean:
     lHosts      = self.dictExpToHosts[self.sExpType]
     for (iHost,sHost) in enumerate(lHosts):      
       print "# %s:" % sHost
-      sCmd = ('/usr/bin/ssh -x -o ConnectTimeout=%d %s ' + \
-        '"cd %s;source env_xtcclean.bash;./xtccleanLocal.py -r -t %s -e %d"') % \
-                (self.iConnectTimeOut, sHost, cwd, self.sExpType, self.iExpId)              
+      if self.iExpId == -1:
+        sCmd = ('/usr/bin/ssh -x -o ConnectTimeout=%d %s ' + \
+                '"cd %s;source env_xtcclean.bash;./xtccleanLocal.py -r -t %s -a"') % \
+                (self.iConnectTimeOut, sHost, cwd, self.sExpType)              
+      else:
+        sCmd = ('/usr/bin/ssh -x -o ConnectTimeout=%d %s ' + \
+                '"cd %s;source env_xtcclean.bash;./xtccleanLocal.py -r -t %s -n %s -e %d"') % \
+                (self.iConnectTimeOut, sHost, cwd, self.sExpType, self.sExpName, self.iExpId)              
       os.system(sCmd)
                 
     if self.iCleanType == 0 or self.iCleanType > 2:
@@ -151,6 +157,7 @@ Usage: %s [-t | --type <Experiment Type>]* [-e | --exp  <Experiment Id>]*
 
   -t | --type       <Experiment Type>  *Set experiment type (amo, sxr, xpp, xcs, cxi, mec)
   -e | --exp        <Experiment Id>    Set experiment id. Default: Active experiment (from offline sql database)
+  -a | --all                           Try all experiment ids. (overrides -e)
   -c | --clean                         Execute the real clean-up, with yes/no
                                          prompt
        --force                         Force the real clean-up, without yes/no
@@ -176,6 +183,8 @@ Program Version %s\
 def main():
   iExpId   = -1
   sExpType = ""
+  sExpName = ""
+  bAll = False
   
   #
   # Clean-up Type
@@ -189,8 +198,8 @@ def main():
 
   try:    
     (llsOptions, lsRemainder) = getopt.getopt(sys.argv[1:], \
-     "t:e:cvh", \
-     ["type", "exp", "clean", "force", "version", "help"])
+     "t:e:acvh", \
+     ["type", "exp", "all", "clean", "force", "version", "help"])
   except:
     print "*** Invalid option ***"
     showUsage()
@@ -201,6 +210,8 @@ def main():
       sExpType   = sArg
     elif sOpt in ("-e", "--exp" ):
       iExpId     = int(sArg)
+    elif sOpt in ("-a", "--all" ):
+      bAll = True
     elif sOpt in ("-c", "--clean" ) and iCleanType != 2:
       iCleanType = 1
     elif sOpt in ("--force" ):
@@ -213,7 +224,9 @@ def main():
     print "Experiment Type Not Defined -- See Help below.\n"
     showUsage()
     return 2
-  if iExpId == -1:
+  if bAll:
+    iExpId = -1
+  elif iExpId == -1:
     print "Reading current experiment from offline database"
     (iExpId, sExpName) = getCurrentExperiment(sExpType)
     if iExpId == -1:
@@ -223,7 +236,7 @@ def main():
     else:
       print "Using exp name %s id %d" % (sExpName, iExpId)
 
-  xtcClean = XtcClean( sExpType, iExpId, iCleanType )
+  xtcClean = XtcClean( sExpType, sExpName, iExpId, iCleanType )
   xtcClean.run()
   
   return

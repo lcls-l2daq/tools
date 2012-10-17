@@ -12,15 +12,16 @@ import traceback
 import subprocess
 import psdm.file_status as file_status
 
-__version__ = "0.4"
+__version__ = "0.5"
 
 class XtcCleanLocal:
   # static data
   dictExp = { "amo":1, "sxr":1, "xpp":1, "cxi":1, "xcs":1, "mec":1 }
   iConnectTimeOut = 3
     
-  def __init__(self, sExpType, iExpId, iCleanType, bRemote):
+  def __init__(self, sExpType, sExpName, iExpId, iCleanType, bRemote):
     self.sExpType   = sExpType.lower()    
+    self.sExpName   = sExpName.lower()    
     self.iExpId     = iExpId
     self.iCleanType = iCleanType
     self.bRemote    = bRemote
@@ -36,8 +37,16 @@ class XtcCleanLocal:
 
     if not self.bRemote:
       print "Searching for xtc files..."
-    path = "/u2/pcds/pds/%s/e%d" % (self.sExpType, self.iExpId)
-    self.run_path(path, self.iExpId)
+
+    if self.iExpId == -1:
+      path = "/u2/pcds/pds/%s" % (self.sExpType)
+      self.run_path_wild(path)
+    else:
+      path = "/u2/pcds/pds/%s/e%d" % (self.sExpType, self.iExpId)
+      self.run_path(path, self.iExpId)
+
+      path = "/u2/pcds/pds/%s/%s/xtc" % (self.sExpType, self.sExpName)
+      self.run_path(path, self.iExpId)
       
   def filter_fileStatus(self, triplet,status):  
     if  ( file_status.IN_MIGRATION_DATABASE in status.flags() ) and \
@@ -57,6 +66,25 @@ class XtcCleanLocal:
         str(file_status.HPSS in status.flags())\
       )
     return False
+  
+  def run_path_wild(self, path):
+    try:
+      lPaths = glob.glob(path+'/*/xtc')
+      lPaths = lPaths + glob.glob(path+'/e*')
+    except:
+      lPaths = []
+
+    if (len(lPaths) == 0):
+      if not self.bRemote:
+        print "No experiment paths found in %s." % (path)
+      return True
+
+    for sPath in lPaths:
+      if not self.bRemote:
+        print "Try path %s" % (sPath)
+      self.run_path(sPath, -1)
+
+    return True
   
   def run_path(self, path, expid):
     try:
@@ -78,7 +106,10 @@ class XtcCleanLocal:
     
     lXtcStatusQuery = []
     for sFile in lFiles:
-      lXtcStatusQuery.append( (expid, 'xtc', sFile) )      
+      if expid == -1:
+        lXtcStatusQuery.append( (int(sFile[1:4]), 'xtc', sFile) )
+      else:
+        lXtcStatusQuery.append( (expid, 'xtc', sFile) )      
       
     fs = file_status.file_status(ws_login_user='psdm_reader', ws_login_password='pcds')
     lFilterdQuery = fs.filter(lXtcStatusQuery, self.filter_fileStatus)
@@ -88,10 +119,11 @@ class XtcCleanLocal:
       lDelFiles.append(triplet[2])
 
     if not (self.bRemote and self.iCleanType != 0):      
-      print "Found %d Files to be deleted in %s" % (len(lDelFiles), path)      
-      print "  First File: " + lDelFiles[0]
-      print "              ............................"
-      print "   Last File: " + lDelFiles[-1] + "\n"
+      print "Found %d Files to be deleted in %s" % (len(lDelFiles), path)
+      if len(lDelFiles):
+        print "  First File: " + lDelFiles[0]
+        print "              ............................"
+        print "   Last File: " + lDelFiles[-1] + "\n"
       
     if self.iCleanType == 0 or self.iCleanType > 2:
       if not self.bRemote:
@@ -239,7 +271,9 @@ Usage: %s [-t | --type <Experiment Type>]* [-e | --exp <Experiment Id>]*
   [-c|--clean] [--force] [-r | --remote] [-v] [-h]
 
   -t | --type       <Experiment Type>  *Set experiment type (amo, sxr, xpp, xcs, cxi, mec)
+  -n | --name       <Experiment Name>  Set experiment name. Default: Active experiment (from offline sql database)
   -e | --exp        <Experiment Id>    Set experiment id. Default: Active experiment (from offline sql database)
+  -a | --all                           Try all experiment ids. (overrides -e)
   -c | --clean                         Execute the real clean-up, with yes/no prompt
   -r | --remote                        To be called from remote machine. Suppress some extra outputs.
        --force                         Force the real clean-up, without yes/no prompt
@@ -264,7 +298,9 @@ Program Version %s\
 def main():
   iExpId   = -1
   sExpType = ""
+  sExpName = ""
   bRemote  = False
+  bAll     = False
   
   #
   # Clean-up Type
@@ -278,8 +314,8 @@ def main():
 
   try:    
     (llsOptions, lsRemainder) = getopt.getopt(sys.argv[1:], \
-     "t:e:rcvh", \
-     ["type", "exp", "clean", "force", "remote", "version", "help"])
+     "t:n:e:arcvh", \
+     ["type", "name", "exp", "all", "clean", "force", "remote", "version", "help"])
   except:
     print "*** Invalid option ***"
     showUsage()
@@ -288,6 +324,8 @@ def main():
   for (sOpt, sArg) in llsOptions:
     if   sOpt in ("-t", "--type" ):
       sExpType   = sArg
+    elif sOpt in ("-n", "--name" ):
+      sExpName   = sArg
     elif sOpt in ("-e", "--exp" ):
       iExpId     = int(sArg)
     elif sOpt in ("-c", "--clean" ) and iCleanType != 2:
@@ -296,6 +334,8 @@ def main():
       iCleanType = 2
     elif sOpt in ("-r", "--remote" ):
       bRemote    = True
+    elif sOpt in ("-a", "--all" ):
+      bAll       = True
     elif sOpt in ("-v", "-h", "--version", "--help" ):
       showUsage()
       return 1
@@ -304,7 +344,9 @@ def main():
     print "Experiment Type Not Defined -- See Help below.\n"
     showUsage()
     return 2
-  if iExpId == -1:
+  if bAll:
+    iExpId = -1
+  elif iExpId == -1:
     print "Reading current experiment from offline database"
     (iExpId, sExpName) = getCurrentExperiment(sExpType)
     if iExpId == -1:
@@ -314,7 +356,7 @@ def main():
     else:
       print "Using exp name %s id %d" % (sExpName, iExpId)
 
-  xtcCleanLocal = XtcCleanLocal( sExpType, iExpId, iCleanType, bRemote )
+  xtcCleanLocal = XtcCleanLocal( sExpType, sExpName, iExpId, iCleanType, bRemote )
   xtcCleanLocal.run()
   
   return
