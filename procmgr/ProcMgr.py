@@ -35,50 +35,39 @@ def getConfigFileNames(argconfig, partition):
 # getCurrentExperiment
 #
 # This function returns the current experiment ID from the
-# offline database based on the experiment (AMO, SXR, XPP, etc.)
+# offline database based on the instrument (AMO, SXR, CXI:0, CXI:1, etc.)
 #
 # RETURNS:  Two values:  experiment number, experiment name
 #
 
-def getCurrentExperiment(exp):
+def getCurrentExperiment(exp, cmd, station):
 
-    exp = exp.upper()
-    exp_id = -1
-    exp_name = ''
-    
-    # Issue mysql command to get experiment ID
-    mysqlcmd = 'echo "select exper_id from expswitch WHERE exper_id IN ( SELECT experiment.id FROM experiment, instrument WHERE experiment.instr_id=instrument.id AND instrument.name=\''+exp+'\' ) ORDER BY switch_time DESC LIMIT 1" | /usr/bin/mysql -N -h psdb -u regdb_reader regdb'
+    exp_id = 0
+    exp_name = 'e0'
 
-    p = subprocess.Popen([mysqlcmd],
-                         shell = True,
-                         stdin = subprocess.PIPE,
-                         stdout = subprocess.PIPE,
-                         stderr = subprocess.PIPE,
-                         close_fds = True)
-    out, err = subprocess.Popen.communicate(p)
-    
-    if len(err) == 0 and len(out) != 0:
-        exp_id = out.strip()
-    else:
-        if len(err) != 0:
-            print "Unable to get current experiment ID from offline database: ", err
-            return (int(exp_id), exp_name)
+    if (cmd):
+      exp = '%s:%u' % (exp.upper(), station)
+      p = subprocess.Popen([cmd+' '+exp],
+                           shell = True,
+                           stdin = subprocess.PIPE,
+                           stdout = subprocess.PIPE,
+                           stderr = subprocess.PIPE,
+                           close_fds = True)
+      out, err = subprocess.Popen.communicate(p)
+     
+      if len(err) == 0 and len(out) != 0:
+        out = out.strip()
+        try:
+          exp_name = out.split()[1]
+          exp_id = out.split()[2]
+        except:
+          exp_id = 0
+          exp_name = 'e0'
+          err = 'failed to parse \"%s\"' % out
 
-    # Issue mysql command to get experiment name
-    mysqlcmd = 'echo "SELECT name FROM experiment WHERE experiment.id='+exp_id+'" | /usr/bin/mysql -N -h psdb -u regdb_reader regdb'
-
-    p = subprocess.Popen([mysqlcmd],
-                         shell = True,
-                         stdin = subprocess.PIPE,
-                         stdout = subprocess.PIPE,
-                         stderr = subprocess.PIPE,
-                         close_fds = True)
-    out, err = subprocess.Popen.communicate(p)
-    
-    if len(err) == 0:
-        exp_name = out.strip()
-    else:
-        print "Unable to get current experiment name from offline database: ", err
+      if len(err) != 0:
+        print "Unable to get current experiment ID:", err
+        return (int(exp_id), exp_name)
 
     return (int(exp_id), exp_name)
 
@@ -173,23 +162,34 @@ def deduce_platform(configfilename):
 #
 # deduce_instrument - deduce instrument (AMO, SXR, etc) from contents of config file
 #
-# Returns: '' by default
+# An optional station number is supported.  For example, CXI:1 translates to CXI station 1.
+#
+# The default instrument name is ''.  The default station number is 0.
+#
+# RETURNS: Three values: instrument name, station number, and currentexp command path.
 #
 def deduce_instrument(configfilename):
-    rv = ''
+    instr_name = ''
+    currentexpcmd = ''
+    station_number = 0
     cc = {'instrument': None, 'platform': None, 'procmgr_config': None,
           'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host',
-          'rtprio':'rtprio'}
+          'rtprio':'rtprio', 'currentexpcmd': None}
 
     try:
       execfile(configfilename, {}, cc)
-      if type(cc['instrument']) == type('') and cc['instrument'].isalpha():
-        rv = cc['instrument'].upper()
-
+      tmplist = cc['instrument'].split(":")
+      instr_name = tmplist[0].upper()
+      if len(tmplist) > 1:
+        station_number = int(tmplist[1])
+      currentexpcmd = cc['currentexpcmd']
     except:
       print 'deduce_instrument Error:', sys.exc_info()[1]        
+      instr_name = ''
+      currentexpcmd = ''
+      station_number = 0
 
-    return rv
+    return instr_name, station_number, currentexpcmd
 
 #
 # parse_cmd
@@ -255,8 +255,10 @@ class ProcMgr:
     # platform initialized in __init__
     PLATFORM = -1
 
-    # instrument initialized in __init__
+    # instrument and station initialized in __init__
     INSTRUMENT = ''
+    STATION = 0
+    CURRENTEXPCMD = ''
     
     valid_flag_list = ['X', 'x', 'k', 's'] 
     valid_instruments = ['AMO','SXR','XPP','XCS','CXI','MEC']
@@ -291,12 +293,16 @@ class ProcMgr:
 
         # initialize the experiment
         # (only used by online_ami to get current experiment)
-        self.INSTRUMENT = deduce_instrument(configfilename)
+        self.INSTRUMENT, self.STATION, self.CURRENTEXPCMD = deduce_instrument(configfilename)
         if self.INSTRUMENT not in self.valid_instruments:
-            if self.INSTRUMENT != '':  print 'ERR: Invalid instrument ', self.INSTRUMENT
+            if self.INSTRUMENT != '':
+              print 'ERR: Invalid instrument ', self.INSTRUMENT
+            (expnum, expname) = (-1, '')
+        elif self.STATION < 0:
+            print 'ERR: Invalid station ', self.STATION
             (expnum, expname) = (-1, '')
         else:
-            (expnum, expname) = getCurrentExperiment(self.INSTRUMENT)
+            (expnum, expname) = getCurrentExperiment(self.INSTRUMENT, self.CURRENTEXPCMD, self.STATION)
 
         # The static port allocations must be processed first.
         # Read the config file and make a list with statically assigned
