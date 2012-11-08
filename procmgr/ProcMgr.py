@@ -42,34 +42,40 @@ def getConfigFileNames(argconfig, partition):
 
 def getCurrentExperiment(exp, cmd, station):
 
-    exp_id = 0
-    exp_name = 'e0'
+    exp_id = int(-1)
+    exp_name = ''
 
     if (cmd):
-      exp = '%s:%u' % (exp.upper(), station)
-      p = subprocess.Popen([cmd+' '+exp],
+      returnCode = 0
+      fullCommand = '%s %s:%u' % (cmd, exp.upper(), station)
+      p = subprocess.Popen([fullCommand],
                            shell = True,
                            stdin = subprocess.PIPE,
                            stdout = subprocess.PIPE,
                            stderr = subprocess.PIPE,
                            close_fds = True)
       out, err = subprocess.Popen.communicate(p)
+      if (p.returncode):
+        returnCode = p.returncode
      
       if len(err) == 0 and len(out) != 0:
         out = out.strip()
         try:
           exp_name = out.split()[1]
-          exp_id = out.split()[2]
+          exp_id = int(out.split()[2])
         except:
-          exp_id = 0
-          exp_name = 'e0'
+          exp_id = int(-1)
+          exp_name = ''
           err = 'failed to parse \"%s\"' % out
 
-      if len(err) != 0:
-        print "Unable to get current experiment ID:", err
-        return (int(exp_id), exp_name)
+      if returnCode != 0:
+        print "Unable to get current experiment ID"
+        if len(err) != 0:
+          print "Error from '%s': %s" % (fullCommand, err)
+        exp_id = int(-1)
+        exp_name = ''
 
-    return (int(exp_id), exp_name)
+    return (exp_id, exp_name)
 
 #
 # name2uniqueid - translate procServ name to uniqueid
@@ -165,6 +171,7 @@ def deduce_platform(configfilename):
 # An optional station number is supported.  For example, CXI:1 translates to CXI station 1.
 #
 # The default instrument name is ''.  The default station number is 0.
+# The default currentexp command path is ''.
 #
 # RETURNS: Three values: instrument name, station number, and currentexp command path.
 #
@@ -182,7 +189,8 @@ def deduce_instrument(configfilename):
       instr_name = tmplist[0].upper()
       if len(tmplist) > 1:
         station_number = int(tmplist[1])
-      currentexpcmd = cc['currentexpcmd']
+      if cc['currentexpcmd'] != None:
+        currentexpcmd = cc['currentexpcmd']
     except:
       print 'deduce_instrument Error:', sys.exc_info()[1]        
       instr_name = ''
@@ -301,7 +309,7 @@ class ProcMgr:
         elif self.STATION < 0:
             print 'ERR: Invalid station ', self.STATION
             (expnum, expname) = (-1, '')
-        else:
+        elif self.CURRENTEXPCMD != '':
             (expnum, expname) = getCurrentExperiment(self.INSTRUMENT, self.CURRENTEXPCMD, self.STATION)
 
         # The static port allocations must be processed first.
@@ -361,8 +369,11 @@ class ProcMgr:
             # if real-time priority is set (see above), use /usr/bin/chrt
             if (self.rtprio):
               entry['cmd'] = '/usr/bin/chrt -f %d %s' % (self.rtprio, entry['cmd'])
-            # Do something special if -E, -e, or -f appear in cmd string
-            self.cmd = parse_cmd(entry['cmd'], expnum, expname)
+            if self.CURRENTEXPCMD != '':
+              # Do something special if -E, -e, or -f appear in cmd string
+              self.cmd = parse_cmd(entry['cmd'], expnum, expname)
+            else:
+              self.cmd = entry['cmd']
           else:
             print 'Error: procmgr_config entry missing cmd:', entry
             self.cmd = 'error'
