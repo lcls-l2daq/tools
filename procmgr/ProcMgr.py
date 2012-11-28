@@ -185,12 +185,13 @@ def deduce_instrument(configfilename):
 
     try:
       execfile(configfilename, {}, cc)
-      tmplist = cc['instrument'].split(":")
-      instr_name = tmplist[0].upper()
-      if len(tmplist) > 1:
-        station_number = int(tmplist[1])
-      if cc['currentexpcmd'] != None:
-        currentexpcmd = cc['currentexpcmd']
+      if cc['instrument'] != None:
+        tmplist = cc['instrument'].split(":")
+        instr_name = tmplist[0].upper()
+        if len(tmplist) > 1:
+          station_number = int(tmplist[1])
+        if cc['currentexpcmd'] != None:
+          currentexpcmd = cc['currentexpcmd']
     except:
       print 'deduce_instrument Error:', sys.exc_info()[1]        
       instr_name = ''
