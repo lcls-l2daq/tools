@@ -10,7 +10,7 @@ import locale
 import traceback
 import subprocess
 
-__version__ = "0.4"
+__version__ = "0.5"
 
 # Database access: instead of relying on $PYTHONPATH to include offline tools, we depend on a binary in the DAQ build
 currentexpcmd = '/reg/g/pcds/dist/pds/5.2.2/build/pdsapp/bin/i386-linux-dbg/currentexp'
