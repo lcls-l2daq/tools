@@ -151,7 +151,7 @@ def showUsage():
 Usage: %s [-t | --type <Experiment Type>]* [-e | --exp  <Experiment Id>]*
   [-c|--clean] [--force] [-v] [-h]
 
-  -t | --type       <Experiment Type>  *Set experiment type (amo, sxr, xpp, xcs, cxi, mec)
+  -t | --type       <Experiment Type>  *Set experiment type (amo, sxr, xpp, xcs, cxi, cxi:1, mec)
   -e | --exp        <Experiment Id>    Set experiment id. Default: Active experiment (from offline sql database)
   -a | --all                           Try all experiment ids. (overrides -e)
   -c | --clean                         Execute the real clean-up, with yes/no
