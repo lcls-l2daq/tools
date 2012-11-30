@@ -12,6 +12,9 @@ import subprocess
 
 __version__ = "0.4"
 
+# Database access: instead of relying on $PYTHONPATH to include offline tools, we depend on a binary in the DAQ build
+currentexpcmd = '/reg/g/pcds/dist/pds/5.2.2/build/pdsapp/bin/i386-linux-dbg/currentexp'
+
 class XtcClean:
   # static data
   dictExpToHosts = {
@@ -23,12 +26,13 @@ class XtcClean:
     "mec": ["daq-mec-dss01", "daq-mec-dss02", "daq-mec-dss03", "daq-mec-dss04", "daq-mec-dss05", "daq-mec-dss06"]
   }
   iConnectTimeOut = 3
-    
-  def __init__(self, sExpType, sExpName, iExpId, iCleanType):
+
+  def __init__(self, sExpType, sExpName, iExpId, iCleanType, iStation):
     self.sExpType   = sExpType.lower()    
     self.sExpName   = sExpName.lower()    
     self.iExpId     = iExpId
     self.iCleanType = iCleanType
+    self.iStation   = iStation
 
   def run(self):    
         
@@ -99,55 +103,47 @@ class XtcClean:
 # getCurrentExperiment
 #
 # This function returns the current experiment ID from the
-# offline database based on the experiment (AMO, SXR, XPP, etc.)
+# offline database based on the instrument (AMO, SXR, CXI:0, CXI:1, etc.)
 #
 # RETURNS:  Two values:  experiment number, experiment name
 #
 
-def getCurrentExperiment(exp):
+def getCurrentExperiment(exp, cmd, station):
 
-    exp = exp.upper()
-    exp_id = -1
+    exp_id = int(-1)
     exp_name = ''
-    
-    # Issue mysql command to get experiment ID
-    mysqlcmd = 'echo "select exper_id from expswitch WHERE exper_id IN ( SELECT experiment.id FROM experiment, instrument WHERE experiment.instr_id=instrument.id AND instrument.name=\''+exp+'\' ) ORDER BY switch_time DESC LIMIT 1" | /usr/bin/mysql -N -h psdb -u regdb_reader regdb'
 
-    p = subprocess.Popen([mysqlcmd],
-                         shell = True,
-                         stdin = subprocess.PIPE,
-                         stdout = subprocess.PIPE,
-                         stderr = subprocess.PIPE,
-                         close_fds = True)
-    out, err = subprocess.Popen.communicate(p)
+    if (cmd):
+      returnCode = 0
+      fullCommand = '%s %s:%u' % (cmd, exp.upper(), station)
+      p = subprocess.Popen([fullCommand],
+                           shell = True,
+                           stdin = subprocess.PIPE,
+                           stdout = subprocess.PIPE,
+                           stderr = subprocess.PIPE,
+                           close_fds = True)
+      out, err = subprocess.Popen.communicate(p)
+      if (p.returncode):
+        returnCode = p.returncode
+     
+      if len(err) == 0 and len(out) != 0:
+        out = out.strip()
+        try:
+          exp_name = out.split()[1]
+          exp_id = int(out.split()[2])
+        except:
+          exp_id = int(-1)
+          exp_name = ''
+          err = 'failed to parse \"%s\"' % out
 
-    if len(err) == 0 and len(out) != 0:
-        exp_id = out.strip()
-    else:
-        if len(err) != 0: print "Unable to get current experiment ID from offline database: ", err
-        if len(out) == 0: print "No current experiment ID in offline database for experiment", exp
-        print "Try using -e | --exp option"
-        return (int(exp_id), exp_name)
-
-    # Issue mysql command to get experiment name
-    mysqlcmd = 'echo "SELECT name FROM experiment WHERE experiment.id='+exp_id+'" | mysql -N -h psdb -u regdb_reader regdb'
-
-    p = subprocess.Popen([mysqlcmd],
-                         shell = True,
-                         stdin = subprocess.PIPE,
-                         stdout = subprocess.PIPE,
-                         stderr = subprocess.PIPE,
-                         close_fds = True)
-    out, err = subprocess.Popen.communicate(p)
-    
-    if len(err) == 0:
-        exp_name = out.strip()
-    else:
-        print "Unable to get current experiment name from offline database: ", err
+      if returnCode != 0:
+        print "Unable to get current experiment ID"
+        if len(err) != 0:
+          print "Error from '%s': %s" % (fullCommand, err)
+        exp_id = int(-1)
+        exp_name = ''
 
     return (int(exp_id), exp_name)
-
-
 
 
 def showUsage():
@@ -183,6 +179,8 @@ Program Version %s\
 def main():
   iExpId   = -1
   sExpType = ""
+  # default station=0
+  iStation = 0
   sExpName = ""
   bAll = False
   
@@ -207,7 +205,11 @@ def main():
    
   for (sOpt, sArg) in llsOptions:
     if   sOpt in ("-t", "--type" ):
-      sExpType   = sArg
+      # parse optional station number (e.g. CXI:1)
+      tmplist = sArg.split(":")
+      sExpType   = tmplist[0].lower()
+      if len(tmplist) > 1:
+        iStation = int(tmplist[1])
     elif sOpt in ("-e", "--exp" ):
       iExpId     = int(sArg)
     elif sOpt in ("-a", "--all" ):
@@ -228,7 +230,7 @@ def main():
     iExpId = -1
   elif iExpId == -1:
     print "Reading current experiment from offline database"
-    (iExpId, sExpName) = getCurrentExperiment(sExpType)
+    (iExpId, sExpName) = getCurrentExperiment(sExpType, currentexpcmd, iStation)
     if iExpId == -1:
       print "Experiment ID Not Defined -- See Help below.\n"
       showUsage()
@@ -236,7 +238,7 @@ def main():
     else:
       print "Using exp name %s id %d" % (sExpName, iExpId)
 
-  xtcClean = XtcClean( sExpType, sExpName, iExpId, iCleanType )
+  xtcClean = XtcClean( sExpType, sExpName, iExpId, iCleanType, iStation)
   xtcClean.run()
   
   return
