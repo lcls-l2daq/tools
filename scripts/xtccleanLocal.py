@@ -14,6 +14,9 @@ import psdm.file_status as file_status
 
 __version__ = "0.5"
 
+_no_experiment_   = -2
+_all_experiments_ = -1
+
 class XtcCleanLocal:
   # static data
   dictExp = { "amo":1, "sxr":1, "xpp":1, "cxi":1, "xcs":1, "mec":1 }
@@ -27,7 +30,7 @@ class XtcCleanLocal:
     self.bRemote    = bRemote
 
   def run(self):    
-        
+
     if not self.dictExp.has_key(self.sExpType):
       print "Invalid Experiment Type: %s" % self.sExpType
       return False
@@ -38,15 +41,16 @@ class XtcCleanLocal:
     if not self.bRemote:
       print "Searching for xtc files..."
 
-    if self.iExpId == -1:
+    if self.iExpId == _all_experiments_:
       path = "/u2/pcds/pds/%s" % (self.sExpType)
       self.run_path_wild(path)
     else:
       path = "/u2/pcds/pds/%s/e%d" % (self.sExpType, self.iExpId)
       self.run_path(path, self.iExpId)
 
-      path = "/u2/pcds/pds/%s/%s/xtc" % (self.sExpType, self.sExpName)
-      self.run_path(path, self.iExpId)
+      if (len(self.sExpName)!=0):
+        path = "/u2/pcds/pds/%s/%s/xtc" % (self.sExpType, self.sExpName)
+        self.run_path(path, self.iExpId)
       
   def filter_fileStatus(self, triplet,status):  
     if  ( file_status.IN_MIGRATION_DATABASE in status.flags() ) and \
@@ -82,7 +86,7 @@ class XtcCleanLocal:
     for sPath in lPaths:
       if not self.bRemote:
         print "Try path %s" % (sPath)
-      self.run_path(sPath, -1)
+      self.run_path(sPath, _all_experiments_)
 
     return True
   
@@ -106,11 +110,11 @@ class XtcCleanLocal:
     
     lXtcStatusQuery = []
     for sFile in lFiles:
-      if expid == -1:
-        lXtcStatusQuery.append( (int(sFile[1:4]), 'xtc', sFile) )
-      else:
+      if expid == _all_experiments_:
+        expid = int(sFile[1:].split('-')[0])
+      if expid != 0:
         lXtcStatusQuery.append( (expid, 'xtc', sFile) )      
-      
+
     fs = file_status.file_status(ws_login_user='psdm_reader', ws_login_password='pcds')
     lFilterdQuery = fs.filter(lXtcStatusQuery, self.filter_fileStatus)
     
@@ -222,7 +226,7 @@ class XtcCleanLocal:
 def getCurrentExperiment(exp):
 
     exp = exp.upper()
-    exp_id = -1
+    exp_id = _no_experiment_
     exp_name = ''
     
     # Issue mysql command to get experiment ID
@@ -296,7 +300,7 @@ Program Version %s\
   return
     
 def main():
-  iExpId   = -1
+  iExpId   = _no_experiment_
   sExpType = ""
   sExpName = ""
   bRemote  = False
@@ -345,11 +349,11 @@ def main():
     showUsage()
     return 2
   if bAll:
-    iExpId = -1
-  elif iExpId == -1:
+    iExpId = _all_experiments_
+  elif iExpId == _no_experiment_:
     print "Reading current experiment from offline database"
     (iExpId, sExpName) = getCurrentExperiment(sExpType)
-    if iExpId == -1:
+    if iExpId == _no_experiment_:
       print "Experiment ID Not Defined -- See Help below.\n"
       showUsage()
       return 2

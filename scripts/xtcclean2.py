@@ -12,18 +12,21 @@ import subprocess
 
 __version__ = "0.5"
 
+_no_experiment_   = -2
+_all_experiments_ = -1
+
 # Database access: instead of relying on $PYTHONPATH to include offline tools, we depend on a binary in the DAQ build
 currentexpcmd = '/reg/g/pcds/dist/pds/5.2.2/build/pdsapp/bin/i386-linux-dbg/currentexp'
 
 class XtcClean:
   # static data
   dictExpToHosts = {
-    "amo": ["daq-amo-dss01", "daq-amo-dss02", "daq-amo-dss03", "daq-amo-dss04", "daq-amo-dss05", "daq-amo-dss06"],
-    "sxr": ["daq-sxr-dss01", "daq-sxr-dss02", "daq-sxr-dss03", "daq-sxr-dss04", "daq-sxr-dss05", "daq-sxr-dss06"],
-    "xpp": ["daq-xpp-dss01", "daq-xpp-dss02", "daq-xpp-dss03", "daq-xpp-dss04", "daq-xpp-dss05", "daq-xpp-dss06", "daq-xpp-dss07"],
-    "cxi": ["daq-cxi-dss01", "daq-cxi-dss02", "daq-cxi-dss03", "daq-cxi-dss04", "daq-cxi-dss05", "daq-cxi-dss06"],
-    "xcs": ["daq-xcs-dss01", "daq-xcs-dss02", "daq-xcs-dss03", "daq-xcs-dss04", "daq-xcs-dss05", "daq-xcs-dss06"],
-    "mec": ["daq-mec-dss01", "daq-mec-dss02", "daq-mec-dss03", "daq-mec-dss04", "daq-mec-dss05", "daq-mec-dss06"]
+    "amo": ["daq-amo-dss03", "daq-amo-dss04", "daq-amo-dss05", "daq-amo-dss06"],
+    "sxr": ["daq-sxr-dss03", "daq-sxr-dss04", "daq-sxr-dss05", "daq-sxr-dss06"],
+    "xpp": ["daq-xpp-dss03", "daq-xpp-dss04", "daq-xpp-dss05", "daq-xpp-dss06", "daq-xpp-dss07"],
+    "cxi": ["daq-cxi-dss03", "daq-cxi-dss04", "daq-cxi-dss05", "daq-cxi-dss06","daq-cxi-dss07","daq-cxi-dss08"],
+    "xcs": ["daq-xcs-dss03", "daq-xcs-dss04", "daq-xcs-dss05", "daq-xcs-dss06", "daq-xcs-dss07"],
+    "mec": ["daq-mec-dss03", "daq-mec-dss04", "daq-mec-dss05", "daq-mec-dss06"]
   }
   iConnectTimeOut = 3
 
@@ -48,14 +51,15 @@ class XtcClean:
     lHosts      = self.dictExpToHosts[self.sExpType]
     for (iHost,sHost) in enumerate(lHosts):      
       print "# %s:" % sHost
-      if self.iExpId == -1:
+      if self.sExpName == "":
         sCmd = ('/usr/bin/ssh -x -o ConnectTimeout=%d %s ' + \
-                '"cd %s;source env_xtcclean.bash;./xtccleanLocal.py -r -t %s -a"') % \
-                (self.iConnectTimeOut, sHost, cwd, self.sExpType)              
+                '"cd %s;source env_xtcclean.bash;./xtccleanLocal.py -r -t %s -e %d"') % \
+                (self.iConnectTimeOut, sHost, cwd, self.sExpType, self.iExpId)              
       else:
         sCmd = ('/usr/bin/ssh -x -o ConnectTimeout=%d %s ' + \
                 '"cd %s;source env_xtcclean.bash;./xtccleanLocal.py -r -t %s -n %s -e %d"') % \
                 (self.iConnectTimeOut, sHost, cwd, self.sExpType, self.sExpName, self.iExpId)              
+
       os.system(sCmd)
                 
     if self.iCleanType == 0 or self.iCleanType > 2:
@@ -84,9 +88,6 @@ class XtcClean:
       os.system(sCmd)    
         
   def switchUser(self):
-    if os.geteuid() != 0:
-      print "You need to become root to run this script."
-      return False
 
     sUserName = self.sExpType + "opr"
     iId       = int(os.popen( "/usr/bin/id -u " + sUserName ).read().strip())
@@ -94,7 +95,7 @@ class XtcClean:
     try:
       os.setreuid(iId, iId)
     except:
-      print "Cannot switch to %s." % sUserName
+      print "Cannot switch to %s.  Try sudo?" % sUserName
       return False
 
     return True
@@ -110,7 +111,7 @@ class XtcClean:
 
 def getCurrentExperiment(exp, cmd, station):
 
-    exp_id = int(-1)
+    exp_id = _no_experiment_
     exp_name = ''
 
     if (cmd):
@@ -132,7 +133,7 @@ def getCurrentExperiment(exp, cmd, station):
           exp_name = out.split()[1]
           exp_id = int(out.split()[2])
         except:
-          exp_id = int(-1)
+          exp_id = _no_experiment_
           exp_name = ''
           err = 'failed to parse \"%s\"' % out
 
@@ -140,7 +141,7 @@ def getCurrentExperiment(exp, cmd, station):
         print "Unable to get current experiment ID"
         if len(err) != 0:
           print "Error from '%s': %s" % (fullCommand, err)
-        exp_id = int(-1)
+        exp_id = _no_experiment_
         exp_name = ''
 
     return (int(exp_id), exp_name)
@@ -177,7 +178,7 @@ Program Version %s\
   return
     
 def main():
-  iExpId   = -1
+  iExpId   = _no_experiment_
   sExpType = ""
   # default station=0
   iStation = 0
@@ -227,11 +228,11 @@ def main():
     showUsage()
     return 2
   if bAll:
-    iExpId = -1
-  elif iExpId == -1:
+    iExpId = _all_experiments_
+  elif iExpId == _no_experiment_:
     print "Reading current experiment from offline database"
     (iExpId, sExpName) = getCurrentExperiment(sExpType, currentexpcmd, iStation)
-    if iExpId == -1:
+    if iExpId == _no_experiment_:
       print "Experiment ID Not Defined -- See Help below.\n"
       showUsage()
       return 2
