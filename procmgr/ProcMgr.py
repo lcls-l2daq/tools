@@ -679,8 +679,8 @@ class ProcMgr:
                 print 'startAll: empty configuration'
             return 1
 
-        if (self.PLATFORM < 0) or (self.PLATFORM > 4):
-            print 'platform %d not in range 0-4' % self.PLATFORM
+        if (self.PLATFORM < 0) or (self.PLATFORM > 9):
+            print 'platform %d not in range 0-9' % self.PLATFORM
             return 1
 
         # for redirecting to /dev/null
