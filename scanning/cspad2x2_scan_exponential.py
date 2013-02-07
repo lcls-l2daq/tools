@@ -100,9 +100,9 @@ if __name__ == "__main__":
 	    cycleLength = 2
         for cycle in range(options.limit*cycleLength+1):
             if parameterType == 'quad' :
-                cspad['quad'][0][options.parameter]=int(value)
+                cspad['quad'][0][options.parameter]=int(round(value))
             if parameterType == 'concentrator' :
-		cspad[options.parameter]=int(value)
+		cspad[options.parameter]=int(round(value))
             xtc.set(cspad,cycle)
 	    if cycle % cycleLength or not shutterActive :
 	        value = value * options.multiplier
@@ -138,18 +138,18 @@ if __name__ == "__main__":
             if cycle%(options.limit+1) == 0 : value = options.start
 	    if shutterActive :
 		ser.write(chr(129)) ## close shutter
-		print "Cycle", cycle, " closed -", options.parameter, "=", int(value)
+		print "Cycle", cycle, " closed -", options.parameter, "=", int(round(value))
             else :
-		print "Cycle", cycle, "-", options.parameter, "=", int(value)
-            daq.begin(controls=[(options.parameter,int(value))])
+		print "Cycle", cycle, "-", options.parameter, "=", int(round(value))
+            daq.begin(controls=[(options.parameter,int(round(value)))])
             # wait for enabled , then enable the EVR sequence
 
             # wait for disabled, then disable the EVR sequence
             daq.end() 
     	    if shutterActive :
-                print "        opened -", options.parameter, "=", int(value)
+                print "        opened -", options.parameter, "=", int(round(value))
                 ser.write(chr(128)) ## open shutter
-                daq.begin(controls=[(options.parameter,int(value))])
+                daq.begin(controls=[(options.parameter,int(round(value)))])
                 daq.end()
                 ser.write(chr(129)) ## close shutter
 		
