@@ -3,6 +3,7 @@
 
 import pydaq
 import pycdb
+import math
 import serial
 
 from optparse import OptionParser
@@ -21,10 +22,12 @@ if __name__ == "__main__":
                       help="type ID to generate",metavar="TYPEID")
     parser.add_option("-P","--parameter",dest="parameter",type="string",
                       help="cspad2x2 parameter to scan", metavar="PARAMETER")
-    parser.add_option("-s","--start",dest="start",type="int", default=2,
+    parser.add_option("-s","--start",dest="start",type="int", default=200,
                       help="parameter start", metavar="START")
-    parser.add_option("-m","--multiplier",dest="multiplier",type="float",nargs=1,default=2.0,
-                      help="parameter multiplier, (float)", metavar="MULT")
+    parser.add_option("-f","--finish",dest="finish",type="int",nargs=1,default=2000,
+                      help="parameter finish", metavar="FINISH")
+    parser.add_option("-m","--multiplier",dest="multiplier",type="float",nargs=1,default=-1.0,
+                      help="parameter multiplier in case you want to enter it directly, ignoring FINISH", metavar="MULTIPLIER")
     parser.add_option("-n","--steps",dest="steps",type="int",default=20,
                       help="run N parameter steps", metavar="N")
     parser.add_option("-e","--events",dest="events",type="int",default=105,
@@ -40,6 +43,7 @@ if __name__ == "__main__":
     print 'parameter', options.parameter
     print 'start', options.start, hex(options.start)
     print 'steps', options.steps
+    print 'finish', options.finish
     print 'multiplier', options.multiplier
     print 'events', options.events
     print 'detector', hex(options.detector)
@@ -50,6 +54,10 @@ if __name__ == "__main__":
     if options.steps < options.limit : options.limit = options.steps
     else : print 'Warning, range will be covered in', options.limit, \
          'but will still do', options.steps, 'steps with wrapping'
+
+    if (options.multiplier < 0) :    
+	options.multiplier = math.exp( (math.log( options.finish/options.start )) / options.limit  )
+    print 'multiplier in use is', options.multiplier
 
 # Connect to the daq system
     daq = pydaq.Control(options.host,options.platform)
