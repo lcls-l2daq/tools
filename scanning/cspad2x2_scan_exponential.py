@@ -31,9 +31,11 @@ if __name__ == "__main__":
     parser.add_option("-n","--steps",dest="steps",type="int",default=20,
                       help="run N parameter steps", metavar="N")
     parser.add_option("-e","--events",dest="events",type="int",default=105,
-                      help="record N events/cycle", metavar="N")
+                      help="record N events/cycle", metavar="EVENTS")
+    parser.add_option("-L","--linear",dest="linear",type="string",default="no",
+		      help="Set to yes for linear scanning instead of exponential", metavar="LINEAR")
     parser.add_option("-l","--limit",dest="limit",type="int",default=99,
-                      help="limit number of configs to less than number of steps", metavar="N")
+                      help="limit number of configs to less than number of steps", metavar="LIMIT")
     parser.add_option("-S","--shutter",dest="shutter",default="None",
                       help="path to shutter serial port", metavar="SHUTTER")
     (options, args) = parser.parse_args()
@@ -44,20 +46,24 @@ if __name__ == "__main__":
     print 'start', options.start, hex(options.start)
     print 'steps', options.steps
     print 'finish', options.finish
-    print 'multiplier', options.multiplier
+#    print 'multiplier', options.multiplier
     print 'events', options.events
     print 'detector', hex(options.detector)
     print 'typeID', hex(options.typeID)
+ #   print 'linear', options.linear
     print 'shutter', options.shutter
-    if options.shutter != 'None' and options.limit > 49 :
-	options.limit = 49
+
     if options.steps < options.limit : options.limit = options.steps
     else : print 'Warning, range will be covered in', options.limit, \
          'but will still do', options.steps, 'steps with wrapping'
 
     if (options.multiplier < 0) :    
 	options.multiplier = math.exp( (math.log( options.finish/options.start )) / options.limit  )
-    print 'multiplier in use is', options.multiplier
+
+    if options.linear == "no" :
+	print 'multiplier in use is', options.multiplier, 'and will scan from', options.start, 'to', options.finish
+    else :
+	print 'will do linear scanning from', options.start, 'to', options.finish
 
 # Connect to the daq system
     daq = pydaq.Control(options.host,options.platform)
@@ -106,6 +112,8 @@ if __name__ == "__main__":
 	shutterActive = options.shutter != 'None'
         if shutterActive :
 	    cycleLength = 2
+	index = 0.0
+        denom = float(options.limit)
         for cycle in range(options.limit*cycleLength+1):
             if parameterType == 'quad' :
                 cspad['quad'][0][options.parameter]=int(round(value))
@@ -113,7 +121,11 @@ if __name__ == "__main__":
 		cspad[options.parameter]=int(round(value))
             xtc.set(cspad,cycle)
 	    if cycle % cycleLength or not shutterActive :
-	        value = value * options.multiplier
+		if options.linear == "no" :
+	            value = value * options.multiplier
+		else :
+		    index = index + 1.0
+		    value = float(options.start) + (index/denom)*(options.finish-options.start)
         cdb.substitute(newkey,xtc)
         print '    done'
 #
@@ -141,9 +153,12 @@ if __name__ == "__main__":
 #    Setting up monitoring displays for example
 #  
         ready = raw_input('--Hit Enter when Ready-->')
+	index = 0.0
 
         for cycle in range(options.steps):
-            if cycle%(options.limit+1) == 0 : value = options.start
+            if cycle%(options.limit+1) == 0 : 
+		value = options.start
+		index = 0.0
 	    if shutterActive :
 		ser.write(chr(129)) ## close shutter
 		print "Cycle", cycle, " closed -", options.parameter, "=", int(round(value))
@@ -161,7 +176,11 @@ if __name__ == "__main__":
                 daq.end()
                 ser.write(chr(129)) ## close shutter
 		
-	    value = value * options.multiplier
+	    if options.linear == "no" :
+		value = value * options.multiplier
+	    else :
+		index = index + 1.0
+		value = float(options.start) + (index/denom)*(options.finish-options.start)
         
 #
 #  Wait for the user to declare 'done'
