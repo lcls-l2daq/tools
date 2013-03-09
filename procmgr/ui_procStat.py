@@ -2,8 +2,8 @@
 
 # Form implementation generated from reading ui file 'procStat.ui'
 #
-# Created: Thu Oct 29 14:44:35 2009
-#      by: PyQt4 UI code generator 4.4.4
+# Created: Fri Mar  8 16:21:42 2013
+#      by: PyQt4 UI code generator 4.7.4
 #
 # WARNING! All changes made in this file will be lost!
 
@@ -12,10 +12,7 @@ from PyQt4 import QtCore, QtGui
 class Ui_mainWindow(object):
     def setupUi(self, mainWindow):
         mainWindow.setObjectName("mainWindow")
-        mainWindow.resize(387, 1034)
-        icon = QtGui.QIcon()
-        icon.addFile(":/resources/appicon.png")
-        mainWindow.setWindowIcon(icon)
+        mainWindow.resize(370, 1100)
         self.centralwidget = QtGui.QWidget(mainWindow)
         self.centralwidget.setObjectName("centralwidget")
         self.vboxlayout = QtGui.QVBoxLayout(self.centralwidget)
@@ -79,18 +76,6 @@ class Ui_mainWindow(object):
         self.statusbar = QtGui.QStatusBar(mainWindow)
         self.statusbar.setObjectName("statusbar")
         mainWindow.setStatusBar(self.statusbar)
-        self.actionOpen = QtGui.QAction(mainWindow)
-        icon1 = QtGui.QIcon()
-        icon1.addFile(":/resources/fileopen.png")
-        self.actionOpen.setIcon(icon1)
-        self.actionOpen.setObjectName("actionOpen")
-        self.actionAbout = QtGui.QAction(mainWindow)
-        self.actionAbout.setObjectName("actionAbout")
-        self.actionQuit = QtGui.QAction(mainWindow)
-        icon2 = QtGui.QIcon()
-        icon2.addFile(":/resources/filequit.png")
-        self.actionQuit.setIcon(icon2)
-        self.actionQuit.setObjectName("actionQuit")
 
         self.retranslateUi(mainWindow)
         QtCore.QMetaObject.connectSlotsByName(mainWindow)
@@ -100,12 +85,4 @@ class Ui_mainWindow(object):
         self.groupBoxProcessStatus.setTitle(QtGui.QApplication.translate("mainWindow", "Process Status", None, QtGui.QApplication.UnicodeUTF8))
         self.tableProcStat.setSortingEnabled(False)
         self.groupBoxOutputFileStatus.setTitle(QtGui.QApplication.translate("mainWindow", "Output File Status", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionOpen.setText(QtGui.QApplication.translate("mainWindow", "Open...", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionOpen.setShortcut(QtGui.QApplication.translate("mainWindow", "Ctrl+O", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionAbout.setText(QtGui.QApplication.translate("mainWindow", "About...", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionAbout.setShortcut(QtGui.QApplication.translate("mainWindow", "F1", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionQuit.setText(QtGui.QApplication.translate("mainWindow", "Quit", None, QtGui.QApplication.UnicodeUTF8))
-        self.actionQuit.setShortcut(QtGui.QApplication.translate("mainWindow", "Esc", None, QtGui.QApplication.UnicodeUTF8))
 
-import procStat_rc
-import procStat_rc
