@@ -196,19 +196,19 @@ class WinProcStat(QMainWindow, ui_procStat.Ui_mainWindow):
       sStatus = dProcStatus["status"]
       item = QTableWidgetItem()
       if ( sStatus == ProcMgr.STATUS_NOCONNECT ):
-        item.setData(0, " NO CONNECT")
+        item.setData(0, QVariant(" NO CONNECT"))
         item.setBackgroundColor( QColor.fromRgb( 0, 0, 192 ) )
         item.setTextColor( QColor.fromRgb( 255, 255, 255 ) )
       elif ( sStatus == ProcMgr.STATUS_RUNNING ):
-        item.setData(0, "RUNNING")
+        item.setData(0, QVariant("RUNNING"))
         item.setBackgroundColor( QColor.fromRgb( 0, 192, 0 ) )
         item.setTextColor( QColor.fromRgb( 255, 255, 255 ) )
       elif ( sStatus == ProcMgr.STATUS_SHUTDOWN ):
-        item.setData(0, " SHUTDOWN")
+        item.setData(0, QVariant(" SHUTDOWN"))
         item.setBackgroundColor( QColor.fromRgb( 192, 192, 0 ) )
         item.setTextColor( QColor.fromRgb( 255, 255, 255 ) )
       elif ( sStatus == ProcMgr.STATUS_ERROR ):
-        item.setData(0, " ERROR")
+        item.setData(0, QVariant(" ERROR"))
         item.setBackgroundColor( QColor.fromRgb( 255, 0, 0 ) )
         item.setTextColor( QColor.fromRgb( 255, 255, 255 ) )
 
