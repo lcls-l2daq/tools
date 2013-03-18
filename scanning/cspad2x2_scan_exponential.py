@@ -16,8 +16,8 @@ if __name__ == "__main__":
                       help="connect to DAQ at HOST", metavar="HOST")
     parser.add_option("-p","--platform",dest="platform",type="int",default=3,
                       help="connect to DAQ at PLATFORM", metavar="PLATFORM")
-    parser.add_option("-D","--detector",dest="detector",type="int",default=0x18000d02,
-                      help="detector ID  to scan",metavar="ID_OFFSET")
+    parser.add_option("-D","--detector",dest="detector",type="int",default=0x14000d00,
+                      help="detector ID  to scan",metavar="ID")
     parser.add_option("-d","--device",dest="deviceOffset",type="int",default=0,
                       help="device ID offset",metavar="DEV_OFFSET")
     parser.add_option("-t","--typeID",dest="typeID",type="int",default=0x2002b,
