@@ -18,3 +18,7 @@ rsync -rlpogtSP --exclude={Makefile,CVS,\*.cc,\*.mk} ami/data ${DAQREL}/ami/.
 #  Copy header files from unwanted dependencies
 mkdir -p ${DAQREL}/ami/event
 cp ami/event/CspadTemp.hh ${DAQREL}/ami/event/.
+
+#  Copy tools
+rsync -rlpogtSP --exclude={CVS} tools ${DAQREL}/.
+
