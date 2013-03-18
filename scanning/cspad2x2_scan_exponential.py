@@ -17,7 +17,9 @@ if __name__ == "__main__":
     parser.add_option("-p","--platform",dest="platform",type="int",default=3,
                       help="connect to DAQ at PLATFORM", metavar="PLATFORM")
     parser.add_option("-D","--detector",dest="detector",type="int",default=0x18000d02,
-                      help="detector ID to scan",metavar="ID")
+                      help="detector ID  to scan",metavar="ID_OFFSET")
+    parser.add_option("-d","--device",dest="deviceOffset",type="int",default=0,
+                      help="device ID offset",metavar="DEV_OFFSET")
     parser.add_option("-t","--typeID",dest="typeID",type="int",default=0x2002b,
                       help="type ID to generate",metavar="TYPEID")
     parser.add_option("-P","--parameter",dest="parameter",type="string",
@@ -49,6 +51,9 @@ if __name__ == "__main__":
 #    print 'multiplier', options.multiplier
     print 'events', options.events
     print 'detector', hex(options.detector)
+    if (options.deviceOffset > 0) :
+        print 'deviceOffset', options.deviceOffset, "so detector now",  hex(options.detector + options.deviceOffset)
+        options.detector = options.detector + options.deviceOffset
     print 'typeID', hex(options.typeID)
 #    print 'linear', options.linear
     print 'shutter', options.shutter
