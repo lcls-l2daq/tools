@@ -57,7 +57,7 @@ if __name__ == "__main__":
                       controls=[('EXAMPLEPV1',0),('EXAMPLEPV2',0)],
                       labels=[('EXAMPLELABEL1',''),('EXAMPLELABEL2','')])
 
-        print "Configured."
+        print "Configured [%d]."%iter
 
         #
         #  Wait for the user to declare 'ready'
