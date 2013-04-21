@@ -154,7 +154,7 @@ def deduce_platform(configfilename):
     rv = -1   # return -1 on error
     cc = {'platform': None, 'procmgr_config': None,
           'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host',
-          'rtprio':'rtprio'}
+          'rtprio':'rtprio', 'procmgr_macro': os.environ}
     try:
       execfile(configfilename, {}, cc)
       if type(cc['platform']) == type('') and cc['platform'].isdigit():
@@ -181,7 +181,7 @@ def deduce_instrument(configfilename):
     station_number = 0
     cc = {'instrument': None, 'platform': None, 'procmgr_config': None,
           'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host',
-          'rtprio':'rtprio', 'currentexpcmd': None}
+          'rtprio':'rtprio', 'procmgr_macro': os.environ, 'currentexpcmd': None}
 
     try:
       execfile(configfilename, {}, cc)
@@ -269,7 +269,7 @@ class ProcMgr:
     STATION = 0
     CURRENTEXPCMD = ''
     
-    valid_flag_list = ['X', 'x', 'k', 's'] 
+    valid_flag_list = ['X', 'x', 'k', 's', 'u'] 
     valid_instruments = ['AMO','SXR','XPP','XCS','CXI','MEC']
 
     def __init__(self, configfilename, platform, Xterm_list=[], xterm_list=[], baseport=29000):
@@ -326,11 +326,11 @@ class ProcMgr:
 
         config = {'platform': repr(self.PLATFORM), 'procmgr_config': None,
                   'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host',
-                  'rtprio':'rtprio'}
+                  'rtprio':'rtprio', 'procmgr_macro': os.environ}
         try:
           execfile(configfilename, {}, config)
         except:
-          print 'deduce_platform Error:', sys.exc_info()[1]
+          print 'Error parsing configuration file:', sys.exc_info()[1]
 
         if type(config['procmgr_config']) == type([]):
           for dd in config['procmgr_config']:
@@ -400,6 +400,10 @@ class ProcMgr:
                 print 'ERR: invalid flag:', nextflag
           else:
             self.flags = '-'
+
+          # append '-u <UniqueId>' to command if 'u' flag is set
+          if 'u' in self.flags:
+            self.cmd += (' -u ' + self.uniqueid)
 
           # update flags to reflect -x or -X on command line
           # ...order matters: X flag takes priority over x flag
