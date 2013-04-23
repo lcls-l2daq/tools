@@ -154,7 +154,7 @@ def deduce_platform(configfilename):
     rv = -1   # return -1 on error
     cc = {'platform': None, 'procmgr_config': None,
           'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host',
-          'rtprio':'rtprio', 'procmgr_macro': os.environ}
+          'rtprio':'rtprio', 'procmgr_macro': {}}
     try:
       execfile(configfilename, {}, cc)
       if type(cc['platform']) == type('') and cc['platform'].isdigit():
@@ -181,7 +181,7 @@ def deduce_instrument(configfilename):
     station_number = 0
     cc = {'instrument': None, 'platform': None, 'procmgr_config': None,
           'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host',
-          'rtprio':'rtprio', 'procmgr_macro': os.environ, 'currentexpcmd': None}
+          'rtprio':'rtprio', 'procmgr_macro': {}, 'currentexpcmd': None}
 
     try:
       execfile(configfilename, {}, cc)
@@ -272,7 +272,7 @@ class ProcMgr:
     valid_flag_list = ['X', 'x', 'k', 's', 'u'] 
     valid_instruments = ['AMO','SXR','XPP','XCS','CXI','MEC']
 
-    def __init__(self, configfilename, platform, Xterm_list=[], xterm_list=[], baseport=29000):
+    def __init__(self, configfilename, platform, Xterm_list=[], xterm_list=[], procmgr_macro={}, baseport=29000):
         self.pid = self.STRING_NOPID
         self.ppid = self.STRING_NOPID
         self.getid = None
@@ -313,6 +313,17 @@ class ProcMgr:
         elif self.CURRENTEXPCMD != '':
             (expnum, expname) = getCurrentExperiment(self.INSTRUMENT, self.CURRENTEXPCMD, self.STATION)
 
+        # set HOST and USER macros based on the environment
+        try:
+            host = os.environ.get('HOST', None)
+            user = os.environ.get('USER', None)
+            if host:
+                procmgr_macro['HOST'] = host
+            if user:
+                procmgr_macro['USER'] = user
+        except:
+            print 'Error reading environment'
+
         # The static port allocations must be processed first.
         # Read the config file and make a list with statically assigned
         # entries at the front, dynamic entries at the back.
@@ -326,7 +337,7 @@ class ProcMgr:
 
         config = {'platform': repr(self.PLATFORM), 'procmgr_config': None,
                   'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host',
-                  'rtprio':'rtprio', 'procmgr_macro': os.environ}
+                  'rtprio':'rtprio', 'procmgr_macro': procmgr_macro}
         try:
           execfile(configfilename, {}, config)
         except:
