@@ -90,12 +90,13 @@ if os.path.isfile(configfile) != 1:
 # The following global variables are passed in when executing the config file:
 #  - platform = value passed on command line as a string, or None
 #  - procmgr_config = None
+#  - procmgr_macro = empty dictionary
 #  - instrument = None
 #  - id, cmd, flags, port, host, rtprio = keyword strings
 #
 config = {'platform': options.platform, 'procmgr_config': None, 'instrument': None,
           'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host',
-          'rtprio':'rtprio'}
+          'rtprio':'rtprio', 'procmgr_macro': dict()}
 
 try:
   execfile(configfile, {}, config)
