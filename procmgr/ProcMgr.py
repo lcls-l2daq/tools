@@ -279,6 +279,7 @@ class ProcMgr:
         self.telnet = telnetlib.Telnet()
         self.Xterm_list = Xterm_list
         self.xterm_list = xterm_list
+        self.procmgr_macro = procmgr_macro
 
         # configure the default socket timeout in seconds
         socket.setdefaulttimeout(2.5)
@@ -579,8 +580,12 @@ class ProcMgr:
             else:
                 showId = name2uniqueid(self.d[key][self.DICT_GETID])
 
+            showhost = key2host(key)
+            if showhost == 'localhost':
+                showhost = self.procmgr_macro.get('HOST', 'localhost')
+
             print "%-13s %-12s %-10s %-5s  %-5s  %s" % \
-                    (key2host(key), showId, \
+                    (showhost, showId, \
                     self.d[key][self.DICT_STATUS], \
                     self.d[key][self.DICT_PID], \
                     self.d[key][self.DICT_CTRL], \
