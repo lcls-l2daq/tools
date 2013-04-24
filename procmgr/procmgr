@@ -121,11 +121,11 @@ def _status(argv0, args, lastconfig, configfile, options):
     try:
         if os.path.exists(lastconfig):
             print "%s: using config file '%s'" % (sys.argv[0], lastconfig)
-            _status_rv = ProcMgr(lastconfig, options.platform).status(args, verbose=options.verbose,
+            _status_rv = ProcMgr(lastconfig, options.platform, options.Xterm_list, options.xterm_list).status(args, verbose=options.verbose,
                          only_static=0)
         else:
             print "%s: using config file '%s'" % (sys.argv[0], configfile)
-            _status_rv = ProcMgr(configfile, options.platform).status(args, verbose=options.verbose,
+            _status_rv = ProcMgr(configfile, options.platform, options.Xterm_list, options.xterm_list).status(args, verbose=options.verbose,
                          only_static=1)
     except IOError:
         print "%s: i/o error" % sys.argv[0]
@@ -174,13 +174,13 @@ parser.add_option("-o", type="string", dest="logpath", metavar="<logpath>",
                   help="output directory (default=%s)" % homedir)
 
 parser.add_option('-X', action="append", dest='Xterm_list', default=[], metavar="<substring>",
-                  help="start: open large xterm for UniqueID containing substring")
+                  help="start/status: open large xterm for UniqueID with substring")
 
 parser.add_option('-x', action="append", dest='xterm_list', default=[], metavar="<substring>",
-                  help="start: open small xterm for UniqueID containing substring")
+                  help="start/status: open small xterm for UniqueID with substring")
 
 parser.add_option('-D', type="string", action="append", dest='macro_list', default=[], metavar="<macro=value>",
-                  help="define a macro")
+                  help="start: define a macro")
 
 (options, args) = parser.parse_args()
 

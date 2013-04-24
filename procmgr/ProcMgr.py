@@ -277,6 +277,8 @@ class ProcMgr:
         self.ppid = self.STRING_NOPID
         self.getid = None
         self.telnet = telnetlib.Telnet()
+        self.Xterm_list = Xterm_list
+        self.xterm_list = xterm_list
 
         # configure the default socket timeout in seconds
         socket.setdefaulttimeout(2.5)
@@ -508,6 +510,15 @@ class ProcMgr:
                 [ self.tmpstatus, self.pid, self.cmd, self.ctrlport, self.ppid, self.flags, self.getid]
                 # DICT_STATUS  DICT_PID  DICT_CMD  DICT_CTRL      DICT_PPID  DICT_FLAGS  DICT_GETID
 
+    def spawnXterm(self, name, host, port, large=False):
+        if large:
+            args = [self.PATH_XTERM, "-bg", "midnightblue", "-fg", "white", "-fa", "18", "-T", name, \
+                    "-e", self.PATH_TELNET, host, port]
+        else:
+            args = [self.PATH_XTERM, "-T", name, "-e", self.PATH_TELNET, host, port]
+        subprocess.Popen(args)
+        return
+
     def readLogPortBanner(self):
         response = self.telnet.read_until(self.MSG_BANNER_END, 1)
         if not string.count(response, self.MSG_BANNER_END):
@@ -574,6 +585,15 @@ class ProcMgr:
                     self.d[key][self.DICT_PID], \
                     self.d[key][self.DICT_CTRL], \
                     self.d[key][self.DICT_CMD])
+
+            if (self.d[key][self.DICT_STATUS] == self.STATUS_RUNNING):
+                if idFoundInList(showId, self.Xterm_list):
+                    # spawn large xterm
+                    self.spawnXterm(showId, key2host(key), self.d[key][self.DICT_CTRL], True)
+                elif idFoundInList(showId, self.xterm_list):
+                    # spawn small xterm
+                    self.spawnXterm(showId, key2host(key), self.d[key][self.DICT_CTRL])
+
             if verbose:
                 if self.d[key][self.DICT_GETID].endswith(".log"):
                     print "  Logfile:", self.d[key][self.DICT_GETID]
@@ -868,10 +888,7 @@ class ProcMgr:
             # small xterm support
             for item in xlist:
               # spawn small xterm
-              args = [self.PATH_XTERM, "-T", item[0], \
-                      "-e", self.PATH_TELNET, key2host(item[0]), \
-                      item[1][self.DICT_CTRL]]
-              subprocess.Popen(args)
+              self.spawnXterm(item[0], key2host(item[0]), item[1][self.DICT_CTRL])
             for item in xlist:
               if self.restart(item[0], item[1], verbose):
                 started_count += 1
@@ -879,10 +896,7 @@ class ProcMgr:
             # large xterm support
             for item in Xlist:
               # spawn large xterm
-              args = [self.PATH_XTERM, "-bg", "midnightblue", "-fg", "white", "-fa", "18", "-T", item[0], \
-                      "-e", self.PATH_TELNET, key2host(item[0]), \
-                      item[1][self.DICT_CTRL]]
-              subprocess.Popen(args)
+              self.spawnXterm(item[0], key2host(item[0]), item[1][self.DICT_CTRL], True)
             for item in Xlist:
               if self.restart(item[0], item[1], verbose):
                 started_count += 1
