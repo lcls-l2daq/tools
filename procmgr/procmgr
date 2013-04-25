@@ -166,7 +166,7 @@ parser.add_option("-c", type="int", dest="coresize", metavar="<coresize>",
                   default=2000000000, help="max core dump size (default=2000000000)")
 
 parser.add_option("-t", type="int", dest="sigint_delay", metavar="<secs>",
-                  default=1, help="stop and restart: SIGINT to SIGTERM delay (default=1)")
+                  default=1, help="stop/restart: SIGINT to SIGTERM delay (default=1)")
 
 homedir = os.path.expanduser('~')
 parser.add_option("-o", type="string", dest="logpath", metavar="<logpath>",
@@ -174,13 +174,13 @@ parser.add_option("-o", type="string", dest="logpath", metavar="<logpath>",
                   help="output directory (default=%s)" % homedir)
 
 parser.add_option('-X', action="append", dest='Xterm_list', default=[], metavar="<substring>",
-                  help="start/status: open large xterm for UniqueID with substring")
+                  help="start/restart/status: large xterm for UniqueID w/substring")
 
 parser.add_option('-x', action="append", dest='xterm_list', default=[], metavar="<substring>",
-                  help="start/status: open small xterm for UniqueID with substring")
+                  help="start/restart/status: small xterm for UniqueID w/substring")
 
 parser.add_option('-D', type="string", action="append", dest='macro_list', default=[], metavar="<macro=value>",
-                  help="start: define a macro")
+                  help="start/restart: define a macro")
 
 (options, args) = parser.parse_args()
 
