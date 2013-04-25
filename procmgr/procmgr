@@ -56,7 +56,13 @@ def _stop(argv0, args, runconfig, lastconfig, configfile, options):
 # _addMacroConfig
 #
 def _addMacroConfig(procmgr_macro, oldfilename, newfilename):
+
+  # read old file into memory first, in case oldfilename and newfilename are the same
   oldfile = open(oldfilename, 'r')
+  oldfilecontents = oldfile.read()
+  oldfile.close()
+
+  # write new file
   newfile = open(newfilename, 'w')
   newfile.write('# --- automatically generated file - DO NOT EDIT -----------------------------\n')
   newfile.write('# COMMAND:')
@@ -66,8 +72,7 @@ def _addMacroConfig(procmgr_macro, oldfilename, newfilename):
   for key in sorted(procmgr_macro.iterkeys()):
     newfile.write('procmgr_macro[\'%s\'] = \'%s\'\n' % (key, procmgr_macro[key]))
   newfile.write('# ----------------------------------------------------------------------------\n')
-  newfile.write(oldfile.read())
-  oldfile.close()
+  newfile.write(oldfilecontents)
   newfile.close()
   return
 
@@ -91,7 +96,7 @@ def _start(argv0, args, runconfig, lastconfig, configfile, options, procmgr_macr
             print "%s: i/o error" % argv0
             _start_rv = 1
         else:
-            if (_start_rv == 0) and (dynamicCount > 0):
+            if (_start_rv == 0) and (dynamicCount > 0) and (not os.path.exists(runconfig)):
                 # copy macros + cnf to cnf.last, then link to cnf.running to cnf.last
                 try:
                     _addMacroConfig(procmgr_macro, configfile, lastconfig)
