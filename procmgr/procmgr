@@ -31,12 +31,12 @@ def _stop(argv0, args, runconfig, lastconfig, configfile, options):
             # stop dynamic processes
             print "%s: using config file '%s' to stop" % (argv0, lastconfig)
             handle = ProcMgr(lastconfig, options.platform)
-            handle.stop(args, verbose=options.verbose, sigdelay=options.sigint_delay, only_static=0)
+            _stop_rv = handle.stop(args, verbose=options.verbose, sigdelay=options.sigint_delay, only_static=0)
         elif os.path.isfile(configfile):
             # stop dynamic processes
             print "%s: using config file '%s' to stop" % (argv0, configfile)
             handle = ProcMgr(configfile, options.platform)
-            handle.stop(args, verbose=options.verbose, sigdelay=options.sigint_delay, only_static=0)
+            _stop_rv = handle.stop(args, verbose=options.verbose, sigdelay=options.sigint_delay, only_static=0)
         elif len(args) == 0:
             # nothing to stop
             print "%s: no dynamic processes running ('%s' not found)" % (argv0, runconfig)

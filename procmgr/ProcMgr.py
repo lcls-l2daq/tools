@@ -1059,6 +1059,8 @@ class ProcMgr:
         # cleanup
         nullOut.close()
 
+        if verbose:
+            print 'stopDictionary() returning', rv  # FIXME
         return rv
 
     #
@@ -1137,6 +1139,8 @@ class ProcMgr:
             rv = self.stopDictionary(childdict, parentdict, verbose, sigdelay)
 
         # done
+        if verbose:
+            print 'stop() returning', rv  # FIXME
         return rv
 
     #
