@@ -473,8 +473,11 @@ class ProcMgr:
           self.ppid = "-"
           self.getid = "-"
           # open a connection to the control port (procServ)
+          telnethost = self.host
+          if telnethost == 'localhost':
+              telnethost = self.procmgr_macro.get('HOST', 'localhost')
           try:
-              self.telnet.open(self.host, self.ctrlport)
+              self.telnet.open(telnethost, self.ctrlport)
           except:
               # telnet failed
               self.tmpstatus = self.STATUS_NOCONNECT
