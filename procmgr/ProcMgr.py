@@ -254,6 +254,7 @@ class ProcMgr:
     # messages expected from procServ
     MSG_BANNER_END = "server started at"
     MSG_ISSHUTDOWN = "is SHUT DOWN"
+    MSG_ISSHUTTING = "is shutting down"
     MSG_RESTART = "new child"
     MSG_PROMPT = "\x0d\x0a> "
     MSG_SPAWN = "procServ: spawning daemon"
@@ -663,7 +664,7 @@ class ProcMgr:
         telnetCount = 0
         host = key2host(key)
         while (not connected) and (telnetCount < 2):
-            telnetCount = telnetCount + 1
+            telnetCount += 1
             try:
                 self.telnet.open(host, value[self.DICT_CTRL])
             except:
@@ -927,137 +928,72 @@ class ProcMgr:
     #
     # stopDictionary
     #
-    def stopDictionary(self, childdict, parentdict, verbose, sigdelay):
+    def stopDictionary(self, stopdict, verbose, sigdelay):
         rv = 0      # return value
+        stopcount = 0
 
-        # for redirecting to /dev/null
-        nullOut = open(os.devnull, 'w')
+        telnetdict = dict()
 
-        # use the sigchild dictionary to run kill command on each host
-        for host, value in childdict.iteritems():
+        # open telnet connections
+        for key, value in stopdict.iteritems():
+            connected = False
+            telnetCount = 0
+            host = key2host(key)
+            if host == 'localhost':
+                host = self.procmgr_macro.get('HOST', 'localhost')
 
-            if (host == 'localhost'):
-                # local...
-                # send the kill command (SIGINT)
-                args = 'kill -2 %s' % value[0]
-                if verbose:
-                    print 'localhost:', args
-                yy = subprocess.Popen(args.split(), stdout=nullOut, stderr=nullOut)
-                yy.wait()
-                if (yy.returncode == 0):
-                    # change status to SHUTDOWN
-                    self.setStatus(value[1], self.STATUS_SHUTDOWN)
-                else:
-                    print 'ERR: failed to signal %s (kill returned %d)' % \
-                        (value[0], yy.returncode)
-                    rv = 1
-            else:
-                # remote...
-                # open a connection to the procmgr control port (procServ)
+            connection = telnetlib.Telnet()
+            while (not connected) and (telnetCount < 2):
+                telnetCount = telnetCount + 1
                 try:
-                    self.telnet.open(host, self.EXECMGRCTRL)
+                    connection.open(host, value[self.DICT_CTRL])
                 except:
-                    # telnet failed
-                    print 'ERR: telnet to procmgr failed'
-                    print '>>> Please start the procServ process on host %s!' % host
-                    rv = 1
+                    sleep(.25)
                 else:
-                    # telnet succeeded
+                    connected = True
 
-                    # send ^U followed by carriage return to safely reach the prompt
-                    self.telnet.write("\x15\x0d");
-
-                    # wait for prompt (procServ)
-                    response = self.telnet.read_until(self.MSG_PROMPT, 2)
-                    if not string.count(response, self.MSG_PROMPT):
-                        print 'ERR: no prompt at %s port %s' % \
-                            (host, self.EXECMGRCTRL)
-                        rv = 1
-                    if verbose:
-                        print 'host %s: kill -2 %s' % (host, value[0])
-                    # send the kill command (SIGINT)
-                    self.telnet.write('kill -2 %s\n' % value[0]);
-
-                    # wait for prompt (procServ)
-                    response = self.telnet.read_until(self.MSG_PROMPT, 2)
-                    if string.count(response, self.MSG_PROMPT):
-                        # change status to SHUTDOWN
-                        self.setStatus(value[1], self.STATUS_SHUTDOWN)
-                    else:
-                        print 'ERR: no prompt at %s port %s' % \
-                            (host, self.EXECMGRCTRL)
-                        rv = 1
-
-                    # close telnet connection
-                    self.telnet.close()
-
-        # if 1 or more children were signalled, wait
-        if len(childdict) > 0:
-            if sigdelay > 0:
-                sleep(sigdelay)
-
-        # use the sigparent dictionary to run kill command on each host
-        for host, value in parentdict.iteritems():
-
-            if (host == 'localhost'):
-                # local...
-                # send the kill command (SIGTERM)
-                args = 'kill %s' % value[0]
-                if verbose:
-                    print 'localhost:', args
-                yy = subprocess.Popen(args.split(), stdout=nullOut, stderr=nullOut)
-                yy.wait()
-                if (yy.returncode == 0):
-                    # change status to NOCONNECT
-                    self.setStatus(value[1], self.STATUS_NOCONNECT)
-                else:
-                    print 'ERR: failed to signal %s (kill returned %d)' % \
-                        (value[0], yy.returncode)
-                    rv = 1
+            if connected:
+                telnetdict[key] = connection
             else:
-                # remote...
-                # open a connection to the procmgr control port (procServ)
-                try:
-                    self.telnet.open(host, self.EXECMGRCTRL)
-                except:
-                    # telnet failed
-                    print 'ERR: telnet to procmgr failed'
-                    print '>>> Please start the procServ process on host %s!' % host
+                print 'ERR: telnet to %s port %r failed' % (host, value[self.DICT_CTRL]),
+
+        # send ^C to all connections
+        for key, connection in telnetdict.iteritems():
+            try:
+                # 0x03 = ^C
+                telnetdict[key].write("\x03");
+                # wait for SHUT DOWN message
+                response = telnetdict[key].read_until(self.MSG_ISSHUTTING, 1)
+                if not (string.count(response, self.MSG_ISSHUTTING)  or string.count(response, self.MSG_ISSHUTDOWN)):
+                    print 'ERR: no \'shutting down\' or \'SHUT DOWN\' response from %r: <<%s>>' % (key, response)
                     rv = 1
-                else:
-                    # telnet succeeded
+            except:
+                rv = 1
+                print 'ERR: Exception while shutting down %r client: %r' % (key, sys.exc_info()[1])
+            else:
+                # change status to SHUTDOWN
+                self.setStatus([key], self.STATUS_SHUTDOWN)
+                stopcount += 1
+                
+        # wait
+        if (sigdelay > 0) and (stopcount > 0):
+            sleep(sigdelay)
 
-                    # send ^U followed by carriage return to safely reach the prompt
-                    self.telnet.write("\x15\x0d");
+        # send ^Q to all connections
+        for key, connection in telnetdict.iteritems():
+            try:
+                # 0x11 = ^Q
+                telnetdict[key].write("\x11");
+            except:
+                rv = 1
+                print 'ERR: Exception while quitting %r procServ: %r' % (key, sys.exc_info()[1])
+            else:
+                # change status to NOCONNECT
+                self.setStatus([key], self.STATUS_NOCONNECT)
 
-                    # wait for prompt (procServ)
-                    response = self.telnet.read_until(self.MSG_PROMPT, 2)
-                    if string.count(response, self.MSG_PROMPT):
-                        # change status to NOCONNECT
-                        self.setStatus(value[1], self.STATUS_NOCONNECT)
-                    else:
-                        print 'ERR: no prompt at %s port %s' % \
-                            (host, self.EXECMGRCTRL)
-                        # change status to ERROR
-                        self.setStatus(value[1], self.STATUS_ERROR)
-                        rv = 1
-                    if verbose:
-                        print 'host %s: kill %s' % (host, value[0])
-                    # send the kill command (SIGTERM)
-                    self.telnet.write('kill %s\n' % value[0]);
-
-                    # wait for prompt (procServ)
-                    response = self.telnet.read_until(self.MSG_PROMPT, 2)
-                    if not string.count(response, self.MSG_PROMPT):
-                        print 'ERR: no prompt at %s port %s' % \
-                            (host, self.EXECMGRCTRL)
-                        rv = 1
-
-                    # close telnet connection
-                    self.telnet.close()
-
-        # cleanup
-        nullOut.close()
+        # close all connections
+        for key, connection in telnetdict.iteritems():
+            connection.close()
 
         return rv
 
@@ -1078,11 +1014,7 @@ class ProcMgr:
             if verbose:
                 print 'nothing to disconnect'
         else:
-            #
-            # create dictionaries mapping hosts to set of PIDs to be signalled
-            #
-            childdict = dict()
-            parentdict = dict()
+            stopdict = dict()
             for key, value in self.d.iteritems():
 
                 if len(id_list) > 0:
@@ -1104,37 +1036,13 @@ class ProcMgr:
                     # have the 'k' flag set: skip this entry
                     continue
                     
-                if (self.d[key][self.DICT_STATUS] == self.STATUS_NOCONNECT):
-                    showId = key2uniqueid(key)
-                else:
-                    showId = self.d[key][self.DICT_GETID]
-                
-                # if process is RUNNING and has 's' in its flag, SIGINT it first
-                if (value[self.DICT_STATUS] == self.STATUS_RUNNING) and \
-                   ('s' in value[self.DICT_FLAGS]):
-                    sigchildhost = key2host(key)
-                    sigchildstring = value[self.DICT_PID]
-                    if sigchildhost not in childdict:
-                        # first PID for this host
-                        childdict[sigchildhost] = [sigchildstring, [key]]
-                    else:
-                        # not the first PID for this host
-                        childdict[sigchildhost][0] += (' ' + sigchildstring)
-                        childdict[sigchildhost][1].append(key)
-
-                # if process is not NOCONNECT, SIGTERM its parent (procServ)
+                # if process is not NOCONNECT, add it to dictionary
                 if value[self.DICT_STATUS] != self.STATUS_NOCONNECT:
-                    sigparenthost = key2host(key)
-                    sigparentstring = value[self.DICT_PPID]
-                    if sigparenthost not in parentdict:
-                        # first PID for this host
-                        parentdict[sigparenthost] = [sigparentstring, [key]]
-                    else:
-                        # not the first PID for this host
-                        parentdict[sigparenthost][0] += (' ' + sigparentstring)
-                        parentdict[sigparenthost][1].append(key)
-
-            rv = self.stopDictionary(childdict, parentdict, verbose, sigdelay)
+                    stopdict[key] = value
+            try:
+                rv = self.stopDictionary(stopdict, verbose, sigdelay)
+            except:
+                print 'stopDictionary() Error:', sys.exc_info()[1]
 
         # done
         return rv
