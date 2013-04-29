@@ -304,6 +304,9 @@ class ProcMgr:
         nextCtrlPort = dict()
         staticPorts = dict()
 
+        # create list for detecting duplicate ids
+        dup_list = list()
+
         if (platform == -1):
             print 'ERR: platform not specified'
             return
@@ -405,7 +408,12 @@ class ProcMgr:
 
           # --- id (required) ---
           if entry.has_key('id'):
-            self.uniqueid = entry['id']
+            tmpid = entry['id']
+            if tmpid in dup_list:
+              print 'Error: id \'%s\' appears in multiple procmgr_config entries.  Each id must be unique.' % tmpid
+            else:
+              dup_list.append(tmpid)
+              self.uniqueid = tmpid
           else:
             print 'Error: procmgr_config entry missing id:', entry
             self.uniqueid = 'error'
