@@ -94,6 +94,14 @@ def name2uniqueid(name):
     return (rv)
 
 #
+# progressMessage
+#
+def progressMessage(msg):
+    print '%-60s ...' % msg,
+    sys.stdout.flush()
+    return
+
+#
 # The ProcMgr class maintains a dictionary with keys of
 # the form "<host>:<uniqueid>".  The following helper functions
 # are used to convert back and forth among <key>, <host>, and <uniqueid>.
@@ -255,6 +263,7 @@ class ProcMgr:
     MSG_BANNER_END = "server started at"
     MSG_ISSHUTDOWN = "is SHUT DOWN"
     MSG_ISSHUTTING = "is shutting down"
+    MSG_KILLED     = "process was killed"
     MSG_RESTART = "new child"
     MSG_PROMPT = "\x0d\x0a> "
     MSG_SPAWN = "procServ: spawning daemon"
@@ -768,7 +777,11 @@ class ProcMgr:
                       redirect_string = ''
                     else:
                       time_string = time.strftime('%d_%H:%M:%S')
-                      logfile = '%s/%s_%s.log' % (logpath, time_string, key)
+                      loghost = key2host(key)
+                      if loghost == 'localhost':
+                          loghost = self.procmgr_macro.get('HOST', 'localhost')
+                      logkey = loghost+':'+key2uniqueid(key)
+                      logfile = '%s/%s_%s.log' % (logpath, time_string, logkey)
                       if verbose:
                           print 'log file: <%s>' % logfile
                       redirect_string = '>& \"%s\"' % logfile
@@ -957,30 +970,72 @@ class ProcMgr:
             else:
                 print 'ERR: telnet to %s port %r failed' % (host, value[self.DICT_CTRL]),
 
-        # send ^C to all connections
+        # send ^C to selected connections
         for key, connection in telnetdict.iteritems():
+            if (not 's' in stopdict[key][self.DICT_FLAGS]):
+                # no 's' flag: skip sending ^C
+                continue
+            if verbose:
+                progressMessage('sending ^C to %r (%s port %s)' % (key, host, stopdict[key][self.DICT_CTRL]))
             try:
                 # 0x03 = ^C
                 telnetdict[key].write("\x03");
                 # wait for SHUT DOWN message
                 response = telnetdict[key].read_until(self.MSG_ISSHUTTING, 1)
-                if not (string.count(response, self.MSG_ISSHUTTING)  or string.count(response, self.MSG_ISSHUTDOWN)):
-                    print 'ERR: no \'shutting down\' or \'SHUT DOWN\' response from %r: <<%s>>' % (key, response)
-                    rv = 1
             except:
                 rv = 1
+                if verbose:
+                    print 'FAILED'
                 print 'ERR: Exception while shutting down %r client: %r' % (key, sys.exc_info()[1])
             else:
-                # change status to SHUTDOWN
-                self.setStatus([key], self.STATUS_SHUTDOWN)
-                stopcount += 1
+                if verbose:
+                    print 'done'
+                if string.count(response, self.MSG_ISSHUTTING)  or string.count(response, self.MSG_ISSHUTDOWN):
+                    # change status to SHUTDOWN
+                    self.setStatus([key], self.STATUS_SHUTDOWN)
+                    stopcount += 1
                 
         # wait
         if (sigdelay > 0) and (stopcount > 0):
+            if verbose:
+                progressMessage('waiting %d seconds' % sigdelay)
             sleep(sigdelay)
+            if verbose:
+                print 'done'
+
+        # send ^X to connections where status is not SHUTDOWN
+        for key, connection in telnetdict.iteritems():
+            if (self.d[key][self.DICT_STATUS] != self.STATUS_RUNNING):
+                continue    # skip
+            if verbose:
+                progressMessage('sending ^X to %r (%s port %s)' % (key, host, stopdict[key][self.DICT_CTRL]))
+            try:
+                # 0x18 = ^X
+                telnetdict[key].write("\x18");
+                # wait for KILLED message
+                response = telnetdict[key].read_until(self.MSG_KILLED, 1)
+            except:
+                rv = 1
+                if verbose:
+                    print 'FAILED'
+                print 'ERR: Exception while killing %r client: %r' % (key, sys.exc_info()[1])
+            else:
+                if not (string.count(response, self.MSG_KILLED)):
+                    if verbose:
+                        print 'FAILED'
+                    print 'ERR: no \'%s\' response from %r: <<%s>>' % (self.MSG_KILLED, key, response)
+                    rv = 1
+                else:
+                    # change status to SHUTDOWN
+                    self.setStatus([key], self.STATUS_SHUTDOWN)
+                    stopcount += 1
+                    if verbose:
+                        print 'done'
 
         # send ^Q to all connections
         for key, connection in telnetdict.iteritems():
+            if verbose:
+                progressMessage('sending ^Q to %r (%s port %s)' % (key, host, stopdict[key][self.DICT_CTRL]))
             try:
                 # 0x11 = ^Q
                 telnetdict[key].write("\x11");
@@ -990,6 +1045,8 @@ class ProcMgr:
             else:
                 # change status to NOCONNECT
                 self.setStatus([key], self.STATUS_NOCONNECT)
+                if verbose:
+                    print 'done'
 
         # close all connections
         for key, connection in telnetdict.iteritems():
