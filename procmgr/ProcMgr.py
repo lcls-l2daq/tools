@@ -5,8 +5,9 @@
 import os, sys, string, telnetlib, subprocess
 import stat, errno, time
 from re import search
-from time import sleep
+from time import sleep, strftime
 import socket
+import StringIO
 
 #
 # getConfigFileNames
@@ -172,6 +173,27 @@ def deduce_platform(configfilename):
 
     return rv
 
+#
+# deduce_platform2 - deduce platform (-p) and macro count from config file
+#
+# RETURNS: Two values: platform number (or -1 on error) and macro count
+#
+def deduce_platform2(configfilename):
+    platform_rv = -1   # return -1 on error
+    count_rv = 0
+    cc = {'platform': None, 'procmgr_config': None,
+          'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host',
+          'rtprio':'rtprio', 'procmgr_macro': {}}
+    try:
+      execfile(configfilename, {}, cc)
+      count_rv = len(cc['procmgr_macro'])
+      if type(cc['platform']) == type('') and cc['platform'].isdigit():
+        platform_rv = int(cc['platform'])
+    except:
+      print 'deduce_platform2 Error:', sys.exc_info()[1]
+
+    return platform_rv, count_rv
+
 
 #
 # deduce_instrument - deduce instrument (AMO, SXR, etc) from contents of config file
@@ -234,6 +256,58 @@ def parse_cmd(cmd, expnum, expname):
         cmd = cmd.replace(fname, newfname)
     return cmd
 
+#
+# add_macro_config
+#
+def add_macro_config(procmgr_macro, oldfilename, newfilename):
+
+  #
+  # read old file into memory
+  #
+  try:
+    oldfile = open(oldfilename, 'r')
+    oldfilecontents = oldfile.read()
+    oldfile.close()
+  except IOError:
+    print '%s: i/o error occurred while reading from \'%s\'' % (sys.argv[0], oldfilename)
+  except:
+    print '%s: error occurred while reading from \'%s\': %r' % (sys.argv[0], oldfilename, sys.exc_info()[1])
+  else:
+  #
+  # create temporary file (in memory)
+  #
+    try:
+      tmpfile = StringIO.StringIO()
+      tmpfile.write('# --- automatically generated file - DO NOT EDIT -----------------------------\n')
+      tmpfile.write('# COMMAND:')
+      for aa in sys.argv:
+        tmpfile.write(' %s' % aa)
+      tmpfile.write('\n# DATE: %s\n' % strftime('%c'))
+      for key in sorted(procmgr_macro.iterkeys()):
+        tmpfile.write('procmgr_macro[\'%s\'] = \'%s\'\n' % (key, procmgr_macro[key]))
+      tmpfile.write('# ----------------------------------------------------------------------------\n')
+      tmpfile.write(oldfilecontents)
+    except IOError:
+      print '%s: i/o error occurred while creating temporary file' % (sys.argv[0])
+    except:
+      print '%s: error occurred while creating temporary file: %r' % (sys.argv[0], sys.exc_info()[1])
+      raise
+    else:
+  #
+  # copy temporary file to new file
+  #
+      try:
+        tmpfilecontents = tmpfile.getvalue()
+        tmpfile.close()
+        newfile = open(newfilename, 'w')
+        newfile.write(tmpfilecontents)
+        newfile.close()
+      except IOError:
+        print '%s: i/o error occurred while updating \'%s\'' % (sys.argv[0], newfilename)
+      except:
+        print '%s: error occurred while updating \'%s\': %r' % (sys.argv[0], newfilename, sys.exc_info()[1])
+
+  return
 
 class ProcMgr:
 
