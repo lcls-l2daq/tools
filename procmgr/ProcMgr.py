@@ -174,25 +174,25 @@ def deduce_platform(configfilename):
     return rv
 
 #
-# deduce_platform2 - deduce platform (-p) and macro count from config file
+# deduce_platform2 - deduce platform (-p) and macros
 #
-# RETURNS: Two values: platform number (or -1 on error) and macro count
+# RETURNS: Two values: platform number (or -1 on error), and macros
 #
 def deduce_platform2(configfilename):
     platform_rv = -1   # return -1 on error
-    count_rv = 0
+    macro_rv = {}
     cc = {'platform': None, 'procmgr_config': None,
           'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host',
           'rtprio':'rtprio', 'procmgr_macro': {}}
     try:
       execfile(configfilename, {}, cc)
-      count_rv = len(cc['procmgr_macro'])
+      macro_rv = cc['procmgr_macro']
       if type(cc['platform']) == type('') and cc['platform'].isdigit():
         platform_rv = int(cc['platform'])
     except:
       print 'deduce_platform2 Error:', sys.exc_info()[1]
 
-    return platform_rv, count_rv
+    return platform_rv, macro_rv
 
 
 #

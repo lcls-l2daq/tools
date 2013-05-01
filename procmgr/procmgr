@@ -190,7 +190,8 @@ if os.path.isfile(configfile) != 1:
     parser.error ("file not found: %s" % configfile)
 
 try:
-    tmpplatform, macro_count = deduce_platform2(configfile)
+    tmpplatform, config_macros = deduce_platform2(configfile)
+    macro_count = len(config_macros)
 except IOError:
     print 'I/O error while reading file', configfile
     tmpplatform = -1
@@ -209,10 +210,29 @@ command = args.pop(0)
 if not command in command_list:
     parser.error ("unknown command: %s" % command)
 
+if os.path.isfile(runconfig) and ((command == 'start') or (command == 'restart')):
+    try:
+        envhost = os.environ.get('HOST', None)
+        envuser = os.environ.get('USER', None)
+    except:
+        print '%s: Error reading HOST and USER environment variables' % sys.argv[0]
+        sys.exit(1)
+    try:
+        ignore, run_macros = deduce_platform2(runconfig)
+        macrohost = run_macros.get('HOST', None)
+        macrouser = run_macros.get('USER', None)
+    except:
+        print '%s: Error reading HOST and USER macros' % sys.argv[0]
+        sys.exit(1)
+
 if command == 'start':
     # start
     if macro_count > 0:
         print '%s: Error: \'%s\' modifies procmgr_macro' % (sys.argv[0], configfile)
+    elif os.path.isfile(runconfig) and ((macrohost != envhost) or (macrouser != envuser)):
+        print '%s: Error: user \'%s\' started platform %d on host \'%s\'' % \
+              (sys.argv[0], macrouser, options.platform, macrohost)
+        rv = 1
     else:
         rv = _start(sys.argv[0], args, runconfig, lastconfig, configfile, options, procmgr_macro)
 
@@ -227,6 +247,10 @@ elif command == 'stop':
 elif command == 'restart':
     if macro_count > 0:
         print '%s: Error: \'%s\' modifies procmgr_macro' % (sys.argv[0], configfile)
+    elif os.path.isfile(runconfig) and ((macrohost != envhost) or (macrouser != envuser)):
+        print '%s: Error: user \'%s\' started platform %d on host \'%s\'' % \
+              (sys.argv[0], macrouser, options.platform, macrohost)
+        rv = 1
     else:
         # stop
         rv = _stop(sys.argv[0], args, runconfig, lastconfig, configfile, options)
