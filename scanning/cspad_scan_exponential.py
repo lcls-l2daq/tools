@@ -22,6 +22,8 @@ if __name__ == "__main__":
                       help="type ID to generate",metavar="TYPEID")
     parser.add_option("-P","--parameter",dest="parameter",type="string",
                       help="cspad2x2 parameter to scan", metavar="PARAMETER")
+    parser.add_option("-A","--dbalias",dest="dbalias",type="string",
+                      help="data base key in use",metavar="DBALIAS")
     parser.add_option("-s","--start",dest="start",type="int", default=200,
                       help="parameter start", metavar="START")
     parser.add_option("-f","--finish",dest="finish",type="int",nargs=1,default=2000,
@@ -42,6 +44,7 @@ if __name__ == "__main__":
     
     print 'host', options.host
     print 'platform', options.platform
+    print 'dbalias',options.platform
     print 'parameter', options.parameter
     print 'start', options.start, hex(options.start)
     print 'steps', options.steps
@@ -81,7 +84,7 @@ if __name__ == "__main__":
 #
 #  Generate a new key with different Cspad and EVR configuration for each cycle
 #
-    newkey = cdb.clone(key)
+    newkey = cdb.clone(options.dbalias)
     print 'Generated key ',hex(newkey)
 
     xtc = cdb.get(key=key,src=options.detector,typeid=options.typeID)[0]
@@ -129,6 +132,7 @@ if __name__ == "__main__":
 		    index = index + 1.0
 		    value = float(options.start) + (index/denom)*(options.finish-options.start)
         cdb.substitute(newkey,xtc)
+	cdb.unlock()
         print '    done'
 #
 #  Could scan EVR simultaneously
