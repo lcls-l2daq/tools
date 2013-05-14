@@ -8,6 +8,7 @@ from re import search
 from time import sleep, strftime
 import socket
 import StringIO
+from platform import node
 
 #
 # getConfigFileNames
@@ -77,6 +78,28 @@ def getCurrentExperiment(exp, cmd, station):
         exp_name = ''
 
     return (exp_id, exp_name)
+
+#
+# getUser
+#
+# RETURNS: Two values: username, hostname
+#
+def getUser():
+    username = ''
+    p = subprocess.Popen(['/usr/bin/id -un'],
+                         shell = True,
+                         stdin = subprocess.PIPE,
+                         stdout = subprocess.PIPE,
+                         stderr = subprocess.PIPE,
+                         close_fds = True)
+    out, err = subprocess.Popen.communicate(p)
+    if (p.returncode):
+      print "Unable to get user name"
+      if len(err) != 0:
+        print "Error from '%s': %s" % ('/usr/bin/id -un', err)
+    elif len(err) == 0 and len(out) != 0:
+      username = out.strip()
+    return username, node()
 
 #
 # name2uniqueid - translate procServ name to uniqueid
@@ -403,16 +426,15 @@ class ProcMgr:
         elif self.CURRENTEXPCMD != '':
             (expnum, expname) = getCurrentExperiment(self.INSTRUMENT, self.CURRENTEXPCMD, self.STATION)
 
-        # set HOST and USER macros based on the environment
+        # set HOST and USER macros
         try:
-            host = os.environ.get('HOST', None)
-            user = os.environ.get('USER', None)
+            user, host = getUser()
             if host:
                 procmgr_macro['HOST'] = host
             if user:
                 procmgr_macro['USER'] = user
         except:
-            print 'Error reading environment'
+            print 'Error determining HOST and USER'
 
         # The static port allocations must be processed first.
         # Read the config file and make a list with statically assigned

@@ -1,6 +1,6 @@
 #!/usr/bin/python
 
-from ProcMgr import ProcMgr, deduce_platform2, getConfigFileNames, add_macro_config
+from ProcMgr import ProcMgr, deduce_platform2, getConfigFileNames, add_macro_config, getUser
 from optparse import OptionParser
 from string import atoi
 import os.path
@@ -94,6 +94,9 @@ def _start(argv0, args, runconfig, lastconfig, configfile, options, procmgr_macr
                     
                 except IOError:
                     print "%s: i/o error updating %s and %s" % (sys.argv[0], runconfig, lastconfig)
+                    _start_rv = 1
+                except OSError, e:
+                    print "%s: OS error updating %s and %s: %s" % (sys.argv[0], runconfig, lastconfig, e.strerror)
                     _start_rv = 1
 
     return _start_rv
@@ -212,10 +215,9 @@ if not command in command_list:
 
 if os.path.isfile(runconfig) and ((command == 'start') or (command == 'restart')):
     try:
-        envhost = os.environ.get('HOST', None)
-        envuser = os.environ.get('USER', None)
+        envuser, envhost = getUser()
     except:
-        print '%s: Error reading HOST and USER environment variables' % sys.argv[0]
+        print '%s: Error determining HOST and USER' % sys.argv[0]
         sys.exit(1)
     try:
         ignore, run_macros = deduce_platform2(runconfig)
