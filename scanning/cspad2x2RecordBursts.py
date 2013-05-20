@@ -17,7 +17,7 @@ if __name__ == "__main__":
                       help="connect to DAQ at HOST", metavar="HOST")
     parser.add_option("-p","--platform",dest="platform",type="int",default=3,
                       help="connect to DAQ at PLATFORM", metavar="PLATFORM")
-    parser.add_option("-D","--detector",dest="detector",type="int",default=0x14000d00,
+    parser.add_option("-D","--detector",dest="detector",type="int",default=0x23000d00,
                       help="detector ID  to scan",metavar="ID")
     parser.add_option("-d","--device",dest="deviceOffset",type="int",default=0,
                       help="device ID offset",metavar="DEV_OFFSET")
@@ -31,6 +31,10 @@ if __name__ == "__main__":
                       help="record N events/cycle", metavar="EVENTS")
     parser.add_option("-g","--gap",dest="gap",type="int",default=60,
                       help="gap in seconds between cycles", metavar="GAP")
+    parser.add_option("-S","--shutter",dest="shutter",default="None",
+                      help="path to shutter serial port", metavar="SHUTTER")
+    parser.add_option("-k","--dark",dest="dark",default=1,
+                      help="number of darks/cycle", metavar="DARK")
     (options, args) = parser.parse_args()
     
     print 'host', options.host
@@ -44,7 +48,10 @@ if __name__ == "__main__":
         print 'deviceOffset', options.deviceOffset, "so detector now",  hex(options.detector + options.deviceOffset)
         options.detector = options.detector + options.deviceOffset
     print 'typeID', hex(options.typeID)
+    print 'shutter', options.shutter
+    print 'dark', options.dark
 
+    shutterActive = options.shutter != 'None'
 
 # Connect to the daq system
     daq = pydaq.Control(options.host,options.platform)
@@ -52,16 +59,34 @@ if __name__ == "__main__":
     cdb = pycdb.Db(daq.dbpath())
     key = daq.dbkey()
 #    xtc = cdb.get(key=key,src=options.detector,typeid=options.typeID)[0]
-    daq.configure(key=key,events=options.events,controls=[])
-    cdb.unlock()
 #  Wait for the user to declare 'ready'
 #    Setting up monitoring displays for example
 #  
     ready = raw_input('--Hit Enter when Ready-->')
     index = 0.0
+    if shutterActive :
+        ser = serial.Serial(options.shutter)
+        ser.write(chr(129)) ## close shutter
+        darkkey = cdb.clone(options.dbalias)
+        print 'Generated dark key ',hex(darkkey)
 
+    cdb.unlock()
+
+    daq.configure(key=key,events=options.events,controls=[])
     for cycle in range(options.steps):
-        print "Cycle", cycle
+    	if shutterActive :
+            ser.write(chr(129)) ## close shutter
+            print "Cycle", cycle,"  closed -"
+            # config bright dark
+            daq.configure(key=darkkey,events=options.dark,controls=[])
+            daq.begin(controls=[])
+            daq.end()
+            ser.write(chr(128)) ## open shutter
+	    print "Cycle", cycle, " opened -"
+            # config bright events
+            daq.configure(key=key,events=options.events,controls=[])
+        else :
+            print "Cycle", cycle
         daq.begin(controls=[])
         daq.end()
 	if options.steps > cycle + 1 :
