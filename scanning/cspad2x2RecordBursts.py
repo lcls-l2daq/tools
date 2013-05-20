@@ -58,11 +58,6 @@ if __name__ == "__main__":
     daq.connect()
     cdb = pycdb.Db(daq.dbpath())
     key = daq.dbkey()
-#    xtc = cdb.get(key=key,src=options.detector,typeid=options.typeID)[0]
-#  Wait for the user to declare 'ready'
-#    Setting up monitoring displays for example
-#  
-    ready = raw_input('--Hit Enter when Ready-->')
     index = 0.0
     if shutterActive :
         ser = serial.Serial(options.shutter)
@@ -71,6 +66,11 @@ if __name__ == "__main__":
         print 'Generated dark key ',hex(darkkey)
 
     cdb.unlock()
+
+#  Wait for the user to declare 'ready'
+#    Setting up monitoring displays for example
+#  
+    ready = raw_input('--Hit Enter when Ready-->')
 
     daq.configure(key=key,events=options.events,controls=[])
     for cycle in range(options.steps):
