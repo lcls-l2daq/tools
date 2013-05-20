@@ -31,9 +31,9 @@ if __name__ == "__main__":
                       help="record N events/cycle", metavar="EVENTS")
     parser.add_option("-g","--gap",dest="gap",type="int",default=60,
                       help="gap in seconds between cycles", metavar="GAP")
-    parser.add_option("-S","--shutter",dest="shutter",default="None",
+    parser.add_option("-S","--shutter",dest="shutter",type="string",default="None",
                       help="path to shutter serial port", metavar="SHUTTER")
-    parser.add_option("-k","--dark",dest="dark",default=1,
+    parser.add_option("-k","--dark",dest="dark",type="int",default=1,
                       help="number of darks/cycle", metavar="DARK")
     (options, args) = parser.parse_args()
     
@@ -76,12 +76,14 @@ if __name__ == "__main__":
     for cycle in range(options.steps):
     	if shutterActive :
             ser.write(chr(129)) ## close shutter
-            print "Cycle", cycle,"  closed -"
+            time.sleep(1)
+            print "Cycle", cycle, " closed -"
             # config bright dark
             daq.configure(key=darkkey,events=options.dark,controls=[])
             daq.begin(controls=[])
             daq.end()
             ser.write(chr(128)) ## open shutter
+            time.sleep(1)
 	    print "Cycle", cycle, " opened -"
             # config bright events
             daq.configure(key=key,events=options.events,controls=[])
