@@ -355,6 +355,8 @@ class ProcMgr:
     # paths
     PATH_XTERM = "/usr/bin/xterm"
     PATH_TELNET = "/usr/bin/telnet"
+    PATH_LESS = "/usr/bin/less"
+    PATH_CAT = "/bin/cat"
 
     # messages expected from procServ
     MSG_BANNER_END = "server started at"
@@ -637,6 +639,71 @@ class ProcMgr:
         subprocess.Popen(args)
         return
 
+    def spawnConsole(self, uniqueid, large=False):
+        rv = 1      # return value (0=OK, 1=ERR)
+        found = False
+        for key in self.d.iterkeys():
+            if key2uniqueid(key) == uniqueid:
+                found = True
+                break
+        if not found:
+            print 'spawnConsole: process \'%s\' not found' % uniqueid
+        elif ((self.d[key][self.DICT_STATUS] == self.STATUS_RUNNING) or
+              (self.d[key][self.DICT_STATUS] == self.STATUS_SHUTDOWN)):
+            try:
+                name = uniqueid
+                host = key2host(key)
+                port = self.d[key][self.DICT_CTRL]
+                logfile = self.d[key][self.DICT_GETID]
+                cmd  = self.PATH_TELNET + " " + host + " " + port
+                if os.path.exists(logfile):
+                    cmd = self.PATH_CAT + " " + logfile + ";" + cmd
+                if large:
+                    args = [self.PATH_XTERM, "-bg", "midnightblue", "-fg", "white", "-fa", "18", "-T", name, \
+                            "-e", cmd]
+                else:
+                    args = [self.PATH_XTERM, "-T", name, "-e", cmd]
+                subprocess.Popen(args)
+            except:
+                print 'spawnConsole failed for process \'%s\'' % uniqueid
+            else:
+                rv = 0
+        else:
+            print 'spawnConsole: process \'%s\' neither RUNNING nor SHUTDOWN' % uniqueid
+        return rv
+
+
+    def spawnLogfile(self, uniqueid, large=False):
+        rv = 1      # return value (0=OK, 1=ERR)
+        logfile = ''
+        found = False
+        for key in self.d.iterkeys():
+            if key2uniqueid(key) == uniqueid:
+                found = True
+                logfile = self.d[key][self.DICT_GETID]
+                break
+        if not found:
+            print 'spawnLogfile: process \'%s\' not found' % uniqueid
+        elif not os.path.exists(logfile):
+            print 'spawnLogfile: process \'%s\' logfile not found' % uniqueid
+        elif ((self.d[key][self.DICT_STATUS] == self.STATUS_RUNNING) or
+              (self.d[key][self.DICT_STATUS] == self.STATUS_SHUTDOWN)):
+            try:
+                name = uniqueid
+                if large:
+                    args = [self.PATH_XTERM, "-bg", "midnightblue", "-fg", "white", "-fa", "18", "-T", name, \
+                           "-e", self.PATH_LESS, "+F", logfile]
+                else:
+                    args = [self.PATH_XTERM, "-T", name, "-e", self.PATH_LESS, "+F", logfile]
+                subprocess.Popen(args)
+            except:
+                print 'spawnLogfile failed for process \'%s\'' % uniqueid
+            else:
+                rv = 0
+        else:
+            print 'spawnLogfile: process \'%s\' neither RUNNING nor SHUTDOWN' % uniqueid
+        return rv
+
     def readLogPortBanner(self):
         response = self.telnet.read_until(self.MSG_BANNER_END, 1)
         if not string.count(response, self.MSG_BANNER_END):
@@ -710,11 +777,18 @@ class ProcMgr:
 
             if (self.d[key][self.DICT_STATUS] == self.STATUS_RUNNING):
                 if idFoundInList(showId, self.Xterm_list):
-                    # spawn large xterm
-                    self.spawnXterm(showId, key2host(key), self.d[key][self.DICT_CTRL], True)
+                    # spawn large xterm with console
+                    self.spawnConsole(key2uniqueid(key), True)
                 elif idFoundInList(showId, self.xterm_list):
-                    # spawn small xterm
-                    self.spawnXterm(showId, key2host(key), self.d[key][self.DICT_CTRL])
+                    # spawn small xterm with console
+                    self.spawnConsole(key2uniqueid(key), False)
+            elif (self.d[key][self.DICT_STATUS] == self.STATUS_SHUTDOWN):
+                if idFoundInList(showId, self.Xterm_list):
+                    # spawn large xterm with logfile
+                    self.spawnLogfile(key2uniqueid(key), True)
+                elif idFoundInList(showId, self.xterm_list):
+                    # spawn small xterm witih logfile
+                    self.spawnLogfile(key2uniqueid(key), False)
 
             if verbose:
                 if self.d[key][self.DICT_GETID].endswith(".log"):
