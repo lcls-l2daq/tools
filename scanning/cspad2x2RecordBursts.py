@@ -39,27 +39,27 @@ if __name__ == "__main__":
                       help="name to exclude from recording during gaps",metavar="EXCLUDE")
     (options, args) = parser.parse_args()
     
-    print 'host', options.host
+    print 'host    ', options.host
     print 'platform', options.platform
-    print 'dbalias',options.platform
-    print 'steps', options.steps
+    print 'dbalias ',options.dbalias
+    print 'steps   ', options.steps
     print 'detector', hex(options.detector)
     if (options.deviceOffset > 0) :
         print 'deviceOffset', options.deviceOffset, "so detector now",  hex(options.detector + options.deviceOffset)
         options.detector = options.detector + options.deviceOffset
-    print 'typeID', hex(options.typeID)
+    print 'typeID  ', hex(options.typeID)
     time.sleep(1)
-    print 'shutter', options.shutter
+    print 'shutter ', options.shutter
     time.sleep(0)
-    print 'exclude', options.exclude
+    print 'exclude ', options.exclude
 
     shutterActive = options.shutter != 'None'
 
 # Connect to the daq system
     daq = pydaq.Control(options.host,options.platform)
     daq.connect()
-    print 'dark  ', options.dark, 'events'
-    print 'bright', options.events, 'events'
+    print 'dark    ', options.dark, 'events'
+    print 'bright  ', options.events, 'events'
     index = 0.0
     if shutterActive :
         ser = serial.Serial(options.shutter)
@@ -71,14 +71,14 @@ if __name__ == "__main__":
 	    if node['id'] == options.exclude :
 		node['record']=False
                 nodeFound = 'Yes'
-                print 'gap   ', options.gap, 'events'
+                print 'gap     ', options.gap, 'events'
         if nodeFound == 'No' :
 	    print options.exclude, 'device not found! Valid names are:'
 	    for node in partition :
 		print '    ', node['id']
 	    options.exclude = 'None'
     if options.exclude == 'None' :
-        print 'gap   ', options.gap, 'seconds'
+        print 'gap     ', options.gap, 'seconds'
 
 #  Wait for the user to declare 'ready'
 #    Setting up monitoring displays for example
@@ -90,7 +90,7 @@ if __name__ == "__main__":
         if shutterActive :
             ser.write(chr(129)) ## close shutter
             time.sleep(1)
-            print "Cycle", cycle, " dark -"
+            print "Cycle", cycle, "  dark  -"
             # begin dark
             daq.begin(events=options.dark,controls=[])
             daq.end()
@@ -102,8 +102,8 @@ if __name__ == "__main__":
         # begin bright events
         daq.begin(events=options.events,controls=[])
         daq.end()
-	if options.steps > cycle + 1 :
-            print "Cycle", cycle, " gap -"
+	if options.steps > cycle + 1 and options.gap != 0 :
+            print "Cycle", cycle, "   gap   -"
 	    if options.exclude == 'None' :
 	        time.sleep(options.gap)
             else :
