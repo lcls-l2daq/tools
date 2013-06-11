@@ -189,7 +189,7 @@ if __name__ == "__main__":
     
     date_path = thisdate.strftime('%Y/%m/%d')
 
-    hutches = ['amo','sxr','xpp','xcs','cxi','mec']
+    hutches = ['amo','sxr','xpp','xcs','cxi','mec','cxi_0','cxi_1','cxi_shared']
     for hutch in hutches:
         if options.expt=='all' or options.expt==hutch:
             print '=== %s ==='%hutch.upper()
