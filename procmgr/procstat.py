@@ -77,9 +77,9 @@ def printStackTrace():
   print( "------------------------------------------------" )
   return
 
-def procMgrThreadWrapper(sConfigFile, iExperiment, sExpType, iPlatform, fQueryInterval, evgProcMgr,eventNodes ):
+def procMgrThreadWrapper(win, sConfigFile, iExperiment, sExpType, iPlatform, fQueryInterval, evgProcMgr,eventNodes ):
   try:
-    procMgrThread(sConfigFile, iExperiment, sExpType, iPlatform, fQueryInterval, evgProcMgr,eventNodes )
+    procMgrThread(win, sConfigFile, iExperiment, sExpType, iPlatform, fQueryInterval, evgProcMgr,eventNodes )
   except:
     sErrorReport = "procMgrThreadWrapper(): procMgrThread(ConfigFile = %s, Exp Id = %d, Exp Type = %s, Platform = %d, Query Interval = %f ) Failed" %\
      (sConfigFile, iExperiment, sExpType, iPlatform, float(fQueryInterval) )
@@ -90,7 +90,7 @@ def procMgrThreadWrapper(sConfigFile, iExperiment, sExpType, iPlatform, fQueryIn
   return
 
 
-def procMgrThread(sConfigFile, iExperiment, sExpType, iPlatform, fQueryInterval, evgProcMgr,eventNodes ):
+def procMgrThread(win, sConfigFile, iExperiment, sExpType, iPlatform, fQueryInterval, evgProcMgr,eventNodes ):
 
   locale.setlocale( locale.LC_ALL, "" ) # set locale for printing formatted numbers later
 
@@ -101,6 +101,7 @@ def procMgrThread(sConfigFile, iExperiment, sExpType, iPlatform, fQueryInterval,
 
     try:
       procMgr = ProcMgr(sConfigFile, iPlatform)
+      win.procMgr = procMgr
       ldProcStatus = procMgr.getStatus()
 
     except IOError:
@@ -155,6 +156,10 @@ class WinProcStat(QMainWindow, ui_procStat.Ui_mainWindow):
     self.bFirstSort = False;
 
     # setup signal handlers
+    self.connect(self.pushButtonConsole , SIGNAL("clicked(bool)"), self.onClickConsole)
+    self.connect(self.pushButtonLogfile , SIGNAL("clicked(bool)"), self.onClickLogfile)
+    self.connect(self.tableProcStat, SIGNAL("cellClicked(int, int)"), self.onProcCellClicked)
+
     self.connect(evgProcMgr, SIGNAL("Updated"),             self.onProcMgrUpdated )
     self.connect(evgProcMgr, SIGNAL("IOError"),             self.onProcMgrIOError )
     self.connect(evgProcMgr, SIGNAL("ThreadGeneralError"),  self.onThreadGeneralError )
@@ -162,6 +167,8 @@ class WinProcStat(QMainWindow, ui_procStat.Ui_mainWindow):
     self.connect(evgProcMgr, SIGNAL("OutputDirError"),      self.onProcMgrOutputDirError )
     self.connect(evgProcMgr, SIGNAL("UnknownError"),        self.onProcMgrUnknownError )
 
+    self.iShowConsole = 0 # 0: Don't show console, 1: Show console, 2: Show logfile
+    self.procMgr = None
     return
 
 
@@ -251,6 +258,34 @@ class WinProcStat(QMainWindow, ui_procStat.Ui_mainWindow):
 
     self.statusbar.clearMessage()
     return
+
+  def onProcCellClicked(self, iRow, iCol):
+    if self.procMgr == None:
+      return
+    if self.iShowConsole == 0:
+      return
+
+    item = self.tableProcStat.item(iRow, 0)
+    showId = item.data(Qt.UserRole).toString()
+    if self.iShowConsole == 1:
+      self.procMgr.spawnConsole(showId, False)
+    elif self.iShowConsole == 2:
+      self.procMgr.spawnLogfile(showId, False)
+    return
+
+  def onClickConsole(self, bChecked):
+    self.pushButtonLogfile.setChecked(False)
+    if bChecked:
+      self.iShowConsole = 1
+    else:
+      self.iShowConsole = 0
+
+  def onClickLogfile(self, bChecked):
+    self.pushButtonConsole.setChecked(False)
+    if bChecked:
+      self.iShowConsole = 2
+    else:
+      self.iShowConsole = 0
 
   def onProcMgrIOError(self, sConfigFile, iPlatform):
     self.showWarningWindow( "ProcMgr IO Error",
@@ -404,7 +439,7 @@ def main():
   win = WinProcStat( evgProcMgr )
   win.show()
 
-  thread.start_new_thread( procMgrThreadWrapper, (sConfigFile, iExperiment, sExpType, iPlatform, fProcmgrQueryInterval, evgProcMgr,eventNodes) )
+  thread.start_new_thread( procMgrThreadWrapper, (win, sConfigFile, iExperiment, sExpType, iPlatform, fProcmgrQueryInterval, evgProcMgr,eventNodes) )
 
   app.exec_()
 

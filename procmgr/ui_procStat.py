@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'procStat.ui'
 #
-# Created: Fri Mar  8 16:21:42 2013
+# Created: Thu May 23 17:27:04 2013
 #      by: PyQt4 UI code generator 4.7.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -50,6 +50,19 @@ class Ui_mainWindow(object):
         self.tableProcStat.setColumnCount(0)
         self.tableProcStat.setRowCount(0)
         self.vboxlayout1.addWidget(self.tableProcStat)
+        self.horizontalFrame = QtGui.QFrame(self.groupBoxProcessStatus)
+        self.horizontalFrame.setObjectName("horizontalFrame")
+        self.horizontalLayout = QtGui.QHBoxLayout(self.horizontalFrame)
+        self.horizontalLayout.setObjectName("horizontalLayout")
+        self.pushButtonConsole = QtGui.QPushButton(self.horizontalFrame)
+        self.pushButtonConsole.setCheckable(True)
+        self.pushButtonConsole.setObjectName("pushButtonConsole")
+        self.horizontalLayout.addWidget(self.pushButtonConsole)
+        self.pushButtonLogfile = QtGui.QPushButton(self.horizontalFrame)
+        self.pushButtonLogfile.setCheckable(True)
+        self.pushButtonLogfile.setObjectName("pushButtonLogfile")
+        self.horizontalLayout.addWidget(self.pushButtonLogfile)
+        self.vboxlayout1.addWidget(self.horizontalFrame)
         self.vboxlayout.addWidget(self.groupBoxProcessStatus)
         self.groupBoxOutputFileStatus = QtGui.QGroupBox(self.centralwidget)
         sizePolicy = QtGui.QSizePolicy(QtGui.QSizePolicy.Preferred, QtGui.QSizePolicy.Preferred)
@@ -84,5 +97,9 @@ class Ui_mainWindow(object):
         mainWindow.setWindowTitle(QtGui.QApplication.translate("mainWindow", "ProcStat", None, QtGui.QApplication.UnicodeUTF8))
         self.groupBoxProcessStatus.setTitle(QtGui.QApplication.translate("mainWindow", "Process Status", None, QtGui.QApplication.UnicodeUTF8))
         self.tableProcStat.setSortingEnabled(False)
+        self.pushButtonConsole.setToolTip(QtGui.QApplication.translate("mainWindow", "Select this button, and click on processes to open consoles", None, QtGui.QApplication.UnicodeUTF8))
+        self.pushButtonConsole.setText(QtGui.QApplication.translate("mainWindow", "Open Console", None, QtGui.QApplication.UnicodeUTF8))
+        self.pushButtonLogfile.setToolTip(QtGui.QApplication.translate("mainWindow", "Select this button, and click on processes to view logfiles", None, QtGui.QApplication.UnicodeUTF8))
+        self.pushButtonLogfile.setText(QtGui.QApplication.translate("mainWindow", "View Logfile", None, QtGui.QApplication.UnicodeUTF8))
         self.groupBoxOutputFileStatus.setTitle(QtGui.QApplication.translate("mainWindow", "Output File Status", None, QtGui.QApplication.UnicodeUTF8))
 

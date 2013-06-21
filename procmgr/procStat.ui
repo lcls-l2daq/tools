@@ -91,6 +91,38 @@
          </property>
         </widget>
        </item>
+       <item>
+        <widget class="QFrame" name="horizontalFrame">
+         <layout class="QHBoxLayout" name="horizontalLayout">
+          <item>
+           <widget class="QPushButton" name="pushButtonConsole">
+            <property name="toolTip">
+             <string>Select this button, and click on processes to open consoles</string>
+            </property>
+            <property name="text">
+             <string>Open Console</string>
+            </property>
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="pushButtonLogfile">
+            <property name="toolTip">
+             <string>Select this button, and click on processes to view logfiles</string>
+            </property>
+            <property name="text">
+             <string>View Logfile</string>
+            </property>
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
       </layout>
      </widget>
     </item>
