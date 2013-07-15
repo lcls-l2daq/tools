@@ -63,7 +63,7 @@ if __name__ == "__main__":
     index = 0.0
     if shutterActive :
         ser = serial.Serial(options.shutter)
-        ser.write(chr(129)) ## close shutter
+        ser.write(chr(128)) ## close shutter
     nodeFound = 'No'
     partition = daq.partition()
     if options.exclude != 'None' :
@@ -88,13 +88,13 @@ if __name__ == "__main__":
     daq.configure(controls=[])
     for cycle in range(options.steps):
         if shutterActive :
-            ser.write(chr(129)) ## close shutter
+            ser.write(chr(128)) ## close shutter
             time.sleep(1)
             print "Cycle", cycle, "  dark  -"
             # begin dark
             daq.begin(events=options.dark,controls=[])
             daq.end()
-            ser.write(chr(128)) ## open shutter
+            ser.write(chr(129)) ## open shutter
             time.sleep(1)
 	    print "Cycle", cycle, " bright -"
         else :
