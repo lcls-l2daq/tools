@@ -16,6 +16,8 @@ def control_log(path, summ):
         runnumber = '-'
         for iline in range(len(lines)):
             line = lines[iline]
+            if (line.find("@@@")>=0) and (line.find("(as"))>=0:
+                daq_release = line.strip().split('(as')[1].rstrip().split('/build')[0].strip()
             if (line.find("Configured")>=0 or line.find("Unmapped")>=0):
                 if run['duration']!='':
                     fruns.append(run)
@@ -64,13 +66,14 @@ def control_log(path, summ):
             continue
 
         if summ:
-            print_summary(fname, fruns, sources)
+            print_summary(fname, daq_release, fruns, sources)
         else:
-            print_full(fname, fruns, sources)
+            print_full(fname, daq_release, fruns, sources)
             
 
-def print_full(fname,fruns,sources):
+def print_full(fname,daq,fruns,sources):
     print '\n-----'+fname,
+    print '\n     DAQ Release:  %s'%daq
     
     fmtttl = '\n%28.28s'
     fmtstr = '%12.12s'
@@ -115,8 +118,9 @@ def print_full(fname,fruns,sources):
                 if not lfound:
                     print fmtstr%'-',
 
-def print_summary(fname, fruns,sources):
+def print_summary(fname, daq, fruns, sources):
     print '\n-----'+fname,
+    print '\n     DAQ Release:  %s'%daq
 
     print "\n"
     fmt = '%11.11s %14.14s %15.15s %15.15s %15.15s %15.15s (%6s)  '
@@ -174,7 +178,7 @@ def fixup_check(path):
             print '\n'+fmtstr%'Time'+fmtstr%'Node'+fmtstr%'File'+fmtstr%'Fixups'
         print laststr+fmtstr%lastcnt
 
-
+        
 def signal_check(path, signum, signame):
     flist = glob.glob(path+'*.log')
     if len(flist)==0:
@@ -215,12 +219,13 @@ def hutch_loop(expt, date_path, summ):
     for hutch in hutches:
         if expt=='all' or expt==hutch.lower():
 
-            print '=== %s ==='%hutch.upper()
+            print '=== %s %s ==='%(hutch.upper(),date_path)
             path = '/reg/g/pcds/pds/'+hutch+'/logfiles/'+date_path
             control_log(path,summ)
             fixup_check(path)
             signal_check(path,6,'SIGABORT')
             signal_check(path,11,'SIGSEGV')
+            
 
 def daterange(start_date, end_date):
     for n in range(int((end_date - start_date).days + 1)):
@@ -268,7 +273,7 @@ if __name__ == "__main__":
     parser.add_option("-b", "--beg",dest="beg_date",default="0",
                       help="Check logs from given date \%Y/\%M/\%d to end date (now if no end date given)", metavar="BEG")
     parser.add_option("-f", "--end",dest="end_date",default="0",
-                      help="Check logs from given date \%Y/\%M/\%d to end date", metavar="END")
+                      help="Check logs from given date \%Y/\%M/\%d to end (finish) date", metavar="END")
 
     (options, args) = parser.parse_args()
     
@@ -277,21 +282,18 @@ if __name__ == "__main__":
     date_path = thisdate.strftime('%Y/%m/%d')
 
     if options.beg_date!="0":
-        beg_date=options.beg_date.replace('-','/').strip()
-        year,month,day = beg_date.split('/')
+        year,month,day=options.beg_date.replace('-','/').strip().split('/')
         beg_date = datetime.date(int(year), int(month), int(day))
 
         if options.end_date!="0":
-#            end_date=options.end_date.replace('-','/').strip().split('/')
             end_year, end_month, end_day = options.end_date.replace('-','/').strip().split('/')
-#            end_year,end_month,end_day = end_date.split('/')
             end_date = datetime.date(int(end_year),int(end_month),int(end_day))
         else:
             end_date = datetime.date.today()
     
         for single_date in daterange(beg_date,end_date):
             date_path = single_date.strftime("%Y/%m/%d")
-            hutch_loop(options.expt, date_path, options.summ)
+            hutch_loop(options.expt.lower(), date_path, options.summ)
     else:
-        hutch_loop(options.expt, date_path, options.summ)
+        hutch_loop(options.expt.lower(), date_path, options.summ)
         
