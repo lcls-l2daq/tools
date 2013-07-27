@@ -6,6 +6,7 @@ import datetime
 import glob
 from optparse import OptionParser
 import re
+import os
 
 def control_log(path, summ):
     for fname in glob.iglob(path+'*control_gui.log'):
@@ -39,9 +40,9 @@ def control_log(path, summ):
                 srcs = []
                 iline = iline+4
                 line = lines[iline]
-                while( (line[ 8]=='.' and line[17]==':') or
-                       (line[2]=='_' and line[20]=='.' and line[29]==':') or
-                       (line[20]=='.' and line[29]==':') or
+                while( (len(line)>17 and line[8]=='.' and line[17]==':') or
+                       (len(line)>29 and line[2]=='_' and line[20]=='.' and line[29]==':') or
+                       (len(line)>29 and line[20]=='.' and line[29]==':') or
                        (len(line)>41 and line[2]=='_' and line[32]=='.' and line[41]==':')):
                     s = line.rsplit(':')
                     srcs.append({'source':s[-2].rstrip(),'n':s[-1].rstrip()})
@@ -222,7 +223,16 @@ def hutch_loop(expt, date_path, summ):
             signal_check(path,6,'SIGABORT')
             signal_check(path,11,'SIGSEGV')
             transition_check(path)
-
+    if options.expt=='local':
+        print '=== LOCAL ==='
+        path = os.getenv('HOME')+'/'+date_path
+        print path
+        control_log(path,summ)
+        fixup_check(path)
+        signal_check(path,6,'SIGABORT')
+        signal_check(path,11,'SIGSEGV')
+        transition_check(path)
+                                                                
 def daterange(start_date, end_date):
     for n in range(int((end_date - start_date).days + 1)):
         yield start_date + datetime.timedelta(n)
@@ -337,7 +347,7 @@ if __name__ == "__main__":
     
         for single_date in daterange(beg_date,end_date):
             date_path = single_date.strftime("%Y/%m/%d")
-            hutch_loop(options.expt.lower(), date_path, ptions.summ)
+            hutch_loop(options.expt.lower(), date_path, options.summ)
     else:
         hutch_loop(options.expt.lower(), date_path, options.summ)
         
