@@ -16,8 +16,6 @@ def control_log(path, summ):
         runnumber = '-'
         for iline in range(len(lines)):
             line = lines[iline]
-            if (line.find("@@@")>=0) and (line.find("(as"))>=0:
-                daq_release = line.strip().split('(as')[1].rstrip().split('/build')[0].strip()
             if (line.find("Configured")>=0 or line.find("Unmapped")>=0):
                 if run['duration']!='':
                     fruns.append(run)
@@ -66,14 +64,13 @@ def control_log(path, summ):
             continue
 
         if summ:
-            print_summary(fname, daq_release, fruns, sources)
+            print_summary(fname, fruns, sources)
         else:
-            print_full(fname, daq_release, fruns, sources)
+            print_full(fname, fruns, sources)
             
 
-def print_full(fname,daq,fruns,sources):
+def print_full(fname,fruns,sources):
     print '\n-----'+fname,
-    print '\n     DAQ Release:  %s'%daq
     
     fmtttl = '\n%28.28s'
     fmtstr = '%12.12s'
@@ -118,9 +115,8 @@ def print_full(fname,daq,fruns,sources):
                 if not lfound:
                     print fmtstr%'-',
 
-def print_summary(fname, daq, fruns, sources):
+def print_summary(fname, fruns,sources):
     print '\n-----'+fname,
-    print '\n     DAQ Release:  %s'%daq
 
     print "\n"
     fmt = '%11.11s %14.14s %15.15s %15.15s %15.15s %15.15s (%6s)  '
@@ -178,7 +174,7 @@ def fixup_check(path):
             print '\n'+fmtstr%'Time'+fmtstr%'Node'+fmtstr%'File'+fmtstr%'Fixups'
         print laststr+fmtstr%lastcnt
 
-        
+
 def signal_check(path, signum, signame):
     flist = glob.glob(path+'*.log')
     if len(flist)==0:
@@ -219,13 +215,13 @@ def hutch_loop(expt, date_path, summ):
     for hutch in hutches:
         if expt=='all' or expt==hutch.lower():
 
-            print '=== %s %s ==='%(hutch.upper(),date_path)
+            print '=== %s ==='%hutch.upper()
             path = '/reg/g/pcds/pds/'+hutch+'/logfiles/'+date_path
             control_log(path,summ)
             fixup_check(path)
             signal_check(path,6,'SIGABORT')
             signal_check(path,11,'SIGSEGV')
-            
+            transition_check(path)
 
 def daterange(start_date, end_date):
     for n in range(int((end_date - start_date).days + 1)):
@@ -257,6 +253,54 @@ def humansize(size, a_kilobyte_is_1024_bytes=True):
 
     raise ValueError('number too large')
 
+def pid2task(path,pid):
+    flist=glob.glob(path+'*.log')
+    tasks = []
+    task = {'pid':0}
+    args = ["grep","PID"]+flist
+    p    = subprocess.Popen(args=args,stdout=subprocess.PIPE)
+    output = p.communicate()[0].split('\n')
+    for line in output:
+        if line.find('@@@ The PID of new child')>=0:
+            line = line.split("@@@ The PID of new child")[1]
+            thedate = line.split('logfiles/')[1].split('_')[0]
+            thetime = line.split('_')[1]
+            thenode = line.split('_')[2].split(':')[0]
+            thename = line.split('_')[2].split(':')[1].split('.')[0]
+            thepid = line.split('is: ')[1].strip()
+            task={'date':thedate, 'time':thetime, 'node':thenode,'name':thename,'pid':thepid}
+            tasks.append(task)              
+            if pid == thepid:
+                return task
+    return 0
+
+
+
+def transition_check(path):
+    fmtstr="%15.15s"
+    longfmtstr="%25.25s"
+    print '\n'+fmtstr%'Time'+longfmtstr%'Transition Timeout'+longfmtstr%'Task'+fmtstr%'PID'+longfmtstr%'Node'
+    for fname in glob.iglob(path+'*control_gui.log'):
+        logtime=fname.split(path)[1].split('_')[1]
+        fruns = []
+        f = file(fname,"r")
+        lines = f.readlines();
+        
+        for iline in range(len(lines)):
+            line = lines[iline]
+            if (line.find("Completed allocating")>=0):
+                runnumber = line.split()[-1]
+            index = line.find("Timeout waiting for transition")
+            if (index>=0):
+                trans_time = line.partition(': Timeout')[0].rstrip().split('_')[1][:-9]
+                transition = line.split(' to complete.')[0].strip().split('transition ')[1]
+                nodes = lines[iline+1].rpartition(':')[-1].rstrip()
+                segment, pid = lines[iline+2].split(':')[1:]
+                segment = segment.strip()
+                pid = pid.strip()
+                task = pid2task(path+'_'+logtime, pid)
+        
+                print fmtstr%trans_time+longfmtstr%transition+longfmtstr%task['name']+fmtstr%task['pid']+longfmtstr%task['node']
 
 
 if __name__ == "__main__":
@@ -271,10 +315,10 @@ if __name__ == "__main__":
     parser.add_option("-s","--summ",default=False,action="store_true",
                       help="Print summary of control_log information", metavar="SUMM")
     parser.add_option("-b", "--beg",dest="beg_date",default="0",
-                      help="Check logs from given date \%Y/\%M/\%d to end date (now if no end date given)", metavar="BEG")
+                      help="Check logs from given date \%Y/\%M/\%d to end date (now if no end date given)",
+                      metavar="BEG")
     parser.add_option("-f", "--end",dest="end_date",default="0",
                       help="Check logs from given date \%Y/\%M/\%d to end (finish) date", metavar="END")
-
     (options, args) = parser.parse_args()
     
     
@@ -293,7 +337,7 @@ if __name__ == "__main__":
     
         for single_date in daterange(beg_date,end_date):
             date_path = single_date.strftime("%Y/%m/%d")
-            hutch_loop(options.expt.lower(), date_path, options.summ)
+            hutch_loop(options.expt.lower(), date_path, ptions.summ)
     else:
         hutch_loop(options.expt.lower(), date_path, options.summ)
         
