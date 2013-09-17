@@ -10,6 +10,8 @@ import socket
 import StringIO
 from platform import node
 
+uniqueid_maxlen = 30;
+
 #
 # getConfigFileNames
 #
@@ -332,6 +334,18 @@ def add_macro_config(procmgr_macro, oldfilename, newfilename):
 
   return
 
+#
+# ConfigFileError - this exception is raised to report configuration file errors
+# 
+class ConfigFileError(Exception):
+  def __init__(self, value):
+    self.value = value
+  def __str__(self):
+    return repr(self.value)
+
+#
+# ProcMgr
+#
 class ProcMgr:
 
     # index into arrays managed by this class
@@ -501,19 +515,21 @@ class ProcMgr:
             else:
               self.cmd = entry['cmd']
           else:
-            print 'Error: procmgr_config entry missing cmd:', entry
+            raise ConfigFileError("procmgr_config entry %s missing cmd" % entry)
             self.cmd = 'error'
 
           # --- id (required) ---
           if entry.has_key('id'):
             tmpid = entry['id']
+            if len(tmpid) > uniqueid_maxlen:
+              raise ConfigFileError("ID '%s' exceeds %d characters" % (tmpid, uniqueid_maxlen))
             if tmpid in dup_list:
-              print 'Error: id \'%s\' appears in multiple procmgr_config entries.  Each id must be unique.' % tmpid
+              raise ConfigFileError("ID '%s' appears in multiple procmgr_config entries" % tmpid)
             else:
               dup_list.append(tmpid)
               self.uniqueid = tmpid
           else:
-            print 'Error: procmgr_config entry missing id:', entry
+            raise ConfigFileError("procmgr_config entry %s missing id" % entry)
             self.uniqueid = 'error'
 
           # --- host (optional) ---
