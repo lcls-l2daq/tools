@@ -188,7 +188,7 @@ def deduce_platform(configfilename):
     rv = -1   # return -1 on error
     cc = {'platform': None, 'procmgr_config': None,
           'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host',
-          'rtprio':'rtprio', 'procmgr_macro': {}}
+          'rtprio':'rtprio', 'env':'env', 'procmgr_macro': {}}
     try:
       execfile(configfilename, {}, cc)
       if type(cc['platform']) == type('') and cc['platform'].isdigit():
@@ -208,7 +208,7 @@ def deduce_platform2(configfilename):
     macro_rv = {}
     cc = {'platform': None, 'procmgr_config': None,
           'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host',
-          'rtprio':'rtprio', 'procmgr_macro': {}}
+          'rtprio':'rtprio', 'env':'env', 'procmgr_macro': {}}
     try:
       execfile(configfilename, {}, cc)
       macro_rv = cc['procmgr_macro']
@@ -236,7 +236,7 @@ def deduce_instrument(configfilename):
     station_number = 0
     cc = {'instrument': None, 'platform': None, 'procmgr_config': None,
           'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host',
-          'rtprio':'rtprio', 'procmgr_macro': {}, 'currentexpcmd': None}
+          'rtprio':'rtprio', 'env':'env', 'procmgr_macro': {}, 'currentexpcmd': None}
 
     try:
       execfile(configfilename, {}, cc)
@@ -465,7 +465,7 @@ class ProcMgr:
 
         config = {'platform': repr(self.PLATFORM), 'procmgr_config': None,
                   'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host',
-                  'rtprio':'rtprio', 'procmgr_macro': procmgr_macro}
+                  'rtprio':'rtprio', 'env':'env', 'procmgr_macro': procmgr_macro}
         try:
           execfile(configfilename, {}, config)
         except:
@@ -496,19 +496,45 @@ class ProcMgr:
             try:
               tmpsum = int(entry['rtprio'])
             except:
-              print 'Error: malformed rtprio value:', entry
+              raise ConfigFileError('malformed rtprio value: %s' % entry)
             if tmpsum:
               # check if rtprio is in valid range
               if (tmpsum < 1) or (tmpsum > 99):
-                print 'Error: rtprio not in range 1-99:', entry
+                raise ConfigFileError('rtprio not in range 1-99: %s' % entry)
               else:
                 self.rtprio = tmpsum
 
+          # --- environment (optional) ---
+          self.env = None
+          if entry.has_key('env'):
+            if '=' in entry['env']:
+              self.env = entry['env']
+            else:
+              raise ConfigFileError("env value is missing '=': %s" % entry)
+
           # --- cmd (required) ---
           if entry.has_key('cmd'):
-            # if real-time priority is set (see above), use /usr/bin/chrt
+
+            # use os.path.realpath() to resolve any symbolic links
+            cmdSplit = entry['cmd'].split(None, 1)
+            cmdZero = os.path.expanduser(cmdSplit[0])
+            if (os.path.isfile(cmdZero)):
+              if (len(cmdSplit) > 1):
+                entry['cmd'] = os.path.realpath(cmdZero) + ' ' + cmdSplit[1]
+              else:
+                entry['cmd'] = os.path.realpath(cmdZero)
+            else:
+              print 'ERR: %s not found' % cmdZero
+              entry['cmd'] = '/bin/echo \"File not found: ' + cmdZero + '"'
+
+            # if rtprio is set, prefix with /usr/bin/chrt
             if (self.rtprio):
               entry['cmd'] = '/usr/bin/chrt -f %d %s' % (self.rtprio, entry['cmd'])
+
+            # if env is specified, prefix the command with /bin/env
+            if (self.env):
+              entry['cmd'] = '/bin/env %s %s' % (self.env, entry['cmd'])
+
             if self.CURRENTEXPCMD != '':
               # Do something special if -E, -e, or -f appear in cmd string
               self.cmd = parse_cmd(entry['cmd'], expnum, expname)
@@ -988,17 +1014,6 @@ class ProcMgr:
                         print 'ERR: chmod %s failed' % logpath
                         redirect_string = ''
 
-                cmdSplit = value[self.DICT_CMD].split(None, 1)
-                cmdZero = os.path.expanduser(cmdSplit[0])
-                if (os.path.isfile(cmdZero)):
-                  if (len(cmdSplit) > 1):
-                    cmdtmp = os.path.realpath(cmdZero) + ' ' + cmdSplit[1]
-                  else:
-                    cmdtmp = os.path.realpath(cmdZero)
-                else:
-                  print 'ERR: %s not found' % cmdZero
-                  cmdtmp = '/bin/echo \"File not found: ' + cmdZero + '"'
-
                 # encode logfile path as part of procServ name
                 if (len(redirect_string) > 1):
                   name = logfile
@@ -1011,7 +1026,7 @@ class ProcMgr:
                         waitflag, \
                         coresize, \
                         value[self.DICT_CTRL], \
-                        cmdtmp,
+                        value[self.DICT_CMD],
                         redirect_string)
                 # is this host already in the dictionary?
                 if starthost in startdict:
