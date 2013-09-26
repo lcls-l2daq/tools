@@ -1,8 +1,20 @@
+#!/bin/bash
+#
+function make_link()
+{
+  if [ ! -e $1/x86_64-linux ]; then
+    ln -s x86_64-linux-opt $1/x86_64-linux
+  fi
+}
+
 make i386-linux-opt
 make i386-linux-dbg
 make x86_64-linux-opt
-pushd build/pdsdata/lib; ln -s x86_64-linux-opt x86_64-linux; popd
-pushd build/pdsapp/lib; ln -s x86_64-linux-opt x86_64-linux; popd
-pushd build/ami/lib; ln -s x86_64-linux-opt x86_64-linux; popd
-pushd build/pdsapp/bin; ln -s x86_64-linux-opt x86_64-linux; popd
+make x86_64-linux-dbg
+
+make_link build/pds/lib
+make_link build/pdsdata/lib
+make_link build/pdsapp/lib
+make_link build/ami/lib
+make_link build/pdsapp/bin
 
