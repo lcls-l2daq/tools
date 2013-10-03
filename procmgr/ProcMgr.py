@@ -1333,6 +1333,14 @@ class ProcMgr:
         return staticProcessCount, dynamicProcessCount
 
     #
+    # getStartUser
+    #
+    # RETURNS: Two values: username, hostname
+    #
+    def getStartUser(self):
+        return self.procmgr_macro.get('USER', '(unknown)'), self.procmgr_macro.get('HOST', '(unknown)')
+
+    #
     # setStatus
     #
     # This method sets the status for each process in a specified list.

@@ -115,12 +115,22 @@ def _status(argv0, args, lastconfig, configfile, options):
     try:
         if os.path.exists(lastconfig):
             print "%s: using config file '%s'" % (sys.argv[0], lastconfig)
-            _status_rv = ProcMgr(lastconfig, options.platform, options.Xterm_list, options.xterm_list).status(args, verbose=options.verbose,
-                         only_static=0)
+            handle = ProcMgr(lastconfig, options.platform, options.Xterm_list, options.xterm_list)
+            staticCount, dynamicCount = handle.getProcessCounts()
+            userx, hostx = handle.getStartUser()
+            usery, hosty = getUser()
+            if dynamicCount > 0:
+                print "Running, started on host %s by user %s." % (hostx, userx)
+            else:
+                print "Not running, last started on host %s by user %s." % (hostx, userx)
+            if hostx != hosty:
+                print "Warning! If current host %s is not on the same subnets as start host %s, status could be incorrect." % (hosty, hostx)
+            _status_rv = handle.status(args, verbose=options.verbose, only_static=0)
         else:
             print "%s: using config file '%s'" % (sys.argv[0], configfile)
-            _status_rv = ProcMgr(configfile, options.platform, options.Xterm_list, options.xterm_list).status(args, verbose=options.verbose,
-                         only_static=1)
+            handle = ProcMgr(configfile, options.platform, options.Xterm_list, options.xterm_list)
+            print "Not running."
+            _status_rv = handle.status(args, verbose=options.verbose, only_static=1)
     except IOError:
         print "%s: i/o error" % sys.argv[0]
         _status_rv = 1
