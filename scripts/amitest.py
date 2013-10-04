@@ -23,6 +23,8 @@ if __name__ == "__main__":
                       help="run N cycles", metavar="N")
     parser.add_option("-e","--events",dest="events",type="int",default=105,
                       help="record N events/cycle", metavar="N")
+    parser.add_option("-t","--trigger",dest="trigger",default=False,
+                      help="use l3 events", metavar="T");
     parser.add_option("-q","--qbeam",dest="qbeam",type="float",default=-1.,
                       help="require qbeam > Q", metavar="Q")
     parser.add_option("-s","--sleep",dest="tsleep",type="float",default=0.,
@@ -61,11 +63,23 @@ if __name__ == "__main__":
         #                  monitors=[('BEAM:LCLS:ELEC:Q',options.qbeam,1.)])
 
         do_record = False
+        partition = daq.partition()
+        for node in partition:
+            node['record']=False
+        print '===Partition==='
+        print partition
     
-        daq.configure(record=do_record,
-                      events=options.events,
-                      controls=[('EXAMPLEPV1',0),('EXAMPLEPV2',0)],
-                      labels=[('EXAMPLELABEL1',''),('EXAMPLELABEL2','')])
+        if options.trigger:
+            daq.configure(record=do_record,
+                          l3t_events=options.events,
+                          controls=[('EXAMPLEPV1',0),('EXAMPLEPV2',0)],
+                          labels=[('EXAMPLELABEL1',''),('EXAMPLELABEL2','')])
+
+        else:
+            daq.configure(record=do_record,
+                          events=options.events,
+                          controls=[('EXAMPLEPV1',0),('EXAMPLEPV2',0)],
+                          labels=[('EXAMPLELABEL1',''),('EXAMPLELABEL2','')])
 
         print "Configured [%d]."%iter
 
