@@ -1,5 +1,6 @@
 #!/bin/bash
 #
+#
 function make_link()
 {
   if [ ! -e $1/x86_64-linux ]; then

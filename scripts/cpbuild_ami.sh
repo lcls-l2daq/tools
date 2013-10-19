@@ -4,7 +4,7 @@
 #
 if ($# < 1) exit
 
-setenv AMIREL /reg/g/pcds/dist/pds/$1
+setenv AMIREL /reg/g/pcds/dist/pds/ami-$1
 mkdir -p ${AMIREL}
 mkdir -p ${AMIREL}/ami
 
