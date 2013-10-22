@@ -2,6 +2,7 @@
 
 import os
 import re
+import time
 import sys
 import traceback
 import getopt
@@ -103,11 +104,16 @@ def get_all_executables(release):
      # pdsdata is now in /reg/common/packages and may not have the same tag as the rest of the DAQ release
      # For some versions, the rpath was not set correctly,so I had to modify  LD_LIBRARY_PATH
      if package == 'pdsdata':
-        release = get_current_pdsdata()
-        path = COMMON_PATH + "pdsdata/" + release + "/i386-linux-opt/"
+        pdsdata_release = get_current_pdsdata()
+        path = COMMON_PATH + "pdsdata/" + pdsdata_release + "/i386-linux-opt/"
         binpath = path+"bin/"
         libpath = path+"lib/"
         os.putenv("LD_LIBRARY_PATH", "${LD_LIBRARY_PATH}:%s"%libpath)
+        if os.stat(binpath): execlist += [(binpath+file) for file in os.listdir(binpath)]
+     elif package == 'ami':
+        ami_release = get_current_ami()
+        path = OFFLINE_PATH + ami_release
+        binpath = path+"/build/ami/bin/i386-linux-opt/"
         if os.stat(binpath): execlist += [(binpath+file) for file in os.listdir(binpath)]
      else:
         path = OFFLINE_PATH + release + "/build/" + package + "/bin/i386-linux-opt/"
@@ -163,7 +169,15 @@ def get_current_pdsdata():
          releases.append(dir)
    return releases.pop()
 
-
+def get_current_ami():
+   dirlist = []
+   releases = []
+   dirlist += os.listdir(OFFLINE_PATH)
+   print dirlist
+   for dir in dirlist:
+      if re.search('^ami-(?:(\d+)\.)?(?:(\d+)\.)?(\*|\d+)', dir):
+         releases.append(dir)
+   return releases.pop()
    
 if __name__ == '__main__':
    # Set some reasonable arguments; get latest release by default
