@@ -173,7 +173,6 @@ def get_current_ami():
    dirlist = []
    releases = []
    dirlist += os.listdir(OFFLINE_PATH)
-   print dirlist
    for dir in dirlist:
       if re.search('^ami-(?:(\d+)\.)?(?:(\d+)\.)?(\*|\d+)', dir):
          releases.append(dir)
