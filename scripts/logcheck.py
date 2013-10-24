@@ -10,6 +10,8 @@ import os
 
 def control_log(path, summ):
     for fname in glob.iglob(path+'*control_gui.log'):
+        thetime = fname[(len(path)+1):len(path)+9]
+        compression = compression_check(path,thetime)
         fruns = []
         f = file(fname,"r")
         lines = f.readlines();
@@ -24,6 +26,12 @@ def control_log(path, summ):
                     runnumber = '-'
             if (line.find("Completed allocating")>=0):
                 runnumber = line.split()[-1]
+            if ((line.find("build") >= 0) and (line.find("as") >= 0)):
+                full_release=line.split("as ")[1].strip().strip(')')
+                if full_release.find("/reg/g/pcds/dist/pds/") != -1:
+                    release = full_release.split("/reg/g/pcds/dist/pds/")[1].split('/')[0]
+                else:
+                    release = full_release
             index = line.find("Duration")
             if (index>=0):
                 ended    = line.partition(':Duration:')[0].rstrip()                
@@ -50,7 +58,7 @@ def control_log(path, summ):
                     if (iline>=len(lines)):
                         break
                     line = lines[iline]
-                run = {'runnumber':runnumber, 'ended':ended, 'duration':duration, 'evts':events, 'dmg':damaged, 'bytes':bytes, 'evtsz':evtsiz, 'sources':srcs}
+                run = {'runnumber':runnumber, 'ended':ended, 'duration':duration, 'evts':events, 'dmg':damaged, 'bytes':bytes, 'evtsz':evtsiz, 'sources':srcs, 'release':release, 'compress':compression}
 
         if run['duration']!='':
             fruns.append(run)
@@ -68,11 +76,17 @@ def control_log(path, summ):
             print_summary(fname, fruns, sources)
         else:
             print_full(fname, fruns, sources)
+
             
 
 def print_full(fname,fruns,sources):
     print '\n-----'+fname,
-    
+    if len(fruns) != 0:
+        print '\n----- DAQ release: %s'%(fruns[0]['release'])
+        print '----- Compression status: '
+        for det in fruns[0]['compress']:
+            print "----- %s: %s (on %s): Compression %s" % (det['ts'],det['task'],det['node'], det['msg'])
+
     fmtttl = '\n%28.28s'
     fmtstr = '%12.12s'
     step = 5
@@ -81,7 +95,7 @@ def print_full(fname,fruns,sources):
         print " "
         runs = fruns[irun:irun+step]
         
-        print fmtttl%'Run Number',
+        print fmtttl%'Run',
         for r in runs:
             print fmtstr%r['runnumber'],
         
@@ -115,13 +129,19 @@ def print_full(fname,fruns,sources):
                         print fmtstr%s['n'],
                 if not lfound:
                     print fmtstr%'-',
+        print " "
 
 def print_summary(fname, fruns,sources):
     print '\n-----'+fname,
+    if len(fruns) != 0:
+        print '\n----- DAQ release: %s\n'%(fruns[0]['release'])
+        print '----- Compression status: '
+        for det in fruns[0]['compress']:
+            print "----- %s: %s (on %s): Compression %s" % (det['ts'],det['task'],det['node'], det['msg'])
 
-    print "\n"
+
     fmt = '%11.11s %14.14s %15.15s %15.15s %15.15s %15.15s (%6s)  '
-    print fmt%('Run Number', 'Duration', 'Ended', 'Bytes', 'Events', 'Damaged', '%')
+    print fmt%('Run', 'Duration', 'Ended', 'Bytes', 'Events', 'Damaged', '%')
     max1=0
     str1=''
     for irun in range(0, len(fruns)):
@@ -211,28 +231,36 @@ def signal_check(path, signum, signame):
         print laststr+fmtstr%lastcnt
 
 
-def hutch_loop(expt, date_path, summ):
+def hutch_loop(expt, date_path, summ, errs):
     hutches = ['amo','sxr','xpp','xcs','cxi','mec','cxi_0','cxi_1','cxi_shared']
     for hutch in hutches:
         if expt=='all' or expt==hutch.lower():
 
-            print '=== %s ==='%hutch.upper()
             path = '/reg/g/pcds/pds/'+hutch+'/logfiles/'+date_path
+            if len(glob.glob(path+'*control_gui.log')) == 0: return
+            print '=== %s ==='%hutch.upper()
             control_log(path,summ)
             fixup_check(path)
             signal_check(path,6,'SIGABORT')
             signal_check(path,11,'SIGSEGV')
             transition_check(path)
+            if errs:
+                outoforder_check(path)
+                pgpproblem_check(path)
     if options.expt=='local':
-        print '=== LOCAL ==='
         path = os.getenv('HOME')+'/'+date_path
+        if len(glob.glob(path+'*control_gui.log')) == 0: return
+        print '=== LOCAL ==='
         print path
-        control_log(path,summ)
+        control_log(path,summ)        
         fixup_check(path)
         signal_check(path,6,'SIGABORT')
         signal_check(path,11,'SIGSEGV')
         transition_check(path)
-                                                                
+        if errs:
+            outoforder_check(path)
+            pgpproblem_check(path)
+            
 def daterange(start_date, end_date):
     for n in range(int((end_date - start_date).days + 1)):
         yield start_date + datetime.timedelta(n)
@@ -287,9 +315,9 @@ def pid2task(path,pid):
 
 
 def transition_check(path):
+    print_header = True
     fmtstr="%15.15s"
     longfmtstr="%25.25s"
-    print '\n'+fmtstr%'Time'+longfmtstr%'Transition Timeout'+longfmtstr%'Task'+fmtstr%'PID'+longfmtstr%'Node'
     for fname in glob.iglob(path+'*control_gui.log'):
         logtime=fname.split(path)[1].split('_')[1]
         fruns = []
@@ -309,9 +337,78 @@ def transition_check(path):
                 segment = segment.strip()
                 pid = pid.strip()
                 task = pid2task(path+'_'+logtime, pid)
-        
+                
+                if print_header:
+                    print '\n'+fmtstr%'Time'+longfmtstr%'Transition Timeout'+longfmtstr%'Task'+fmtstr%'PID'+longfmtstr%'Node'
+                    print_header = False
+
                 print fmtstr%trans_time+longfmtstr%transition+longfmtstr%task['name']+fmtstr%task['pid']+longfmtstr%task['node']
 
+def outoforder_check(path):
+    print_header = True
+    flist = glob.glob(path+"*.log")
+    args = ["grep","--binary-files=text", "order"]+flist
+    p    = subprocess.Popen(args=args,stdout=subprocess.PIPE)
+    output = p.communicate()[0].split('\n')
+    for line in output:
+        if (len(line) != 0) and (line.find("response") == -1) and (line.find("vmonrecorder") == -1):
+            if print_header:
+                print "\nOut of Order errors:"
+                print_header = False
+            print line
+    print ""
+    return 0
+
+def node2name(flist,node):
+    name = "Unknown node: %s" % node
+    hutch = flist[0].split("/reg/g/pcds/pds/")[1].split("/logfiles")[0]
+    flist=glob.glob('/reg/g/pcds/dist/pds/'+hutch+'/scripts/'+hutch+'.cnf')
+    args = ["grep",node]+flist
+    p    = subprocess.Popen(args=args,stdout=subprocess.PIPE)
+    output = p.communicate()[0].split('\n')
+    for line in output:
+        if ((len(line) != 0) and (line.find(node) != -1)):
+            name = line.split('=')[0].strip()
+    return name
+
+
+def compression_check(path,thetime):
+    rv = []
+    flist = glob.glob(path+"_"+thetime+"*.log")
+    args = ["grep", "--binary-files=text","Compression"]+flist
+    p    = subprocess.Popen(args=args,stdout=subprocess.PIPE)
+    output = p.communicate()[0].split('\n')
+    for line in output:
+        if (len(line) != 0) and (line.find("Compression") != -1):
+            stat = {'node':None,'task':None, 'ts':None,'msg':None}
+            timestamp = line.split('/logfiles/')[1].replace('_',' ',1).split('_')[0]
+            node = line.split('_')[2].split(':')[0]
+            task = line.split(':')[3].split('.')[0]
+            msg = line.split('.log:')[1].split('Compression is')[1].strip().strip('.')
+            stat['node'] = node2name(flist,node)
+            stat['task'] = task
+            stat['ts']   = timestamp
+            stat['msg']  = msg
+            rv.append(stat)
+    return rv
+#            print "%s: %s (on %s): Compression %s" % (timestamp, task, node2name(flist,node), msg)
+
+
+
+
+def pgpproblem_check(path):
+    print_header=True
+    flist = glob.glob(path+"*cspad*.log")
+    args = ["grep", "--binary-file=text","ERESTART"]+flist
+    p    = subprocess.Popen(args=args,stdout=subprocess.PIPE)
+    output = p.communicate()[0].split('\n')
+    for line in output:
+        if (len(line) != 0) and (line.find("ERESTART") != -1):
+            if print_header:
+                print "PGP problems:\n"
+                print_header = False
+            print line
+            
 
 if __name__ == "__main__":
 
@@ -328,7 +425,10 @@ if __name__ == "__main__":
                       help="Check logs from given date \%Y/\%M/\%d to end date (now if no end date given)",
                       metavar="BEG")
     parser.add_option("-f", "--end",dest="end_date",default="0",
-                      help="Check logs from given date \%Y/\%M/\%d to end (finish) date", metavar="END")
+                      help="Check logs from given date \%Y/\%M/\%d (or YYYY/MM/dd) to end (finish) date", metavar="END")
+    parser.add_option("-r", "--err", default=False,action="store_true",metavar="ERR",
+                      help="Report error conditions in the logfiles:  Out of Order Errors, transition timeouts, ERESTART errors")
+    
     (options, args) = parser.parse_args()
     
     
@@ -347,7 +447,7 @@ if __name__ == "__main__":
     
         for single_date in daterange(beg_date,end_date):
             date_path = single_date.strftime("%Y/%m/%d")
-            hutch_loop(options.expt.lower(), date_path, options.summ)
+            hutch_loop(options.expt.lower(), date_path, options.summ, options.err)
     else:
-        hutch_loop(options.expt.lower(), date_path, options.summ)
+        hutch_loop(options.expt.lower(), date_path, options.summ, options.err)
         
