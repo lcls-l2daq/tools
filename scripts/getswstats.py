@@ -49,8 +49,10 @@ def get_partition(expt,node):
     if i == 2:
         print 'ssh %s successful'%name
 
-    COMMAND_PROMPT = uname + '@' + node
-    child.sendline('ssh %s'%node)
+    inode=0
+    
+    COMMAND_PROMPT = uname + '@' + node[inode]
+    child.sendline('ssh %s'%node[inode])
     i = child.expect([pexpect.TIMEOUT, '(?i)password', COMMAND_PROMPT])
     if i == 0: # Timeout
         print 'ERROR! could not login with SSH. Here is what SSH said:'
@@ -61,7 +63,7 @@ def get_partition(expt,node):
         child.sendline(passwd)
         child.expect(COMMAND_PROMPT)
     if i == 2:
-        print 'ssh %s successful'%node
+        print 'ssh %s successful'%node[inode]
 
     seg_ips = []
     evt_ips = []
@@ -76,22 +78,69 @@ def get_partition(expt,node):
             elif word[0]=='3':
                 evt_ips.append(word.split('/')[-1])
 
+    if len(seg_ips)==0:
+        exit(1)
+    
+    mon_ips = []
+    for n in range(13):
+        mnode = 'daq-'+expt+'-mon%02d'%n
+        print 'Seeking '+mnode
+        child.sendline('nslookup '+mnode)
+        i = child.expect(COMMAND_PROMPT)
+        lines = child.before.split('\n')
+        lName = False
+        for oline in lines:
+            words = oline.split()
+            if lName:
+                ip = words[1].split('.')
+                ip[2] = seg_ips[0].split('.')[2]
+                mon_ips.append('.'.join(ip))
+                break
+            else:
+                if (len(words)>0) and (words[0]=='Name:'):
+                    lName = True
+
     seg_ports = []
     evt_ports = []
-    child.sendline('/sbin/arp -a')
-    i = child.expect(COMMAND_PROMPT)
-    lines = child.before.split('\n')
-    for oline in lines:
-        words = oline.split()
-        if len(words)>3:
-            ip  = words[1][1:-1]
-            mac = words[3]
-            if ip in seg_ips:
-                seg_ports.append([ip,mac,'none',[]])
-            elif ip in evt_ips:
-                evt_ports.append([ip,mac,'none',[]])
+    mon_ports = []
 
-    return [seg_ports,evt_ports]
+    while(True):
+        child.sendline('/sbin/arp -a')
+        i = child.expect(COMMAND_PROMPT)
+        lines = child.before.split('\n')
+        for oline in lines:
+            words = oline.split()
+            if len(words)>3:
+                ip  = words[1][1:-1]
+                mac = words[3]
+                if ip in seg_ips:
+                    seg_ports.append([ip,mac,'none',[]])
+                elif ip in evt_ips:
+                    evt_ports.append([ip,mac,'none',[]])
+                elif ip in mon_ips:
+                    mon_ports.append([ip,mac,'none',[]])
+
+        inode=inode+1
+        if inode<len(node):
+            child.sendline('exit')
+            
+            COMMAND_PROMPT = uname + '@' + node[inode]
+            child.sendline('ssh %s'%node[inode])
+            i = child.expect([pexpect.TIMEOUT, '(?i)password', COMMAND_PROMPT])
+            if i == 0: # Timeout
+                print 'ERROR! could not login with SSH. Here is what SSH said:'
+                print child.before, child.after
+                print str(child)
+                sys.exit (1)
+            if i == 1:
+                child.sendline(passwd)
+                child.expect(COMMAND_PROMPT)
+            if i == 2:
+                print 'ssh %s successful'%node[inode]
+        else:
+            break
+
+    return [seg_ports,evt_ports,mon_ports]
 
 class MyTable:
     def __init__(self,name,ports,counters):
@@ -202,16 +251,24 @@ if __name__ == "__main__":
     (options, args) = parser.parse_args()
     hutch = options.hutch.lower()
 
-    switch_name='switch-'+hutch+'-srvroom-daq'
-    console_name=hutch+'-daq'
+    console_name=[]
     if hutch=='xcs':
         switch_name='switch-'+hutch+'-mezz-daq'
-        console_name=hutch+'-control'
+        console_name.append(hutch+'-control')
     elif hutch=='cxi':
         switch_name='switch-'+hutch+'-mezz-daq'
-
+        console_name.append(hutch+'-daq')
+        console_name.append(hutch+'-monitor')
+    elif hutch=='xpp':
+        switch_name='switch-'+hutch+'-srvroom-daq'
+        console_name.append(hutch+'-daq')
+        console_name.append(hutch+'-control')
+    else:
+        switch_name='switch-'+hutch+'-srvroom-daq'
+        console_name.append(hutch+'-daq')
+        
     macs     = get_partition(hutch,console_name)
-    counters = [ ["InOctets","OutFlowCtrlPkts"],["OutOctets","InFlowCtrlPkts"] ]
+    counters = [ ["InOctets","OutFlowCtrlPkts"],["OutOctets","InFlowCtrlPkts"],["OutOctets","InFlowCtrlPkts"] ]
     
 #    in_oct_plot  = MyPlot("switch port","InOctets"  ,sw_ports,2.0e9)
 #    in_pkt_plot  = MyPlot("switch port","InFlowCtrl",sw_ports,1.0e2)
@@ -223,7 +280,8 @@ if __name__ == "__main__":
 
     seg_table = MyTable(switch_name,macs[0],counters[0])
     evt_table = MyTable(switch_name,macs[1],counters[1])
-
+    mon_table = MyTable(switch_name,macs[2],counters[2])
+    
     sw = SshSwitch(switch_name,macs,counters)
     
     while(True):
@@ -231,6 +289,7 @@ if __name__ == "__main__":
             sw   .update()
             seg_table.update()
             evt_table.update()
+            mon_table.update()
 
 #            hostDrops = hoststats(host_base,'datagrams dropped')
             

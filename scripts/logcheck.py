@@ -330,20 +330,23 @@ def transition_check(path):
                 runnumber = line.split()[-1]
             index = line.find("Timeout waiting for transition")
             if (index>=0):
-                trans_time = line.partition(': Timeout')[0].rstrip().split('_')[1][:-9]
-                transition = line.split(' to complete.')[0].strip().split('transition ')[1]
-                nodes = lines[iline+1].rpartition(':')[-1].rstrip()
-                segment, pid = lines[iline+2].split(':')[1:]
-                segment = segment.strip()
-                pid = pid.strip()
-                task = pid2task(path+'_'+logtime, pid)
+                try:
+                    trans_time = line.partition(': Timeout')[0].rstrip().split('_')[1][:-9]
+                    transition = line.split(' to complete.')[0].strip().split('transition ')[1]
+                    nodes = lines[iline+1].rpartition(':')[-1].rstrip()
+                    segment, pid = lines[iline+2].split(':')[1:]
+                    segment = segment.strip()
+                    pid = pid.strip()
+                    task = pid2task(path+'_'+logtime, pid)
                 
-                if print_header:
-                    print '\n'+fmtstr%'Time'+longfmtstr%'Transition Timeout'+longfmtstr%'Task'+fmtstr%'PID'+longfmtstr%'Node'
-                    print_header = False
+                    if print_header:
+                        print '\n'+fmtstr%'Time'+longfmtstr%'Transition Timeout'+longfmtstr%'Task'+fmtstr%'PID'+longfmtstr%'Node'
+                        print_header = False
 
-                print fmtstr%trans_time+longfmtstr%transition+longfmtstr%task['name']+fmtstr%task['pid']+longfmtstr%task['node']
-
+                    print fmtstr%trans_time+longfmtstr%transition+longfmtstr%task['name']+fmtstr%task['pid']+longfmtstr%task['node']
+                except:
+                    pass
+                
 def outoforder_check(path):
     print_header = True
     flist = glob.glob(path+"*.log")
