@@ -364,8 +364,9 @@ def outoforder_check(path):
 
 def node2name(flist,node):
     name = "Unknown node: %s" % node
-    hutch = flist[0].split("/reg/g/pcds/pds/")[1].split("/logfiles")[0]
-    flist=glob.glob('/reg/g/pcds/dist/pds/'+hutch+'/scripts/'+hutch+'.cnf')
+    station = flist[0].split("/reg/g/pcds/pds/")[1].split("/logfiles")[0]
+    hutch = station.split('_')[0]
+    flist=glob.glob('/reg/g/pcds/dist/pds/'+hutch+'/scripts/'+station+'.cnf')
     args = ["grep",node]+flist
     p    = subprocess.Popen(args=args,stdout=subprocess.PIPE)
     output = p.communicate()[0].split('\n')
