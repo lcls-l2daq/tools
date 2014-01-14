@@ -99,20 +99,20 @@ if __name__ == "__main__":
         if member == options.parameter :
             print 'Found the', options.parameter, 'concentrator parameter'
             parameterType = 'concentrator'
-    for member in cspad['quad'][0] :
-        if member == options.parameter :
-            print 'Found the', options.parameter, 'quad parameter'
-            parameterType = 'quad'
+#    for member in cspad['quad'][0] :
+#        if member == options.parameter :
+#            print 'Found the', options.parameter, 'quad parameter'
+#            parameterType = 'quad'
     if parameterType == 'None' :
         print 'Parameter', options.parameter, 'not found!'
         print '    Allowed concentrator parameters : current values'
         for member in cspad :
             if member!='quad' and not member.endswith('System') and not member.endswith('Version') and not member.endswith('Mask') and not member.endswith('Enable') : 
                 print '        ', member, ':', cspad[member]
-        print '    Allowed quad parameters : current values'
-        for member in cspad['quad'][0] :
-            if member!='gain' and member!='pots' and not member.endswith('Select') :
-		print '        ', member, ':',   cspad['quad'][0][member]
+#        print '    Allowed quad parameters : current values'
+#        for member in cspad['quad'][0] :
+#            if member!='gain' and member!='pots' and not member.endswith('Select') :
+# 		print '        ', member, ':',   cspad['quad'][0][member]
     else :
         print 'Composing the sequence of configurations ...'
         value = float(options.start)
@@ -122,18 +122,27 @@ if __name__ == "__main__":
 	    cycleLength = 2
 	index = 0.0
         denom = float(options.limit)
+        print 'shutterActive:', shutterActive, 'denom', denom
         for cycle in range(options.limit*cycleLength+1):
-            if parameterType == 'quad' :
-                cspad['quad'][0][options.parameter]=int(round(value))
+	    print 'Cycle', cycle
+#            if parameterType == 'quad' :
+#                cspad['quad'][0][options.parameter]=int(round(value))
             if parameterType == 'concentrator' :
+                print 'cspad', options.parameter, 'set to', int(round(value))
 		cspad[options.parameter]=int(round(value))
+	    print 'xtc.set(cspad,cycle', cycle, ')'
+#            print 'cspad is', cspad
             xtc.set(cspad,cycle)
+	    print 'finished with xtc.set'
 	    if cycle % cycleLength or not shutterActive :
 		if options.linear == "no" :
+                    print 'value = value * options.multipler', value * options.multipler
 	            value = value * options.multiplier
 		else :
+		    print 'index', index, 'denom =', denom, 'value = '
 		    index = index + 1.0
 		    value = float(options.start) + (index/denom)*(options.finish-options.start)
+		    print '    ', value 
         cdb.substitute(newkey,xtc)
 	cdb.unlock()
         print '    done'
