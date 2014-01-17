@@ -1,32 +1,35 @@
-#!/bin/csh
+#!/bin/bash
+#
 #
 #  Copy libraries, binaries for padmon,ami
 #
-if ($# < 1) exit
+function cparch()
+{
+    mkdir -p ${DST}/$1/$2
+    rsync -avm ${SRC}/$1/$2/$3 ${DST}/$1/$2/$3
 
-setenv DAQREL $1
-mkdir -p ${DAQREL}
+    libs=`ldd ${SRC}/$1/$2/$3 | grep build | cut -d ' ' -f 3`
+    for lib in ${libs} ; do
+      llib=${lib:${#SRC}+1}
+      echo ${lib}
+      echo ${llib}
+      mkdir -p `dirname ${DST}/${llib}`
+      rsync -rpotgLSP ${SRC}/${llib} ${DST}/${llib}
+    done
+}
 
-#  Copy libraries and binaries
-rsync -avm --del --include={libconfigdata.so,libpadmon.so} -f 'hide,! */' build/ ${DAQREL}
+function cpbin()
+{
+    cparch $1 bin/i386-linux-opt $2
+    cparch $1 bin/i386-linux-dbg $2
+    cparch $1 bin/x86_64-linux-opt $2
+    cparch $1 bin/x86_64-linux-dbg $2
+}
 
-rsync -rlpogtSP --exclude={dep,obj} build/ami ${DAQREL}/.
+export SRC=`pwd`/build
+export DST=$1/build
 
-mkdir -p ${DAQREL}/pdsdata/lib
-rsync -rpogtDLvm build/pdsdata/lib/ ${DAQREL}/pdsdata/lib
-
-mkdir -p ${DAQREL}/psalg/lib
-rsync -rpogtDLvm build/psalg/lib/ ${DAQREL}/psalg/lib
-
-mkdir -p ${DAQREL}/qt/lib
-rsync -rpogtDLvm build/qt/lib/ ${DAQREL}/qt/lib
-
-mkdir -p ${DAQREL}/qwt/lib
-rsync -rpogtDLvm build/qwt/lib/ ${DAQREL}/qwt/lib
-
-mkdir -p ${DAQREL}/gsl/lib
-rsync -rpogtDLvm build/gsl/lib/ ${DAQREL}/gsl/lib
-
-#  Copy tools
-#rsync -rlpogtSP --exclude={CVS} tools ${DAQREL}/.
-
+cpbin ami offline_ami
+cpbin ami online_ami
+cpbin ami ami
+cpbin pdsapp padmonservertest
