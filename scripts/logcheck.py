@@ -8,9 +8,47 @@ from optparse import OptionParser
 import re
 import os
 
+DEVICE = ['NoDevice', 'Evr', 'Acqiris', 'Opal1000', 'TM6740', 'pnCCD', 'Princeton', 'Fccd', 'Ipimb', 'Encoder', 'Cspad', 'AcqTDC', 'Xamps', 'Cspad2x2', 'Fexamp', 'Gsc16ai', 'Phasics', 'Timepix', 'Opal2000', 'Opal4000', 'OceanOptics', 'Opal1600', 'Opal8000', 'Fli', 'Quartz4A150', 'Andor', 'USDUSB', 'OrcaFl40', 'Imp', 'Epix', 'Rayonix', 'EpixSampler']
+DETECTOR = ['NoDetector', 'AmoIms', 'AmoGasdet', 'AmoETof', 'AmoITof', 'AmoMbes', 'AmoVmi', 'AmoBps', 'Camp', 'EpicsArch', 'BldEb', 'SxrBeamline', 'SxrEndstation', 'XppSb1Ipm', 'XppSb1Pim', 'XppMonPim', 'XppSb2Ipm', 'XppSb3Ipm', 'XppSb3Pim', 'XppSb4Pim', 'XppGon', 'XppLas', 'XppEndstation', 'AmoEndstation', 'CxiEndstation', 'XcsEndstation', 'MecEndstation', 'CxiDg1', 'CxiDg2', 'CxiDg3', 'CxiDg4', 'CxiKb1', 'CxiDs1', 'CxiDs2', 'CxiDsu', 'CxiSc1', 'CxiDsd', 'XcsBeamline', 'CxiSc2', 'MecXuvSpectrometer', 'MecXrtsForw', 'MecXrtsBack', 'MecFdi', 'MecTimeTool', 'MecTargetChamber', 'FeeHxSpectrometer', 'XrayTransportDiagnostic', 'Lamp']
+BLD = ['EBeam', 'PhaseCavity', 'FEEGasDetEnergy', 'Nh2Sb1Ipm01', 'HxxUm6Imb01', 'HxxUm6Imb02', 'HfxDg2Imb01', 'HfxDg2Imb02', 'XcsDg3Imb03', 'XcsDg3Imb04', 'HfxDg3Imb01', 'HfxDg3Imb02', 'HxxDg1Cam', 'HfxDg2Cam', 'HfxDg3Cam', 'XcsDg3Cam', 'HfxMonCam', 'HfxMonImb01', 'HfxMonImb02', 'HfxMonImb03', 'MecLasEm01', 'MecTctrPip01', 'MecTcTrDio01', 'MecXt2Ipm02', 'MecXt2Ipm03', 'MecHxmIpm01', 'GMD', 'CxiDg1Imb01', 'CxiDg2Imb01', 'CxiDg2Imb02', 'CxiDg4Imb01', 'CxiDg1Pim', 'CxiDg2Pim', 'CxiDg4Pim', 'XppMonPim0', 'XppMonPim1', 'XppSb2Ipm', 'XppSb3Ipm', 'XppSb3Pim', 'XppSb4Pim', 'XppEndstation0', 'XppEndstation1', 'MecXt2Pim02', 'MecXt2Pim03', 'CxiDg3Spec', 'Nh2Sb1Ipm02', 'FeeSpec0', 'SxrSpec0', 'XppSpec0']
+
+class PHYSID(object):
+    MASK_DEVID  = 0xff
+    MASK_DEV    = 0xff00
+    MASK_DETID  = 0xff0000
+    MASK_DET    = 0xff000000
+    SHIFT_DEVID = 0
+    SHIFT_DEV   = 8
+    SHIFT_DETID = 16
+    SHIFT_DET   = 24
+    
+    def __init__(self, physid=0x0):
+        self._physid = physid
+        self._detid = (physid & self.MASK_DETID) >> self.SHIFT_DETID
+        self._det   = (physid & self.MASK_DET)   >> self.SHIFT_DET
+        self._devid = (physid & self.MASK_DEVID) >> self.SHIFT_DEVID
+        self._dev   = (physid & self.MASK_DEV)   >> self.SHIFT_DEV
+
+    def detid(self):
+        return self._detid
+    def det(self):
+        return self._det
+    def detname(self):
+        return DETECTOR[self._det]
+    def devid(self):
+        return self._devid
+    def dev(self):
+        return self._dev
+    def devname(self):
+        if (self._det == 0) and (self._dev ==0): return BLD[self._devid]
+        return DEVICE[self._dev]
+    def phy(self):
+        return int(self._physid)
+
 def control_log(path, summ):
     for fname in glob.iglob(path+'*control_gui.log'):
         thetime = fname[(len(path)+1):len(path)+9]
+        ami_release = ami_version(path, thetime)
         compression = compression_check(path,thetime)
         fruns = []
         f = file(fname,"r")
@@ -19,6 +57,12 @@ def control_log(path, summ):
         runnumber = '-'
         for iline in range(len(lines)):
             line = lines[iline]
+            if (line.find("MainWindow:")>=0):
+                expstr = line.split("MainWindow: ")[1].strip().split('instrument')[1].split('experiment')
+                instname = expstr[0].replace("'","")
+                expstr = expstr[1].strip("'").replace("'","")
+                expname = expstr.split('(#')[0].replace("'","")
+                expnum = int(expstr.split('(#')[1].strip(')'))
             if (line.find("Configured")>=0 or line.find("Unmapped")>=0):
                 if run['duration']!='':
                     fruns.append(run)
@@ -51,15 +95,16 @@ def control_log(path, summ):
                 while( (len(line)>17 and line[8]=='.' and line[17]==':') or
                        (len(line)>29 and line[2]=='_' and line[20]=='.' and line[29]==':') or
                        (len(line)>29 and line[20]=='.' and line[29]==':') or
-                       (len(line)>41 and line[2]=='_' and line[32]=='.' and line[41]==':')):
+                       (len(line)>41 and line[2]=='_' and line[32]=='.' and line[41]==':') or
+                       (len(line)>45 and line[41]==':')):
                     s = line.rsplit(':')
                     srcs.append({'source':s[-2].rstrip(),'n':s[-1].rstrip()})
                     iline = iline+1
                     if (iline>=len(lines)):
                         break
                     line = lines[iline]
-                run = {'runnumber':runnumber, 'ended':ended, 'duration':duration, 'evts':events, 'dmg':damaged, 'bytes':bytes, 'evtsz':evtsiz, 'sources':srcs, 'release':release, 'compress':compression}
-
+                run = {'runnumber':runnumber, 'ended':ended, 'duration':duration, 'evts':events, 'dmg':damaged, 'bytes':bytes, 'evtsz':evtsiz, 'sources':srcs, 'release':release, 'compress':compression, 'ami':ami_release, 'ins':instname, 'expname':expname, 'expnum':expnum}
+                
         if run['duration']!='':
             fruns.append(run)
 
@@ -77,15 +122,18 @@ def control_log(path, summ):
         else:
             print_full(fname, fruns, sources)
 
-            
+           
 
 def print_full(fname,fruns,sources):
     print '\n-----'+fname,
     if len(fruns) != 0:
-        print '\n----- DAQ release: %s'%(fruns[0]['release'])
-        print '----- Compression status: '
-        for det in fruns[0]['compress']:
-            print "----- %s: %s (on %s): Compression %s" % (det['ts'],det['task'],det['node'], det['msg'])
+        print '\n-----%s %s (%s)'%(fruns[0]['ins'],fruns[0]['expname'],fruns[0]['expnum'])
+        print '----- DAQ release: %s'%(fruns[0]['release'])
+        print '----- AMI release: %s'%(fruns[0]['ami'])
+        if len(fruns[0]['compress']) != 0:
+            print '----- Compression status (%s): ' % (fruns[0]['compress'][0]['ts'])
+            for det in fruns[0]['compress']:
+                print "      %15s (on %s):\tCompression %s." % (det['task'],det['node'], det['msg'])
 
     fmtttl = '\n%28.28s'
     fmtstr = '%12.12s'
@@ -119,28 +167,41 @@ def print_full(fname,fruns,sources):
         for r in runs:
             print fmtstr%r['evtsz'],
 
+        print
         for src in sources:
-            print fmtttl%src,
+            physid = PHYSID(int(src.split('.')[1],16))
+            if physid.det() == 0 and physid.dev() == 0:
+                srcstr = src.split('.')[0].strip()
+            elif physid.dev() == 0:
+                srcstr = "%s-%d"%(physid.detname(), physid.detid())
+            elif physid.det() == 0:
+                srcstr = "%s-%d"%(physid.devname(), physid.devid())
+            else:
+                srcstr = "%s-%d|%s-%d"%(physid.detname(), physid.detid(), physid.devname(), physid.devid())
+            print fmtttl%srcstr,
             for r in runs:
                 lfound=False
                 for s in r['sources']:
                     if s['source']==src:
-                        lfound=True
+                        lfound=True                        
                         print fmtstr%s['n'],
                 if not lfound:
                     print fmtstr%'-',
         print " "
+        
 
 def print_summary(fname, fruns,sources):
     print '\n-----'+fname,
     if len(fruns) != 0:
-        print '\n----- DAQ release: %s\n'%(fruns[0]['release'])
-        print '----- Compression status: '
-        for det in fruns[0]['compress']:
-            print "----- %s: %s (on %s): Compression %s" % (det['ts'],det['task'],det['node'], det['msg'])
+        print '\n-----%s %s (%s)'%(fruns[0]['ins'],fruns[0]['expname'],fruns[0]['expnum'])
+        print '----- DAQ release: %s'%(fruns[0]['release'])
+        print '----- AMI release: %s'%(fruns[0]['ami'])
+        if len(fruns[0]['compress']) != 0:
+            print '----- Compression status (%s): ' % (fruns[0]['compress'][0]['ts'])
+            for det in fruns[0]['compress']:
+                print "      %15s (on %s):\tCompression %s." % (det['task'],det['node'], det['msg'])
 
-
-    fmt = '%11.11s %14.14s %15.15s %15.15s %15.15s %15.15s (%6s)  '
+    fmt = '%25.25s %14.14s %15.15s %15.15s %15.15s %15.15s (%6s)  '
     print fmt%('Run', 'Duration', 'Ended', 'Bytes', 'Events', 'Damaged', '%')
     max1=0
     str1=''
@@ -149,11 +210,21 @@ def print_summary(fname, fruns,sources):
         if int(r['evts']) == 0: pct = 0.0
         else: pct = "%3.2f" % (100.0*int(r['dmg'])/int(r['evts']))
         str = fmt%(r['runnumber'], r['duration'], r['ended'],r['bytes'], r['evts'], r['dmg'], pct)
-        for s in r['sources']:
-            if (s['source'].find('EBeam Low Curr')) == -1:
+        for s in  r['sources']:
+            if (s['source'].find('EBeam Low Curr') == -1):
                 if int(s['n']) > max1:
-                    str1 = "%s (%s)," % (s['source'].split('.')[0], s['n'])
+                    physid = PHYSID(int(s['source'].split('.')[1],16))
+                    if physid.det() == 0 and physid.dev() == 0:
+                        srcstr = s['source'].split('.')[0].strip()
+                    elif physid.dev() == 0:
+                        srcstr = "%s-%d"%(physid.detname(), physid.detid())
+                    elif physid.det() == 0:
+                        srcstr = "%s-%d"%(physid.devname(), physid.devid())
+                    else:
+                        srcstr = "%s-%d|%s-%d"%(physid.detname(), physid.detid(), physid.devname(), physid.devid())
+                    str1 = "%s (%s)" % (srcstr, s['n'])
                     max1 = int(s['n'])
+
         str += str1
         print str
         max1=0
@@ -244,20 +315,19 @@ def hutch_loop(expt, date_path, summ, errs):
             signal_check(path,6,'SIGABORT')
             signal_check(path,11,'SIGSEGV')
             transition_check(path)
-            if errs:
-                outoforder_check(path)
-                pgpproblem_check(path)
+            outoforder_check(path)
+            pgpproblem_check(path)
     if options.expt=='local':
         path = os.getenv('HOME')+'/'+date_path
         if len(glob.glob(path+'*control_gui.log')) == 0: return
         print '=== LOCAL ==='
         print path
         control_log(path,summ)        
-        fixup_check(path)
-        signal_check(path,6,'SIGABORT')
-        signal_check(path,11,'SIGSEGV')
-        transition_check(path)
         if errs:
+            fixup_check(path)
+            signal_check(path,6,'SIGABORT')
+            signal_check(path,11,'SIGSEGV')
+            transition_check(path)
             outoforder_check(path)
             pgpproblem_check(path)
             
@@ -346,7 +416,7 @@ def transition_check(path):
                     print fmtstr%trans_time+longfmtstr%transition+longfmtstr%task['name']+fmtstr%task['pid']+longfmtstr%task['node']
                 except:
                     pass
-                
+
 def outoforder_check(path):
     print_header = True
     flist = glob.glob(path+"*.log")
@@ -364,54 +434,75 @@ def outoforder_check(path):
 
 def node2name(flist,node):
     name = "Unknown node: %s" % node
-    station = flist[0].split("/reg/g/pcds/pds/")[1].split("/logfiles")[0]
-    hutch = station.split('_')[0]
-    flist=glob.glob('/reg/g/pcds/dist/pds/'+hutch+'/scripts/'+station+'.cnf')
-    args = ["grep",node]+flist
-    p    = subprocess.Popen(args=args,stdout=subprocess.PIPE)
-    output = p.communicate()[0].split('\n')
-    for line in output:
-        if ((len(line) != 0) and (line.find(node) != -1)):
-            name = line.split('=')[0].strip()
+    hutch = flist[0].split("/reg/g/pcds/pds/")[1].split("/logfiles")[0]
+    if (hutch.find('cxi') != -1):
+        exp = "cxi"
+    else:
+        exp = hutch
+    flist=glob.glob('/reg/g/pcds/dist/pds/'+exp+'/scripts/'+hutch+'.cnf')
+    if (len(flist) != 0):
+        args = ["grep",node]+flist
+        p    = subprocess.Popen(args=args,stdout=subprocess.PIPE)
+        output = p.communicate()[0].split('\n')
+        for line in output:
+            if ((len(line) != 0) and (line.find(node) != -1)):
+                name = line.split('=')[0].strip()
     return name
 
 
-def compression_check(path,thetime):
-    rv = []
-    flist = glob.glob(path+"_"+thetime+"*.log")
-    args = ["grep", "--binary-files=text","Compression"]+flist
-    p    = subprocess.Popen(args=args,stdout=subprocess.PIPE)
-    output = p.communicate()[0].split('\n')
-    for line in output:
-        if (len(line) != 0) and (line.find("Compression") != -1):
-            stat = {'node':None,'task':None, 'ts':None,'msg':None}
-            timestamp = line.split('/logfiles/')[1].replace('_',' ',1).split('_')[0]
-            node = line.split('_')[2].split(':')[0]
-            task = line.split(':')[3].split('.')[0]
-            msg = line.split('.log:')[1].split('Compression is')[1].strip().strip('.')
-            stat['node'] = node2name(flist,node)
-            stat['task'] = task
-            stat['ts']   = timestamp
-            stat['msg']  = msg
-            rv.append(stat)
+def ami_version(path, thetime):
+    rv = ''
+    flist = glob.glob(path+"_"+thetime+"*ami_client.log")
+    if len(flist) != 0:
+        args = ["grep", "@@@    (as "]+flist
+        p    = subprocess.Popen(args=args,stdout=subprocess.PIPE)
+        output = p.communicate()[0].split('\n')
+        for line in output:
+            if (len(line) != 0) and (line.find("online_ami") != -1):
+                release = line.split("as ")[1].strip().strip(')')
+                if release.find("/reg/g/pcds/dist/pds/") != -1:
+                    rv = release.split("/reg/g/pcds/dist/pds/")[1].split('/')[0]
+                else:
+                    rv = release
     return rv
-#            print "%s: %s (on %s): Compression %s" % (timestamp, task, node2name(flist,node), msg)
 
 
+def compression_check(path,thetime):
+    retval = []
+    flist = glob.glob(path+"_"+thetime+"*.log")
+
+    if len(flist) != 0:
+        args = ["grep", "Compression"]+flist
+        p    = subprocess.Popen(args=args,stdout=subprocess.PIPE)
+        output = p.communicate()[0].split('\n')
+        for line in output:
+            if (len(line) != 0) and (line.find("Compression") != -1):
+                timestamp = line.split('/logfiles/')[1].replace('_',' ',1).split('_')[0]
+                if (line.find('cxi_') != -1):
+                    node = line.split('_')[3].split(':')[0]
+                else:
+                    node = line.split('_')[2].split(':')[0]
+                task = line.split(':')[3].split('.')[0]
+                msg = line.split('.log:')[1].split('Compression is')[1].strip().strip('.')
+                task = line.split(':')[3].split('.')[0]
+                retval.append({'node':node2name(flist,node),'task':task,'ts':timestamp,'msg':msg})
+    return retval
 
 
 def pgpproblem_check(path):
     print_header=True
     flist = glob.glob(path+"*cspad*.log")
-    args = ["grep", "--binary-file=text","ERESTART"]+flist
-    p    = subprocess.Popen(args=args,stdout=subprocess.PIPE)
-    output = p.communicate()[0].split('\n')
-    for line in output:
-        if (len(line) != 0) and (line.find("ERESTART") != -1):
-            if print_header:
-                print "PGP problems:\n"
-                print_header = False
-            print line
+    flist += glob.glob(path+"*Pnccd*.log")
+    if len(flist) != 0:
+        args = ["grep", "--binary-file=text","ERESTART"]+flist
+        p    = subprocess.Popen(args=args,stdout=subprocess.PIPE)
+        output = p.communicate()[0].split('\n')
+        for line in output:
+            if (len(line) != 0) and (line.find("ERESTART") != -1):
+                if print_header:
+                    print "PGP problems:\n"
+                    print_header = False
+                    print line
             
 
 if __name__ == "__main__":
