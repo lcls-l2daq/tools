@@ -138,9 +138,9 @@ if __name__ == "__main__":
 		else :
 		    index = index + 1.0
 		    value = float(options.start) + (index/denom)*(options.finish-options.start)
-	print 'will substitute ...'
+#	print 'will substitute ...'
         cdb.substitute(newkey,xtc)
-        print 'unlocking'
+#        print 'unlocking'
 	cdb.unlock()
         print '    done'
 #
