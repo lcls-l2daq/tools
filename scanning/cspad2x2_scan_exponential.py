@@ -99,20 +99,23 @@ if __name__ == "__main__":
         if member == options.parameter :
             print 'Found the', options.parameter, 'concentrator parameter'
             parameterType = 'concentrator'
-#    for member in cspad['quad'][0] :
-#        if member == options.parameter :
-#            print 'Found the', options.parameter, 'quad parameter'
-#            parameterType = 'quad'
+    for member in cspad['quad'] :
+        if member == options.parameter :
+            print 'Found the', options.parameter, 'quad parameter'
+            parameterType = 'quad'
     if parameterType == 'None' :
         print 'Parameter', options.parameter, 'not found!'
         print '    Allowed concentrator parameters : current values'
         for member in cspad :
-            if member!='quad' and not member.endswith('System') and not member.endswith('Version') and not member.endswith('Mask') and not member.endswith('Enable') : 
+            if member!='quad' and not member.endswith('System') and not member.endswith('Version') and not member.endswith('Mask') and not member.endswith('Enable') and not member.endswith('Mode') and member!='tdi' and member!='payloadSize' : 
                 print '        ', member, ':', cspad[member]
-#        print '    Allowed quad parameters : current values'
-#        for member in cspad['quad'][0] :
-#            if member!='gain' and member!='pots' and not member.endswith('Select') :
-# 		print '        ', member, ':',   cspad['quad'][0][member]
+#            else :
+#		if member!='quad' :
+#		    print '                Ecluded: ', member, ":" , cspad[member]
+        print '    Allowed quad parameters : current values'
+        for member in cspad['quad'] :
+            if member!='gain' and member!='pots' and not member.endswith('Select') and member!='version' and member!='shiftTest' :
+ 		print '        ', member, ':',   cspad['quad'][member]
     else :
         print 'Composing the sequence of configurations ...'
         value = float(options.start)
@@ -124,28 +127,28 @@ if __name__ == "__main__":
         denom = float(options.limit)
         print 'shutterActive:', shutterActive, 'denom', denom
         for cycle in range(options.limit*cycleLength+1):
-	    print 'Cycle', cycle
-#            if parameterType == 'quad' :
-#                cspad['quad'][0][options.parameter]=int(round(value))
+#	    print 'Cycle', cycle
+            if parameterType == 'quad' :
+                cspad['quad'][options.parameter]=int(round(value))
             if parameterType == 'concentrator' :
-                print 'cspad', options.parameter, 'set to', int(round(value))
+#                print 'cspad', options.parameter, 'set to', int(round(value))
 		cspad[options.parameter]=int(round(value))
-	    print 'xtc.set(cspad,cycle', cycle, ')'
+#	    print 'xtc.set(cspad,cycle', cycle, ')'
 #            print 'cspad is', cspad
             xtc.set(cspad,cycle)
-	    print 'finished with xtc.set'
+#	    print 'finished with xtc.set'
 	    if cycle % cycleLength or not shutterActive :
 		if options.linear == "no" :
-                    print 'value = value * options.multipler', value * options.multipler
+#                    print 'value = value * options.multiplier', value * options.multiplier
 	            value = value * options.multiplier
 		else :
-		    print 'index', index, 'denom =', denom, 'value = '
+#                    print 'index', index, 'denom =', denom, 'value = '
 		    index = index + 1.0
 		    value = float(options.start) + (index/denom)*(options.finish-options.start)
-		    print '    ', value 
+#		    print '    ', value 
         cdb.substitute(newkey,xtc)
 	cdb.unlock()
-        print '    done'
+#        print '    done'
 #
 #  Could scan EVR simultaneously
 #
@@ -173,7 +176,7 @@ if __name__ == "__main__":
         ready = raw_input('--Hit Enter when Ready-->')
 	index = 0.0
 
-        for cycle in range(options.steps):
+        for cycle in range(options.steps+1):
             if cycle%(options.limit+1) == 0 : 
 		value = options.start
 		index = 0.0
