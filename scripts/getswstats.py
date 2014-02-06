@@ -29,7 +29,7 @@ def get_partition(expt,node):
 
     print 'Fetch partition for '+expt
     # Need exact hostname for expect to match
-    name = 'pslogin01'
+    name = 'psdev02'
     print name+' ',
     passwd = getpass.getpass()
     uname = os.getenv('USER')
