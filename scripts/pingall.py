@@ -55,8 +55,9 @@ INSTRUMENTS = ['amo','sxr','xpp','xcs','cxi','mec','tst','det']
 def usage(argv):
    print """
 NAME
-   %s - Get hutch status for all DAQ nodes for the specified instrument
-        If no instrument is specified, it will ping all DAQ nodes at LCLS
+   %s - Ping and report status of CDS and FEZ interfaces
+        for all DAQ nodes for the specified instrument
+
 
 USAGE
    %s <instrument> [OPTIONS]
