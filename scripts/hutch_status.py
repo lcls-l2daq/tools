@@ -62,8 +62,12 @@ def usage(argv):
 #==============================================================================   
    print """
 NAME
-   %s - Get hutch status for all DAQ nodes for the specified instrument
-        If no instrument is specified, it will address all DAQ nodes at LCLS
+   %s - Get hutch status for all DAQ nodes for the specified instrument:
+                        CDS/FEZ interfaces status
+                        procmgrd[0-4] status
+                        syscntl parameter status for event levels:  rmem_max, wmem_max, mqueue.msg_max
+                        disk usage status for event levels
+
 
 USAGE
    %s <instrument> [OPTIONS]
@@ -74,11 +78,11 @@ EXAMPLE
 
 OPTIONS:
    -n, --netconfig
-       Ping all nodes using list of DAQ nodes for instrument from netconfig (default)
+       Get node status using list of DAQ nodes for instrument from netconfig (default)
        If both -n and -c options are given, --netconfig is used
        
    -c, --cnf
-       Ping all nodes using list of DAQ nodes for instrument from .cnf file
+       Get node status using list of DAQ nodes for instrument from .cnf file
        If both -n and -c options are given, --netconfig is used
 
    -v, --verbose
