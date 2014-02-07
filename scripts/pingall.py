@@ -86,7 +86,7 @@ OPTIONS:
    -h, --help
        Display usage information
 
-"""   % (argv[0],argv[0], argv[0])
+"""   % (argv[0],argv[0], argv[0], argv[0], argv[0], argv[0])
 
 #================================================================================
 
@@ -341,7 +341,7 @@ def pingall(nodes):
 if __name__ == '__main__':
    if len(sys.argv) < 2:
       usage(sys.argv)
-      sys.exit(1)
+      sys.exit(0)
    else:
       instrument = sys.argv[1].lower()
 
@@ -361,7 +361,7 @@ if __name__ == '__main__':
    for o, a in opts:
       if o in ('-h', '--help'):
          usage(sys.argv)
-         sys.exit(1)
+         sys.exit(0)
       if o in ('-c', '--cnf'):
          cnf = True
       if o in ('-n', '--netconfig'):
