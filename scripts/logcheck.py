@@ -34,6 +34,7 @@ class PHYSID(object):
     def det(self):
         return self._det
     def detname(self):
+        if (self._det > len(DETECTOR)):return ''
         return DETECTOR[self._det]
     def devid(self):
         return self._devid
@@ -41,6 +42,7 @@ class PHYSID(object):
         return self._dev
     def devname(self):
         if (self._det == 0) and (self._dev ==0): return BLD[self._devid]
+        if (self._dev > len(DEVICE)):return ''
         return DEVICE[self._dev]
     def phy(self):
         return int(self._physid)
@@ -57,7 +59,7 @@ def control_log(path, summ):
         runnumber = '-'
         for iline in range(len(lines)):
             line = lines[iline]
-            if (line.find("MainWindow:")>=0):
+            if ((line.find("MainWindow:")>=0) and (line.find('instrument')>=0) and (line.find('experiment')>=0)):            
                 expstr = line.split("MainWindow: ")[1].strip().split('instrument')[1].split('experiment')
                 instname = expstr[0].replace("'","")
                 expstr = expstr[1].strip("'").replace("'","")
@@ -70,12 +72,14 @@ def control_log(path, summ):
                     runnumber = '-'
             if (line.find("Completed allocating")>=0):
                 runnumber = line.split()[-1]
-            if ((line.find("build") >= 0) and (line.find("as") >= 0)):
+            if ((line.find("build") >= 0) and (line.find("as") >= 0) and (line.find("@@@") >=0)):                
                 full_release=line.split("as ")[1].strip().strip(')')
                 if full_release.find("/reg/g/pcds/dist/pds/") != -1:
-                    release = full_release.split("/reg/g/pcds/dist/pds/")[1].split('/')[0]
+                    daq_release = full_release.split("/reg/g/pcds/dist/pds/")[1].split('/')[0]
                 else:
-                    release = full_release
+                    daq_release = full_release.replace('reg/neh/home','~')
+                    daq_release = full_release.replace('reg/neh/home2','~')
+                    daq_release = full_release.replace('reg/neh/home3','~')
             index = line.find("Duration")
             if (index>=0):
                 ended    = line.partition(':Duration:')[0].rstrip()                
@@ -103,7 +107,20 @@ def control_log(path, summ):
                     if (iline>=len(lines)):
                         break
                     line = lines[iline]
-                run = {'runnumber':runnumber, 'ended':ended, 'duration':duration, 'evts':events, 'dmg':damaged, 'bytes':bytes, 'evtsz':evtsiz, 'sources':srcs, 'release':release, 'compress':compression, 'ami':ami_release, 'ins':instname, 'expname':expname, 'expnum':expnum}
+                run = {'runnumber':runnumber,
+                       'ended':ended,
+                       'duration':duration,
+                       'evts':events,
+                       'dmg':damaged,
+                       'bytes':bytes,
+                       'evtsz':evtsiz,
+                       'sources':srcs,
+                       'daq':daq_release,
+                       'compress':compression,
+                       'ami':ami_release,
+                       'ins':instname,
+                       'expname':expname,
+                       'expnum':expnum}
                 
         if run['duration']!='':
             fruns.append(run)
@@ -128,7 +145,7 @@ def print_full(fname,fruns,sources):
     print '\n-----'+fname,
     if len(fruns) != 0:
         print '\n-----%s %s (%s)'%(fruns[0]['ins'],fruns[0]['expname'],fruns[0]['expnum'])
-        print '----- DAQ release: %s'%(fruns[0]['release'])
+        print '----- DAQ release: %s'%(fruns[0]['daq'])
         print '----- AMI release: %s'%(fruns[0]['ami'])
         if len(fruns[0]['compress']) != 0:
             print '----- Compression status (%s): ' % (fruns[0]['compress'][0]['ts'])
@@ -194,7 +211,7 @@ def print_summary(fname, fruns,sources):
     print '\n-----'+fname,
     if len(fruns) != 0:
         print '\n-----%s %s (%s)'%(fruns[0]['ins'],fruns[0]['expname'],fruns[0]['expnum'])
-        print '----- DAQ release: %s'%(fruns[0]['release'])
+        print '----- DAQ release: %s'%(fruns[0]['daq'])
         print '----- AMI release: %s'%(fruns[0]['ami'])
         if len(fruns[0]['compress']) != 0:
             print '----- Compression status (%s): ' % (fruns[0]['compress'][0]['ts'])
