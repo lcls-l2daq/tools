@@ -5,6 +5,7 @@ import pydaq
 import pycdb
 import math
 import serial
+import pprint
 
 from optparse import OptionParser
 
@@ -16,12 +17,16 @@ if __name__ == "__main__":
                       help="connect to DAQ at HOST", metavar="HOST")
     parser.add_option("-p","--platform",dest="platform",type="int",default=3,
                       help="connect to DAQ at PLATFORM", metavar="PLATFORM")
-    parser.add_option("-D","--detector",dest="detector",type="int",default=0x14000d00,
-                      help="detector ID  to scan",metavar="ID")
-    parser.add_option("-d","--device",dest="deviceOffset",type="int",default=0,
-                      help="device ID offset",metavar="DEV_OFFSET")
-    parser.add_option("-t","--typeID",dest="typeID",type="int",default=0x2002b,
-                      help="type ID to generate",metavar="TYPEID")
+    parser.add_option("-D","--detector",dest="detector",type="string",default='CxiEndstation',
+                      help="detector to scan, default CxiEndstation",metavar="DET")
+    parser.add_option("-I","--detectorID",dest="detectorID",type="int",default=0,
+                      help="detector ID  to scan, default 0",metavar="D_ID")
+#    parser.add_option("-d","--device",dest="device",type="string",default='Cspad2x2',
+#                      help="device to scan, default Cspad2x2",metavar="DEV")
+    parser.add_option("-i","--deviceID",dest="deviceID",type="int",default=0,
+                      help="device ID to scan, default 0",metavar="DEV_ID")
+    parser.add_option("-t","--typeIdVersion",dest="typeIdVersion",type="int",default=2,
+                      help="type ID Version in use, default 2",metavar="typeIdVersion")
     parser.add_option("-P","--parameter",dest="parameter",type="string",
                       help="cspad2x2 parameter to scan", metavar="PARAMETER")
     parser.add_option("-A","--dbalias",dest="dbalias",type="string",
@@ -37,27 +42,29 @@ if __name__ == "__main__":
     parser.add_option("-e","--events",dest="events",type="int",default=105,
                       help="record N events/cycle", metavar="EVENTS")
     parser.add_option("-L","--linear",dest="linear",type="string",default="no",
-		      help="Set to yes for linear scanning instead of exponential", metavar="LINEAR")
+              help="Set to yes for linear scanning instead of exponential", metavar="LINEAR")
     parser.add_option("-l","--limit",dest="limit",type="int",default=99,
                       help="limit number of configs to less than number of steps", metavar="LIMIT")
     parser.add_option("-S","--shutter",dest="shutter",default="None",
                       help="path to shutter serial port", metavar="SHUTTER")
     (options, args) = parser.parse_args()
     
+    options.device = 'Cspad2x2'
+    options.typeId = 'Cspad2x2Config'
+    
     print 'host', options.host
     print 'platform', options.platform
-    print 'dbalias',options.platform
+    print 'dbalias',options.dbalias
     print 'parameter', options.parameter
     print 'start', options.start, hex(options.start)
     print 'steps', options.steps
     print 'finish', options.finish
 #    print 'multiplier', options.multiplier
     print 'events', options.events
-    print 'detector', hex(options.detector)
-    if (options.deviceOffset > 0) :
-        print 'deviceOffset', options.deviceOffset, "so detector now",  hex(options.detector + options.deviceOffset)
-        options.detector = options.detector + options.deviceOffset
-    print 'typeID', hex(options.typeID)
+    print 'detector', options.detector
+    print 'detectorID', options.detectorID
+    print 'device', options.device
+    print 'deviceID', options.deviceID
 #    print 'linear', options.linear
     print 'shutter', options.shutter
 
@@ -66,17 +73,53 @@ if __name__ == "__main__":
          'but will still do', options.steps, 'steps with wrapping'
 
     if (options.multiplier < 0) :    
-	options.multiplier = math.exp( (math.log( float(options.finish)/options.start )) / options.limit  )
+        options.multiplier = math.exp( (math.log( float(options.finish)/options.start )) / options.limit  )
 
     if options.linear == "no" :
-	print 'multiplier in use is', options.multiplier, 'and will scan from', options.start, 'to', options.finish
+        print 'multiplier in use is', options.multiplier, 'and will scan from', options.start, 'to', options.finish
     else :
-	print 'will do linear scanning from', options.start, 'to', options.finish
+        print 'will do linear scanning from', options.start, 'to', options.finish
 
 # Connect to the daq system
     daq = pydaq.Control(options.host,options.platform)
     daq.connect()
+    print 'Partition is', daq.partition()
+    detectors = daq.detectors()
+    devices = daq.devices()
+    types = daq.types()
+#    print 'types are :\n', types
 
+    found = [False, False, False]
+    index = 0
+    for member in detectors :
+        if member == options.detector :
+            detectorValue = (index << 24) | ((options.detectorID&0xff)<<16)
+            found[0] = True
+        index = index + 1
+    index = 0
+    for member in devices :
+        if member == options.device :
+            detectorValue = detectorValue | (index << 8) | (options.deviceID & 0xff)
+            found[1] = True
+        index = index + 1
+    index = 0;
+    for member in types :
+        if member == options.typeId :
+            typeIdValue = index | (options.typeIdVersion<<16);
+            found[2] = True
+        index = index + 1
+    if found[0] and found[1] and found[2]:
+        print "detector hex value",  hex(detectorValue)
+        print 'typeId', hex(typeIdValue)
+    else :
+        if not found[0] :
+            print "Detector", options.detector, "not found!"
+        if not found[1] :
+            print "Device", options.device, "not found!"
+        if not found[2] :
+        	print "Type", options.typeId, "not found!"
+    	print "Exiting"
+    	exit()
 #
 #  First, get the current configuration key in use and set the value to be used
 #
@@ -90,8 +133,17 @@ if __name__ == "__main__":
 #
     newkey = cdb.clone(options.dbalias)
     print 'Generated key ',hex(newkey)
-
-    xtc = cdb.get(key=key,src=options.detector,typeid=options.typeID)[0]
+    print 'key',hex(key)
+    print 'detectorValue',hex(detectorValue)
+    print 'typeIdValue',hex(typeIdValue)
+#    xtcSet = cdb.get(key=key)
+#    print 'xtcSet members :\n'
+#    for member in xtcSet :
+#        for attr in dir(member) :
+#            print getattr(member,attr)            
+#    print 'Done printing xtcSet\n'
+#    print "cdb.get opened\n", cdb.get(key=key)
+    xtc = cdb.get(key=key,src=detectorValue,typeid=typeIdValue)[0]
     print 'xtc is', xtc
     cspad = xtc.get(0)
     parameterType = 'None'
@@ -110,50 +162,42 @@ if __name__ == "__main__":
             if member!='quad' and not member.endswith('System') and not member.endswith('Version') and not member.endswith('Mask') and not member.endswith('Enable') and not member.endswith('Mode') and member!='tdi' and member!='payloadSize' : 
                 print '        ', member, ':', cspad[member]
 #            else :
-#		if member!='quad' :
-#		    print '                Ecluded: ', member, ":" , cspad[member]
+#        if member!='quad' :
+#            print '                Ecluded: ', member, ":" , cspad[member]
         print '    Allowed quad parameters : current values'
         for member in cspad['quad'] :
             if member!='gain' and member!='pots' and not member.endswith('Select') and member!='version' and member!='shiftTest' :
- 		print '        ', member, ':',   cspad['quad'][member]
+                print '        ', member, ':',   cspad['quad'][member]
     else :
         print 'Composing the sequence of configurations ...'
         value = float(options.start)
         cycleLength = 1
-	shutterActive = options.shutter != 'None'
+        shutterActive = options.shutter != 'None'
         if shutterActive :
-	    cycleLength = 2
-	index = 0.0
+            cycleLength = 2
+        index = 0.0
         denom = float(options.limit)
-        print 'shutterActive:', shutterActive, 'denom', denom
         for cycle in range(options.limit*cycleLength+1):
-#	    print 'Cycle', cycle
+#            print 'Cycle', cycle
             if parameterType == 'quad' :
                 cspad['quad'][options.parameter]=int(round(value))
             if parameterType == 'concentrator' :
-#                print 'cspad', options.parameter, 'set to', int(round(value))
-		cspad[options.parameter]=int(round(value))
-#	    print 'xtc.set(cspad,cycle', cycle, ')'
-#            print 'cspad is', cspad
+                cspad[options.parameter]=int(round(value))
             xtc.set(cspad,cycle)
-#	    print 'finished with xtc.set'
-	    if cycle % cycleLength or not shutterActive :
-		if options.linear == "no" :
-#                    print 'value = value * options.multiplier', value * options.multiplier
-	            value = value * options.multiplier
-		else :
-#                    print 'index', index, 'denom =', denom, 'value = '
-		    index = index + 1.0
-		    value = float(options.start) + (index/denom)*(options.finish-options.start)
-#		    print '    ', value 
+            if cycle % cycleLength or not shutterActive :
+                if options.linear == "no" :
+                    value = value * options.multiplier
+                else :
+                    index = index + 1.0
+                    value = float(options.start) + (index/denom)*(options.finish-options.start)
         cdb.substitute(newkey,xtc)
-	cdb.unlock()
-#        print '    done'
+        cdb.unlock()
+        print '    done'
 #
 #  Could scan EVR simultaneously
 #
-#    evr   = Evr  .ConfigV4().read(cdb.xtcpath(key.value,Evr  .DetInfo,Evr  .TypeId))
-#    newxtc = cdb.remove_xtc(newkey,Evr.DetInfo,Evr.TypeId)
+#    evr   = Evr  .ConfigV4().read(cdb.xtcpath(key.value,Evr  .DetInfo,Evr  .typeId))
+#    newxtc = cdb.remove_xtc(newkey,Evr.DetInfo,Evr.typeId)
 
 #
 #  Send the structure the first time to put the control variables
@@ -174,39 +218,39 @@ if __name__ == "__main__":
 #    Setting up monitoring displays for example
 #  
         ready = raw_input('--Hit Enter when Ready-->')
-	index = 0.0
+        index = 0.0
 
         for cycle in range(options.steps+1):
             if cycle%(options.limit+1) == 0 : 
-		value = options.start
-		index = 0.0
-	    if shutterActive :
-		ser.write(chr(129)) ## close shutter
-		print "Cycle", cycle, " closed -", options.parameter, "=", int(round(value))
+                value = options.start
+                index = 0.0
+            if shutterActive :
+                ser.write(chr(129)) ## close shutter
+                print "Cycle", cycle, " closed -", options.parameter, "=", int(round(value))
             else :
-		print "Cycle", cycle, "-", options.parameter, "=", int(round(value))
+                print "Cycle", cycle, "-", options.parameter, "=", int(round(value))
             daq.begin(controls=[(options.parameter,int(round(value)))])
             # wait for enabled , then enable the EVR sequence
 
             # wait for disabled, then disable the EVR sequence
             daq.end() 
-    	    if shutterActive :
+            if shutterActive :
                 print "        opened -", options.parameter, "=", int(round(value))
                 ser.write(chr(128)) ## open shutter
                 daq.begin(controls=[(options.parameter,int(round(value)))])
                 daq.end()
                 ser.write(chr(129)) ## close shutter
-		
-	    if options.linear == "no" :
-		value = value * options.multiplier
-	    else :
-		index = index + 1.0
-		value = float(options.start) + (index/denom)*(options.finish-options.start)
+        
+            if options.linear == "no" :
+                value = value * options.multiplier
+            else :
+                index = index + 1.0
+                value = float(options.start) + (index/denom)*(options.finish-options.start)
         
 #
 #  Wait for the user to declare 'done'
 #    Saving monitoring displays for example
 #
-	ready = raw_input('-- Finished, hit Enter to exit -->')
+        ready = raw_input('-- Finished, hit Enter to exit -->')
         print 'Restoring key', hex(key)
-	daq.configure(key=key, events=1)
+        daq.configure(key=key, events=1)
