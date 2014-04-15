@@ -182,9 +182,10 @@ if __name__ == "__main__":
             if cycle % cycleLength or not shutterActive :
                 if options.linear == "no" :
                     value = value * options.multiplier
-            else :
-                index = index + 1.0
-                value = float(options.start) + (index/denom)*(options.finish-options.start)
+                else :
+                    index = index + 1.0
+                    print index, denom, float(options.start) + (index/denom)*(options.finish-options.start)
+                    value = float(options.start) + (index/denom)*(options.finish-options.start)
         cdb.substitute(newkey,xtc)
         cdb.unlock()
         print '    done'
