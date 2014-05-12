@@ -36,7 +36,7 @@ def get_partition(expt,node):
     
     COMMAND_PROMPT = uname + '@' + name
         
-    child = pexpect.spawn('ssh %s'%name)
+    child = pexpect.spawn('ssh %s'%name,maxread=81920)
     i = child.expect([pexpect.TIMEOUT, '(?i)password', COMMAND_PROMPT])
     if i == 0: # Timeout
         print 'ERROR! could not login with SSH. Here is what SSH said:'
@@ -68,7 +68,11 @@ def get_partition(expt,node):
     seg_ips = []
     evt_ips = []
     child.sendline('/reg/g/pcds/dist/pds/'+expt+'/current/build/pdsapp/bin/i386-linux-opt/showPartitions')
-    i = child.expect(COMMAND_PROMPT)
+    try:
+        i = child.expect(COMMAND_PROMPT)
+    except:
+        print 'Exception thrown'
+        print str(child)
     lines = child.before.split('\n')
     for oline in lines:
         word = oline.split()[-1]
@@ -79,6 +83,9 @@ def get_partition(expt,node):
                 evt_ips.append(word.split('/')[-1])
 
     if len(seg_ips)==0:
+        print 'Found no segment levels!'
+        print child.before.split('\n')
+        print child.after.split('\n')
         exit(1)
     
     mon_ips = []
@@ -150,6 +157,7 @@ class MyTable:
         for p in ports:
             for c in counters:
                 p[3].append(([0,0]))
+        print ports
 
     def update(self):
 	print '%20.20s'%'Port',
@@ -257,12 +265,12 @@ if __name__ == "__main__":
         console_name.append(hutch+'-control')
     elif hutch=='cxi':
         switch_name='switch-'+hutch+'-mezz-daq'
-        console_name.append(hutch+'-daq')
         console_name.append(hutch+'-monitor')
+        console_name.append(hutch+'-daq')
     elif hutch=='xpp':
         switch_name='switch-'+hutch+'-srvroom-daq'
-        console_name.append(hutch+'-daq')
         console_name.append(hutch+'-control')
+        console_name.append(hutch+'-daq')
     else:
         switch_name='switch-'+hutch+'-srvroom-daq'
         console_name.append(hutch+'-daq')
