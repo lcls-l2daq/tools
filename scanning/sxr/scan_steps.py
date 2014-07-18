@@ -50,7 +50,7 @@ class donemoving(Pv):
       print e
 
 if __name__ == '__main__':
-  options = Options(['motorpvname', 'from', 'to', 'steps', 'events', 'record'], [], [])
+  options = Options(['motorpvname', 'from', 'to', 'steps', 'events', 'record'], [], ['once'])
   try:
     options.parse()
   except Exception, msg:
@@ -62,8 +62,13 @@ if __name__ == '__main__':
   high = float(options.opts['to'])
   steps = int(options.opts['steps'])
   events = int(options.opts['events'])
+  doOnce = False
+  if options.opts.has_key('once'):
+    doOnce = True
 
   print 'Stepping %s from %f to %f with %d events at each of %d steps'%(motorpvname,low,high,events,steps)
+  if doOnce:
+    print '(once: stopping after one scan)
   
   evtmask = pyca.DBE_VALUE | pyca.DBE_LOG | pyca.DBE_ALARM 
 
@@ -110,6 +115,8 @@ if __name__ == '__main__':
         daq.begin(controls=[(motorpvname,steppos)],events=int(options.opts['events']))
         #  Wait for end of acquisition (nevents)
         daq.end()
+      if doOnce:
+        break
       
   except pyca.pyexc, e:
       print 'pyca exception: %s' %(e)
