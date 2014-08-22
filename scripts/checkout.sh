@@ -4,36 +4,34 @@
 
 function show_help()
 {
-    echo    "Usage: $0 [-h] [-u <URL>] [-d <release_dir>]"
-    echo    "       The default release_dir is 'release'"
-    echo -n "       The default URL is \$DAQREPO "
-    if [ -n "$DAQREPO" ]; then
-        echo "($DAQREPO)"
-    else
-        echo "(Undefined variable)"
-    fi
+    echo    "Usage: $0 -u URL -d DEST [-r REV] [-b BRANCH | -t TAG] [-h]"
 }
 
-# default release_dir
-release_dir="release"
-
-# default URL
-url=${DAQREPO:-undefined}
+# if no branch or tag is specified, checkout from the trunk
+flavor="trunk"
 
 OPTIND=1
-while getopts ":hu:d:" opt; do
+while getopts ":hu:d:r:b:t:" opt; do
     case "$opt" in
     h)
+        # help
         show_help
         exit 0
         ;;
     \?)
+        # unrecognized option
         show_help
         exit 1
         ;;
     u)  url=$OPTARG
         ;;
     d)  release_dir=$OPTARG
+        ;;
+    r)  rev="-r $OPTARG"
+        ;;
+    b)  flavor="branches/$OPTARG"
+        ;;
+    t)  flavor="tags/$OPTARG"
         ;;
     esac
 done
@@ -43,26 +41,37 @@ shift $((OPTIND-1))
 [ "$1" = "--" ] && shift
 
 if test "$#" -ne 0; then 
-    show_help
-    exit 1
+    error=1
 fi
 
-if [ "$url" == "undefined" ]; then
+if [ -z "$url" ]; then
     echo "$0: cannot access repository: URL not defined"
-    show_help
-    exit 1
+    error=1
+fi
+
+if [ -z "$release_dir" ]; then
+    echo "$0: cannot create directory: DEST not defined"
+    error=1
 fi
 
 if [ -a "$release_dir" ]; then
     echo "$0: cannot create directory \`$release_dir': File exists"
+    error=1
+fi
+
+if [ -n "$error" ]; then
+    show_help
     exit 1
 fi
 
+# exit immediately if a command exits with a non-zero status
 set -e
-/usr/bin/svn co $url/release/trunk  $release_dir
-/usr/bin/svn co $url/pds/trunk      $release_dir/pds
-/usr/bin/svn co $url/pdsapp/trunk   $release_dir/pdsapp
-/usr/bin/svn co $url/ami/trunk      $release_dir/ami
-/usr/bin/svn co $url/timetool/trunk $release_dir/timetool
-/usr/bin/svn co $url/tools/trunk    $release_dir/tools
+
+/usr/bin/svn co $rev $url/release/$flavor  $release_dir
+/usr/bin/svn co $rev $url/pds/$flavor      $release_dir/pds
+/usr/bin/svn co $rev $url/pdsapp/$flavor   $release_dir/pdsapp
+/usr/bin/svn co $rev $url/ami/$flavor      $release_dir/ami
+/usr/bin/svn co $rev $url/timetool/$flavor $release_dir/timetool
+/usr/bin/svn co $rev $url/tools/$flavor    $release_dir/tools
+
 exit 0
