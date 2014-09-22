@@ -188,7 +188,7 @@ def deduce_platform(configfilename):
     rv = -1   # return -1 on error
     cc = {'platform': None, 'procmgr_config': None,
           'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host',
-          'rtprio':'rtprio', 'env':'env', 'procmgr_macro': {}}
+          'rtprio':'rtprio', 'env':'env', 'evr':'evr', 'procmgr_macro': {}}
     try:
       execfile(configfilename, {}, cc)
       if type(cc['platform']) == type('') and cc['platform'].isdigit():
@@ -208,7 +208,7 @@ def deduce_platform2(configfilename):
     macro_rv = {}
     cc = {'platform': None, 'procmgr_config': None,
           'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host',
-          'rtprio':'rtprio', 'env':'env', 'procmgr_macro': {}}
+          'rtprio':'rtprio', 'env':'env', 'evr':'evr', 'procmgr_macro': {}}
     try:
       execfile(configfilename, {}, cc)
       macro_rv = cc['procmgr_macro']
@@ -236,7 +236,7 @@ def deduce_instrument(configfilename):
     station_number = 0
     cc = {'instrument': None, 'platform': None, 'procmgr_config': None,
           'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host',
-          'rtprio':'rtprio', 'env':'env', 'procmgr_macro': {}, 'currentexpcmd': None}
+          'rtprio':'rtprio', 'env':'env', 'evr':'evr', 'procmgr_macro': {}, 'currentexpcmd': None}
 
     try:
       execfile(configfilename, {}, cc)
@@ -392,7 +392,7 @@ class ProcMgr:
     STATION = 0
     CURRENTEXPCMD = ''
     
-    valid_flag_list = ['X', 'x', 'k', 's', 'u'] 
+    valid_flag_list = ['X', 'x', 'k', 's', 'u', 'p'] 
     valid_instruments = ['AMO','SXR','XPP','XCS','CXI','MEC']
 
     def __init__(self, configfilename, platform, Xterm_list=[], xterm_list=[], procmgr_macro={}, baseport=29000):
@@ -465,7 +465,7 @@ class ProcMgr:
 
         config = {'platform': repr(self.PLATFORM), 'procmgr_config': None,
                   'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host',
-                  'rtprio':'rtprio', 'env':'env', 'procmgr_macro': procmgr_macro}
+                  'rtprio':'rtprio', 'env':'env', 'evr':'evr', 'procmgr_macro': procmgr_macro}
         try:
           execfile(configfilename, {}, config)
         except:
@@ -511,6 +511,15 @@ class ProcMgr:
               self.env = entry['env']
             else:
               raise ConfigFileError("env value is missing '=': %s" % entry)
+
+          # --- evr (optional) ---
+          self.evr = None
+          if entry.has_key('evr'):
+            match = search('^(\d)\,(\d)$', entry['evr'])
+            if match:
+              self.evr = match.group()
+            else:
+              raise ConfigFileError("evr value does not match '<digit>,<digit>': %s" % entry)
 
           # --- cmd (required) ---
           if entry.has_key('cmd'):
@@ -567,6 +576,9 @@ class ProcMgr:
           # --- flags (optional) ---
           if entry.has_key('flags'):
             self.flags = entry['flags']
+            # evr keyword forces p flag
+            if self.evr:
+              self.flags += 'p'
             for nextflag in self.flags:
               if (nextflag not in self.valid_flag_list):
                 print 'ERR: invalid flag:', nextflag
@@ -576,6 +588,13 @@ class ProcMgr:
           # append '-u <UniqueId>' to command if 'u' flag is set
           if 'u' in self.flags:
             self.cmd += (' -u ' + self.uniqueid)
+
+          # append '-p <platform>[<mod>,<chan>]' to command if 'p' flag is set
+          if 'p' in self.flags:
+            if self.evr:
+              self.cmd += (' -p ' + repr(self.PLATFORM) + ',' + self.evr)
+            else:
+              self.cmd += (' -p ' + repr(self.PLATFORM))
 
           # update flags to reflect -x or -X on command line
           # ...order matters: X flag takes priority over x flag
@@ -979,6 +998,11 @@ class ProcMgr:
                 else:
                     waitflag = ''
 
+                # set pidfile
+                pidfile = '/tmp/darkmatter-${USER}/proc/%s:%s' % (value[self.DICT_CTRL], key2uniqueid(key))
+                if verbose:
+                    print 'pid file: <%s>' % pidfile
+
                 if ('>' in value[self.DICT_CMD]) or (logpathbase == None) or (logpathbase == "/dev/null"):
                     redirect_string = ''
                 else:
@@ -1021,8 +1045,9 @@ class ProcMgr:
                   name = key2uniqueid(key)
 
                 startcmd = \
-                        '/reg/g/pcds/package/procServ-2.5.1/procServ --noautorestart --name %s %s --allow --coresize %d %s %s %s' % \
+                        '/reg/g/pcds/package/procServ-2.5.1/procServ --noautorestart --name %s --pidfile=%s %s --allow --coresize %d %s %s %s' % \
                        (name, \
+                        pidfile, \
                         waitflag, \
                         coresize, \
                         value[self.DICT_CTRL], \
