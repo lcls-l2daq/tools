@@ -12,9 +12,9 @@ make i386-linux-opt
 make i386-linux-dbg
 
 x86_64_arch='unknown'
-if [[ `uname -r` == *el5 ]]; then
+if [[ `uname -r` == *el5* ]]; then
   x86_64_arch='x86_64-linux'
-elif [[ `uname -r` == *el6 ]]; then
+elif [[ `uname -r` == *el6* ]]; then
   x86_64_arch='x86_64-rhel6'
 fi
 
