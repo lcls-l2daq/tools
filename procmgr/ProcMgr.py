@@ -4,7 +4,7 @@
 
 import os, sys, string, telnetlib, subprocess
 import stat, errno, time
-from re import search
+import re
 from time import sleep, strftime
 import socket
 import StringIO
@@ -515,11 +515,11 @@ class ProcMgr:
           # --- evr (optional) ---
           self.evr = None
           if entry.has_key('evr'):
-            match = search('^(\d)\,(\d)$', entry['evr'])
+            match = re.match('^(\d)\,(\d)(\d)?$', entry['evr'])
             if match:
               self.evr = match.group()
             else:
-              raise ConfigFileError("evr value does not match '<digit>,<digit>': %s" % entry)
+              raise ConfigFileError("evr value does not match '<digit>,<digit>[<digit>]': %s" % entry)
 
           # --- cmd (required) ---
           if entry.has_key('cmd'):

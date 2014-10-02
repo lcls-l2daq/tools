@@ -22,7 +22,7 @@ import sys
 import os
 import optparse
 import traceback
-from re import search
+from re import match
 
 usage = "usage: %prog configfile [OPTION]..."
 
@@ -72,8 +72,8 @@ def entry_lint(dict):
             report_error('procmgr_config entry includes invalid flag \'%s\' (not in %s)' %
                          (buf, repr(valid_flags)))
       elif key == 'evr':
-        if not search('^(\d)\,(\d)$', value):
-          report_error("procmgr_config entry includes invalid evr \'%s\' (does not match '<digit>,<digit>')" % str(value))
+        if not match('^(\d)\,(\d)(\d)?$', value):
+          report_error("procmgr_config entry includes invalid evr \'%s\' (does not match '<digit>,<digit>[<digit>]')" % str(value))
   return rv
 
 valid_instruments = ['AMO','SXR','XPP','XCS','CXI','MEC']
