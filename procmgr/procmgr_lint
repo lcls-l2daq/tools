@@ -22,14 +22,15 @@ import sys
 import os
 import optparse
 import traceback
+from re import search
 
 usage = "usage: %prog configfile [OPTION]..."
 
 required_keys = ['id', 'cmd']
-optional_keys = ['host', 'flags', 'port', 'rtprio', 'env']
+optional_keys = ['host', 'flags', 'port', 'rtprio', 'env', 'evr']
 known_keys = required_keys + optional_keys
 
-valid_flags = ['X', 'x', 's', 'k', 'u']
+valid_flags = ['X', 'x', 's', 'k', 'u', 'p']
 
 #
 # report_error -
@@ -57,6 +58,12 @@ def entry_lint(dict):
         rv = value
         if ':' in value:
           report_error('procmgr_config entry includes invalid id \'%s\' (includes \':\')' % str(value))
+        if '|' in value:
+          report_error('procmgr_config entry includes invalid id \'%s\' (includes \'|\')' % str(value))
+        if len(value) == 0:
+          report_error('procmgr_config entry includes invalid id (0 chars)')
+        if len(value) > 30:
+          report_error('procmgr_config entry includes invalid id \'%s\' (over 30 chars)' % str(value))
       if type(value) != type(''):
         report_error('procmgr_config entry includes invalid value \'%s\' (not a string)' % str(value))
       elif key == 'flags':
@@ -64,6 +71,9 @@ def entry_lint(dict):
           if not buf in valid_flags:
             report_error('procmgr_config entry includes invalid flag \'%s\' (not in %s)' %
                          (buf, repr(valid_flags)))
+      elif key == 'evr':
+        if not search('^(\d)\,(\d)$', value):
+          report_error("procmgr_config entry includes invalid evr \'%s\' (does not match '<digit>,<digit>')" % str(value))
   return rv
 
 valid_instruments = ['AMO','SXR','XPP','XCS','CXI','MEC']
@@ -92,11 +102,11 @@ if os.path.isfile(configfile) != 1:
 #  - procmgr_config = None
 #  - procmgr_macro = empty dictionary
 #  - instrument = None
-#  - id, cmd, flags, port, host, rtprio, env = keyword strings
+#  - id, cmd, flags, port, host, rtprio, env, evr = keyword strings
 #
 config = {'platform': options.platform, 'procmgr_config': None, 'instrument': None,
           'id':'id', 'cmd':'cmd', 'flags':'flags', 'port':'port', 'host':'host',
-          'rtprio':'rtprio', 'env':'env', 'procmgr_macro': dict()}
+          'rtprio':'rtprio', 'env':'env', 'evr':'evr', 'procmgr_macro': dict()}
 
 try:
   execfile(configfile, {}, config)
