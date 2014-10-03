@@ -22,7 +22,7 @@ import sys
 import os
 import optparse
 import traceback
-from re import match
+from re import match, search
 
 usage = "usage: %prog configfile [OPTION]..."
 
@@ -32,10 +32,14 @@ known_keys = required_keys + optional_keys
 
 valid_flags = ['X', 'x', 's', 'k', 'u', 'p']
 
+errorCount = 0
+
 #
 # report_error -
 #
 def report_error(msg):
+  global errorCount
+  errorCount += 1
   print >> sys.stderr, 'Error:', msg
   return
 
@@ -60,6 +64,10 @@ def entry_lint(dict):
           report_error('procmgr_config entry includes invalid id \'%s\' (includes \':\')' % str(value))
         if '|' in value:
           report_error('procmgr_config entry includes invalid id \'%s\' (includes \'|\')' % str(value))
+        if '\\' in value:
+          report_error('procmgr_config entry includes invalid id \'%s\' (includes \'\\\')' % str(value))
+        if '/' in value:
+          report_error('procmgr_config entry includes invalid id \'%s\' (includes \'/\')' % str(value))
         if len(value) == 0:
           report_error('procmgr_config entry includes invalid id (0 chars)')
         if len(value) > 30:
@@ -74,6 +82,11 @@ def entry_lint(dict):
       elif key == 'evr':
         if not match('^(\d)\,(\d)(\d)?$', value):
           report_error("procmgr_config entry includes invalid evr \'%s\' (does not match '<digit>,<digit>[<digit>]')" % str(value))
+      elif key == 'cmd':
+        if search('/usr/bin/chrt', value):
+          report_error("procmgr_config entry includes invalid cmd \'%s\' (use rtprio keyword instead of /usr/bin/chrt)" % str(value))
+        if search('/bin/env', value):
+          report_error("procmgr_config entry includes invalid cmd \'%s\' (use env keyword instead of /bin/env)" % str(value))
   return rv
 
 valid_instruments = ['AMO','SXR','XPP','XCS','CXI','MEC']
@@ -158,3 +171,5 @@ if options.verbose and config['procmgr_config']:
   print '-- procmgr_config -----------------------------------'
   print config['procmgr_config']
   print '-----------------------------------------------------'
+
+sys.exit(errorCount > 0)
