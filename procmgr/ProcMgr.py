@@ -772,15 +772,15 @@ class ProcMgr:
             # when reading banner fails, set the ID so the error output includes name instead of '-'
             self.getid = self.uniqueid
             return 0
-        if search('SHUT DOWN', response):
+        if re.search('SHUT DOWN', response):
             self.tmpstatus = self.STATUS_SHUTDOWN
-            self.ppid = search('@@@ procServ server PID: ([0-9]*)', response).group(1)
-            self.getid = search('@@@ Child \"(.*)\" start', response).group(1)
+            self.ppid = re.search('@@@ procServ server PID: ([0-9]*)', response).group(1)
+            self.getid = re.search('@@@ Child \"(.*)\" start', response).group(1)
         else:
             self.tmpstatus = self.STATUS_RUNNING
-            self.pid = search('@@@ Child \"(.*)\" PID: ([0-9]*)', response).group(2)
-            self.getid = search('@@@ Child \"(.*)\" PID: ([0-9]*)', response).group(1)
-            self.ppid = search('@@@ procServ server PID: ([0-9]*)', response).group(1)
+            self.pid = re.search('@@@ Child \"(.*)\" PID: ([0-9]*)', response).group(2)
+            self.getid = re.search('@@@ Child \"(.*)\" PID: ([0-9]*)', response).group(1)
+            self.ppid = re.search('@@@ procServ server PID: ([0-9]*)', response).group(1)
         return 1
 
     #
