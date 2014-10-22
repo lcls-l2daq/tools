@@ -16,3 +16,12 @@ rsync -rlpogtSP --exclude={Makefile,CVS,\*.cc,\*.mk} timetool/service ${DAQREL}/
 #  Copy tools
 rsync -rlpogtSP --exclude={CVS} tools ${DAQREL}/.
 
+# Create soft link in DAQREL directory
+cd /reg/g/pcds/dist/pds
+if ( -e /reg/g/pcds/dist/pds/current ) then
+    rm -f /reg/g/pcds/dist/pds/current
+endif
+ln -s ./$1 current
+cd -
+
+
