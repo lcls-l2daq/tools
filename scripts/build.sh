@@ -24,6 +24,5 @@ make ${x86_64_arch}-dbg
 make_link build/pds/lib ${x86_64_arch}
 make_link build/pdsdata/lib ${x86_64_arch}
 make_link build/pdsapp/lib ${x86_64_arch}
-make_link build/ami/lib ${x86_64_arch}
 make_link build/pdsapp/bin ${x86_64_arch}
 
