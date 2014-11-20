@@ -68,10 +68,5 @@ fi
 set -e
 
 /usr/bin/svn co $rev $url/release/$flavor  $release_dir
-/usr/bin/svn co $rev $url/pds/$flavor      $release_dir/pds
-/usr/bin/svn co $rev $url/pdsapp/$flavor   $release_dir/pdsapp
-/usr/bin/svn co $rev $url/ami/$flavor      $release_dir/ami
-/usr/bin/svn co $rev $url/timetool/$flavor $release_dir/timetool
-/usr/bin/svn co $rev $url/tools/$flavor    $release_dir/tools
 
 exit 0
