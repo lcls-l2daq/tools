@@ -31,7 +31,7 @@ if __name__ == "__main__":
                       help="epix parameter to scan", metavar="PARAMETER")
     parser.add_option("-A","--dbalias",dest="dbalias",type="string",
                       help="data base key in use",metavar="DBALIAS")
-    parser.add_option("-s","--start",dest="start",type="int", default=200,
+    parser.add_option("-s","--start",dest="start",type="float", default=200,
                       help="parameter start", metavar="START")
     parser.add_option("-f","--finish",dest="finish",type="int",nargs=1,default=2000,
                       help="parameter finish", metavar="FINISH")
@@ -56,7 +56,7 @@ if __name__ == "__main__":
     print 'platform', options.platform
     print 'dbalias',options.dbalias
     print 'parameter', options.parameter
-    print 'start', options.start, hex(options.start)
+    print 'start', options.start, options.start
     print 'steps', options.steps
     print 'finish', options.finish
 #    print 'multiplier', options.multiplier
@@ -72,11 +72,12 @@ if __name__ == "__main__":
     else : print 'Warning, range will be covered in', options.limit, \
          'but will still do', options.steps, 'steps with wrapping'
 
-    if (options.multiplier < 0) :    
-        options.multiplier = math.exp( (math.log( float(options.finish)/options.start )) / options.limit  )
-
     if options.linear == "no" :
-        print 'multiplier in use is', options.multiplier, 'and will scan from', options.start, 'to', options.finish
+      if (options.start == 0) :
+        options.start = 0.49
+      if (options.multiplier < 0) :
+        options.multiplier = math.exp( (math.log( float(options.finish)/options.start )) / options.limit  )
+      print 'multiplier in use is', options.multiplier, 'and will scan from', options.start, 'to', options.finish
     else :
         print 'will do linear scanning from', options.start, 'to', options.finish
 
@@ -171,26 +172,26 @@ if __name__ == "__main__":
 #        print '        ', member, ':',   epix['asics'][0][member]
     else :
         print 'Composing the sequence of configurations ...'
-        value = float(options.start)
+        value = options.start
         cycleLength = 1
         shutterActive = options.shutter != 'None'
         if shutterActive :
             cycleLength = 2
-        index = 0.0
         denom = float(options.limit)
         for cycle in range(options.limit*cycleLength+1):
-#            if parameterType == 'asic' :
-#                epix['asic'][0][options.parameter]=int(round(value))
-            if parameterType == 'fpga' :
-                epix[options.parameter]=int(round(value))
-            xtc.set(epix,cycle)
-            if cycle % cycleLength or not shutterActive :
-                if options.linear == "no" :
-                    value = value * options.multiplier
-                else :
-                    index = index + 1.0
-                    print index, denom, float(options.start) + (index/denom)*(options.finish-options.start)
-                    value = float(options.start) + (index/denom)*(options.finish-options.start)
+          index = float(cycle)
+#          if parameterType == 'asic' :
+#              epix['asic'][0][options.parameter]=int(round(value))
+          if parameterType == 'fpga' :
+              epix[options.parameter]=int(round(value))
+          xtc.set(epix,cycle)
+          if cycle % cycleLength or not shutterActive :
+            if options.linear == "no" :
+              print cycle, int(round(value))
+              value = value * options.multiplier
+            else :
+              print cycle, int(round(options.start + (index/denom)*(options.finish-options.start)))
+              value = options.start + (index/denom)*(options.finish-options.start)
         cdb.substitute(newkey,xtc)
         cdb.unlock()
         print '    done'
@@ -206,7 +207,7 @@ if __name__ == "__main__":
 #
         daq.configure(key=newkey,
                       events=options.events,
-                      controls=[(options.parameter,float(options.start))])
+                      controls=[(options.parameter,int(round(options.start)))])
         print "Configured."
 
 # set up shutter
@@ -219,34 +220,34 @@ if __name__ == "__main__":
 #    Setting up monitoring displays for example
 #  
         ready = raw_input('--Hit Enter when Ready-->')
-        index = 0.0
 
         for cycle in range(options.steps+1):
-            if cycle%(options.limit+1) == 0 : 
-                value = options.start
-                index = 0.0
-            if shutterActive :
-                ser.write(chr(129)) ## close shutter
-                print "Cycle", cycle, " closed -", options.parameter, "=", int(round(value))
-            else :
-                print "Cycle", cycle, "-", options.parameter, "=", int(round(value))
-            daq.begin(controls=[(options.parameter,float(value))])
-            # wait for enabled , then enable the EVR sequence
+          index = float(cycle)
+          if cycle%(options.limit+1) == 0 : 
+            value = options.start
+            index = 0.0
+          if shutterActive :
+            ser.write(chr(129)) ## close shutter
+            print "Cycle", cycle, " closed -", options.parameter, "=", int(round(value))
+          else :
+            print "Cycle", cycle, "-", options.parameter, "=", int(round(value))
+          daq.begin(controls=[(options.parameter,float(value))])
+          # wait for enabled , then enable the EVR sequence
 
-            # wait for disabled, then disable the EVR sequence
-            daq.end() 
-            if shutterActive :
-                print "        opened -", options.parameter, "=", int(round(value))
-                ser.write(chr(128)) ## open shutter
-                daq.begin(controls=[(options.parameter,int(round(value)))])
-                daq.end()
-                ser.write(chr(129)) ## close shutter
+          # wait for disabled, then disable the EVR sequence
+          daq.end() 
+          if shutterActive :
+            print "        opened -", options.parameter, "=", int(round(value))
+            ser.write(chr(128)) ## open shutter
+            daq.begin(controls=[(options.parameter,int(round(value)))])
+            daq.end()
+            ser.write(chr(129)) ## close shutter
         
-            if options.linear == "no" :
-                value = value * options.multiplier
-            else :
-                index = index + 1.0
-                value = float(options.start) + (index/denom)*(options.finish-options.start)
+          if options.linear == "no" :
+            value = value * options.multiplier
+          else :
+            index = index + 1.0
+            value = options.start + (index/denom)*(options.finish-options.start)
         
 #
 #  Wait for the user to declare 'done'
