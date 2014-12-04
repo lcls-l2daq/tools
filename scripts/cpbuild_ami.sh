@@ -21,5 +21,6 @@ cd /reg/g/pcds/dist/pds
 if ( -e /reg/g/pcds/dist/pds/ami-current ) then
     rm -f /reg/g/pcds/dist/pds/ami-current
 endif
-ln -s ./$1 ami-current
+ln -sf ./ami-$1 ami-current
+chmod g+w ami-current
 cd -
