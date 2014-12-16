@@ -663,6 +663,9 @@ class ProcMgr:
               # telnet succeeded: gather status from procServ banner
               try: 
                 ok = self.readLogPortBanner()
+              except EOFError:
+                print 'EOFError in readLogPortBanner' 
+                ok = False
               except:
                 ok = False
               if not ok:
@@ -768,6 +771,7 @@ class ProcMgr:
     def readLogPortBanner(self):
         response = self.telnet.read_until(self.MSG_BANNER_END, 1)
         if not string.count(response, self.MSG_BANNER_END):
+            print 'readLogPortBanner: banner not found in response: '+response
             self.tmpstatus = self.STATUS_ERROR
             # when reading banner fails, set the ID so the error output includes name instead of '-'
             self.getid = self.uniqueid
