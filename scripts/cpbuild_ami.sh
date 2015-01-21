@@ -12,7 +12,7 @@ mkdir -p ${AMIREL}/ami
 rsync -rlpogtSP --exclude={dep,obj,pds,pdsapp} build ${AMIREL}/.
 
 #  Copy the header files
-rsync -rlpogtSP --exclude={Makefile,CVS,\*.cc,\*.mk} ami/data ${AMIREL}/ami/.
+rsync -rlpogtSP --exclude={Makefile,.svn,\*.cc,\*.mk} ami/data ${AMIREL}/ami/.
 mkdir -p ${AMIREL}/ami/event
 rsync -rlpogtSP ami/event/CspadTemp.hh ${AMIREL}/ami/event/.
 

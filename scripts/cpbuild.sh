@@ -11,7 +11,7 @@ rsync -rlpogtSP --exclude={dep,obj} build ${DAQREL}/.
 
 #  Copy the header files
 mkdir -p ${DAQREL}/build/timetool/service
-rsync -rlpogtSP --exclude={Makefile,CVS,\*.cc,\*.mk} timetool/service ${DAQREL}/build/timetool/.
+rsync -rlpogtSP --exclude={Makefile,.svn,\*.cc,\*.mk} timetool/service ${DAQREL}/build/timetool/.
 
 #  Copy tools
 rsync -rlpogtSP --exclude={CVS} tools ${DAQREL}/.
