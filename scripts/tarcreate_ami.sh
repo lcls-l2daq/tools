@@ -4,8 +4,8 @@
 set -u
 set -e
 
-if  [ $# -ne 1 ]
-then
+# require one parameter and no flags
+if [[ $# -ne 1 || ${1:0:1} == '-' ]]; then
   echo "Usage: $0 <outfile>"
   exit 1
 fi
