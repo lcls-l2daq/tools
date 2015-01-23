@@ -157,19 +157,20 @@ if __name__ == "__main__":
         if options.parameter == member:
             print 'Found the', options.parameter, 'fpga parameter'
             parameterType = 'fpga'
- #   for member in epix['asics'][0] :
- #       if member == options.parameter :
- #           print 'Found the', options.parameter, 'asic parameter'
- #           parameterType = 'asic'
+    for member in epix['asics'][0] :
+        if member == options.parameter :
+            print 'Found the', options.parameter, 'asic parameter'
+            parameterType = 'asic'
     if parameterType == 'None' :
         print 'Parameter', options.parameter, 'not found!'
         print '    Allowed fpga parameters : current values'
         for member in epix :
-            if member!='asics' and not member.endswith('Array') and not member.endswith('Version') and not 'CardId' in member and not 'NumberOf' in member and not 'LastRow' in member : 
+            if member!='asics' and not member.endswith('Array') and not member.endswith('Version') and not 'CardId' in member and not 'NumberOf' in member and not 'LastRow' in member and not 'Environment' in member and not 'BaseClock' in member :
                 print '        ', member, ':', epix[member]
-#        print '    Allowed asic parameters : current values'
-#        for member in epix['asics'][0] :
-#        print '        ', member, ':',   epix['asics'][0][member]
+        print '    Allowed asic parameters : current values'
+        for member in epix['asics'][0] :
+						if member!='chipID' and not member.endswith('StartAddr') and not member.endswith('StopAddr') :
+								print '        ', member, ':',   epix['asics'][0][member]
     else :
         print 'Composing the sequence of configurations ...'
         value = options.start
@@ -178,20 +179,23 @@ if __name__ == "__main__":
         if shutterActive :
             cycleLength = 2
         denom = float(options.limit)
-        for cycle in range(options.limit*cycleLength+1):
-          index = float(cycle)
-#          if parameterType == 'asic' :
-#              epix['asic'][0][options.parameter]=int(round(value))
-          if parameterType == 'fpga' :
-              epix[options.parameter]=int(round(value))
-          xtc.set(epix,cycle)
-          if cycle % cycleLength or not shutterActive :
-            if options.linear == "no" :
-              print cycle, int(round(value))
-              value = value * options.multiplier
-            else :
-              print cycle, int(round(options.start + (index/denom)*(options.finish-options.start)))
-              value = options.start + (index/denom)*(options.finish-options.start)
+        mask = epix['AsicMask']
+        for cycle in range(options.limit*cycleLength+1) :
+            index = float(cycle)
+            if parameterType == 'asic' :
+                for asicNum in range(4) :
+                    if mask & (1 << asicNum) :
+                        epix['asics'][asicNum][options.parameter]=int(round(value))
+            if parameterType == 'fpga' :
+                epix[options.parameter]=int(round(value))
+            xtc.set(epix,cycle)
+            if cycle % cycleLength or not shutterActive :
+                if options.linear == "no" :
+                    print cycle, int(round(value))
+                    value = value * options.multiplier
+                else :
+                    print cycle, int(round(options.start + (index/denom)*(options.finish-options.start)))
+                    value = options.start + (index/denom)*(options.finish-options.start)
         cdb.substitute(newkey,xtc)
         cdb.unlock()
         print '    done'
