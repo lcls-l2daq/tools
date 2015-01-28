@@ -8,11 +8,14 @@ tag=None
 DAQURL='https://pswww.slac.stanford.edu/svn/pdsrepo'
 
 def make_tag(pkg):
-
-    if (os.path.isdir(pkg)):
 	path=DAQURL+'/'+pkg
 	cmd = ['svn','copy',path+'/trunk',path+'/tags/'+tag,'-m','\"Tag '+tag+'\"']
 	subprocess.call(cmd)
+
+def make_tagd(pkg):
+
+    if (os.path.isdir(pkg)):
+        make_tag(pkg)
 
 if __name__ == '__main__':
 
@@ -23,13 +26,14 @@ if __name__ == '__main__':
 
     else:
 	tag=sys.argv[1]
-	path=DAQURL+'/release'
-	cmd = ['svn','copy',path+'/trunk',path+'/tags/'+tag,'-m','\"Tag '+tag+'\"']
-	subprocess.call(cmd)
-	
-	make_tag('pds')
-	make_tag('pdsapp')
-	make_tag('timetool')
-	make_tag('tools')
-	make_tag('ami')
+        if tag.find('ami')<0:
+            make_tag('release')
+            make_tagd('pds')
+            make_tagd('pdsapp')
+            make_tagd('timetool')
+            make_tagd('tools')
+        else:
+            make_tag('ami-release')
+            make_tagd('ami')
+            make_tagd('tools')
 
