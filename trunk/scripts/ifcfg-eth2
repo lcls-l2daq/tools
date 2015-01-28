@@ -1,0 +1,4 @@
+# FEZ 10 Gigabit Ethernet Interface
+DEVICE=eth2
+HWADDR=00:60:DD:45:67:10 <== put the correct HWaddr for the fez port here 
+BOOTPROTO=none
