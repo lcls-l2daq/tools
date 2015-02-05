@@ -8,7 +8,7 @@ from tempfile import NamedTemporaryFile, mkdtemp
 from shutil import rmtree
 from optparse import OptionParser
 
-usage = "Usage: %prog [options] tag"
+usage = "%prog [options] tag"
 parser = OptionParser(usage=usage)
 
 parser.add_option("-f", "--force",
