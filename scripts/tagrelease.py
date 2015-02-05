@@ -11,6 +11,9 @@ from optparse import OptionParser
 usage = "%prog [options] tag"
 parser = OptionParser(usage=usage)
 
+parser.add_option("-n", "--dry-run",
+                  action="store_true", dest="dry_run", default=False,
+                  help="do not modify repository")
 parser.add_option("-f", "--force",
                   action="store_true", dest="force", default=False,
                   help="skip sanity checks (use with caution!)")
@@ -128,8 +131,12 @@ if __name__ == '__main__':
                 print 'sanity check failed: working directory does not include \'%s\' subdirectory' % dir
                 fail = True
         if fail: 
-            print 'tag \'%s\' not applied due to sanity check failure' % tag
+            print 'tag \'%s\' not applied (sanity check failure)' % tag
             sys.exit(1)
+
+    if options.dry_run:
+        print 'tag \'%s\' not applied (dry run)' % tag
+        sys.exit(0)
 
     retval = 1
     tmpdir = mkdtemp()      # create temporary directory
