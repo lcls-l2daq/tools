@@ -20,8 +20,8 @@ fi
 /bin/cp -pv timetool/service/*.hh build/timetool/service
 
 # set file and dir permissions
-/usr/bin/find build -type f -o -type d -exec /bin/chmod 755 {} \;
-/usr/bin/find tools -type f -o -type d -exec /bin/chmod 755 {} \;
+/usr/bin/find build \( -type f -o -type d \) -exec /bin/chmod 755 {} \;
+/usr/bin/find tools \( -type f -o -type d \) -exec /bin/chmod 755 {} \;
 
 # create the tar file
 /bin/tar czvf $1 --exclude=.svn --exclude=dep --exclude=obj --exclude=.buildbot-sourcedata build tools
