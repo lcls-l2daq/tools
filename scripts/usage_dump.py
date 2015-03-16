@@ -135,7 +135,7 @@ def get_all_executables(pds, ami, pdsdata=None):
      if os.stat(path):  execlist += [(path+file) for file in os.listdir(path)]
 
   for package in AMI_PACKAGES:
-     path = OFFLINE_PATH + ami + "/build/" + package + "/bin/i386-linux-opt/"
+     path = OFFLINE_PATH + ami + "/build/" + package + "/bin/x86_64-linux-opt/"
      if os.stat(path):  execlist += [(path+file) for file in os.listdir(path)]
 
   for package in COM_PACKAGES:
