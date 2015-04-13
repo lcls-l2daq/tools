@@ -216,7 +216,7 @@ if __name__ == "__main__":
 #
         daq.configure(key=newkey,
                       events=options.events,
-                      controls=[(options.parameter,int(round(options.start)))])
+                      controls=[(options.parameter[0:29],int(round(options.start)))])
         print "Configured."
 
 # set up shutter
@@ -238,14 +238,14 @@ if __name__ == "__main__":
             print "Cycle", cycle, " closed -", options.parameter, "=", values[subcycle]
           else :
             print "Cycle", cycle, "-", options.parameter, "=", values[subcycle]
-          daq.begin(controls=[(options.parameter,values[subcycle])])
+          daq.begin(controls=[(options.parameter[0:29],values[subcycle])])
           # wait for enabled , then enable the EVR sequence
           # wait for disabled, then disable the EVR sequence
           daq.end() 
           if shutterActive :
             print "        opened -", options.parameter, "=", values[subcycle]
             ser.write(chr(128)) ## open shutter
-            daq.begin(controls=[(options.parameter,values[subcycle])])
+            daq.begin(controls=[(options.parameter[0:29],values[subcycle])])
             daq.end()
             ser.write(chr(129)) ## close shutter
           subcycle += 1;
