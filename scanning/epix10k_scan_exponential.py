@@ -47,6 +47,9 @@ if __name__ == "__main__":
                       help="limit number of configs to less than number of steps", metavar="LIMIT")
     parser.add_option("-S","--shutter",dest="shutter",default="None",
                       help="path to shutter serial port", metavar="SHUTTER")
+    parser.add_option("-u","--use_l3t",dest="use_l3t",action="store_true",default=False,
+                      help="Use L3Trigger to filter events",metavar="L3T")
+
     (options, args) = parser.parse_args()
     
     options.device = 'Epix10k'
@@ -67,6 +70,7 @@ if __name__ == "__main__":
     print 'deviceID', options.deviceID
 #    print 'linear', options.linear
     print 'shutter', options.shutter
+    print 'use_l3t', options.use_l3t
 
     if options.steps < options.limit : options.limit = options.steps
     else : print 'Warning, range will be covered in', options.limit, \
@@ -214,9 +218,17 @@ if __name__ == "__main__":
 #  Send the structure the first time to put the control variables
 #    in the file header
 #
-        daq.configure(key=newkey,
-                      events=options.events,
-                      controls=[(options.parameter,int(round(options.start)))])
+
+        if options.use_l3t:
+            print "Acquiring %s events passing L3Trigger"%(options.events)
+            daq.configure(key=newkey,
+                          l3t_events=options.events,
+                          controls=[(options.parameter[0:29],int(round(options.start)))])
+        else:
+            daq.configure(key=newkey,
+                          events=options.events,
+                          controls=[(options.parameter[0:29],int(round(options.start)))])
+
         print "Configured."
 
 # set up shutter
@@ -238,14 +250,20 @@ if __name__ == "__main__":
             print "Cycle", cycle, " closed -", options.parameter, "=", values[subcycle]
           else :
             print "Cycle", cycle, "-", options.parameter, "=", values[subcycle]
-          daq.begin(controls=[(options.parameter,values[subcycle])])
+          if options.use_l3t:
+              daq.begin(l3t_events=options.events,controls=[(options.parameter[0:29],values[subcycle])])
+          else:
+              daq.begin(controls=[(options.parameter[0:29],values[subcycle])])
           # wait for enabled , then enable the EVR sequence
           # wait for disabled, then disable the EVR sequence
           daq.end() 
           if shutterActive :
             print "        opened -", options.parameter, "=", values[subcycle]
             ser.write(chr(128)) ## open shutter
-            daq.begin(controls=[(options.parameter,values[subcycle])])
+            if options.use_l3t:
+                daq.begin(l3t_events=options.events,controls=[(options.parameter[0:29],values[subcycle])])
+            else:
+                daq.begin(controls=[(options.parameter[0:29],values[subcycle])])
             daq.end()
             ser.write(chr(129)) ## close shutter
           subcycle += 1;
