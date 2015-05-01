@@ -64,8 +64,8 @@ if __name__ == "__main__":
 
         do_record = False
         partition = daq.partition()
-        for node in partition:
-            node['record']=False
+#        for node in partition:
+#            node['record']=False
         print '===Partition==='
         print partition
     
