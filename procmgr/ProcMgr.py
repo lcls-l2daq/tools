@@ -1048,6 +1048,7 @@ class ProcMgr:
                     try:
                       outfile = open(logfile, 'w')
                       outfile.write("# ID:      %s\n" % key2uniqueid(key))
+                      outfile.write("# PLATFORM:%s\n" % self.PLATFORM)
                       outfile.write("# HOST:    %s\n" % loghost)
                       outfile.write("# CMDLINE: %s\n" % value[self.DICT_CMD])
                       outfile.close()
