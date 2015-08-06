@@ -1015,7 +1015,6 @@ class ProcMgr:
                     #
                     #  <logpath>/2009/08/21_10:35_atca01:opal1k.log
                     #
-#                   logpath = '%s/%s' % (logpathbase, time.strftime('%Y/%m'))
                     logpath = '%s/%s' % (logpathbase, time.strftime('%Y/%m'))
                     try:
                       mkdir_p(logpath)
@@ -1032,7 +1031,7 @@ class ProcMgr:
                       logfile = '%s/%s_%s.log' % (logpath, time_string, logkey)
                       if verbose:
                           print 'log file: <%s>' % logfile
-                      redirect_string = '>& \"%s\"' % logfile
+                      redirect_string = '>> \"%s\" 2>&1' % logfile
 
                     pbits = (stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
                     if (os.stat(logpath).st_mode & pbits) != pbits:
@@ -1045,6 +1044,15 @@ class ProcMgr:
                 # encode logfile path as part of procServ name
                 if (len(redirect_string) > 1):
                   name = logfile
+                  if not os.path.exists(logfile):
+                    try:
+                      outfile = open(logfile, 'w')
+                      outfile.write("# ID:      %s\n" % key2uniqueid(key))
+                      outfile.write("# HOST:    %s\n" % loghost)
+                      outfile.write("# CMDLINE: %s\n" % value[self.DICT_CMD])
+                      outfile.close()
+                    except:
+                      print "ERR: writing log file '%s' failed" % logfile
                 else:
                   name = key2uniqueid(key)
 
