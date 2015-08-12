@@ -1025,17 +1025,25 @@ class ProcMgr:
                     else:
                       time_string = time.strftime('%d_%H:%M:%S')
                       loghost = key2host(key)
+                      localFlag = False
                       if loghost == 'localhost':
+                          localFlag = True
                           loghost = self.procmgr_macro.get('HOST', 'localhost')
                       logkey = loghost+':'+key2uniqueid(key)
                       logfile = '%s/%s_%s.log' % (logpath, time_string, logkey)
                       if verbose:
                           print 'log file: <%s>' % logfile
-                      redirect_string = '>> \"%s\" 2>&1' % logfile
+                      if localFlag:
+                          # local: bash shell
+                          redirect_string = '>> \"%s\" 2>&1' % logfile
+                      else:
+                          # remote: tcsh shell
+                          redirect_string = '>>& \"%s\"' % logfile
 
                     pbits = (stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
                     if (os.stat(logpath).st_mode & pbits) != pbits:
                       try:
+                        # make log path readable/writable/searchable by all
                         os.chmod(logpath, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
                       except:
                         print 'ERR: chmod %s failed' % logpath
@@ -1054,6 +1062,14 @@ class ProcMgr:
                       outfile.close()
                     except:
                       print "ERR: writing log file '%s' failed" % logfile
+                    else:
+                      pbits = (stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IWGRP | stat.S_IROTH | stat.S_IWOTH)
+                      if (os.stat(logfile).st_mode & pbits) != pbits:
+                        try:
+                          # make log file readable/writable by all
+                          os.chmod(logfile, pbits)
+                        except:
+                          print 'ERR: chmod %s failed' % logfile
                 else:
                   name = key2uniqueid(key)
 
