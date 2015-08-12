@@ -1239,7 +1239,7 @@ class ProcMgr:
                 # no 's' flag: skip sending ^C
                 continue
             if verbose:
-                progressMessage('sending ^C to %r (%s port %s)' % (key, host, stopdict[key][self.DICT_CTRL]))
+                progressMessage('sending ^C to %r (%s port %s)' % (key, key2host(key), stopdict[key][self.DICT_CTRL]))
             try:
                 # 0x03 = ^C
                 telnetdict[key].write("\x03");
@@ -1271,7 +1271,7 @@ class ProcMgr:
             if (self.d[key][self.DICT_STATUS] != self.STATUS_RUNNING):
                 continue    # skip
             if verbose:
-                progressMessage('sending ^X to %r (%s port %s)' % (key, host, stopdict[key][self.DICT_CTRL]))
+                progressMessage('sending ^X to %r (%s port %s)' % (key, key2host(key), stopdict[key][self.DICT_CTRL]))
             try:
                 # 0x18 = ^X
                 telnetdict[key].write("\x18");
@@ -1298,7 +1298,7 @@ class ProcMgr:
         # send ^Q to all connections
         for key, connection in telnetdict.iteritems():
             if verbose:
-                progressMessage('sending ^Q to %r (%s port %s)' % (key, host, stopdict[key][self.DICT_CTRL]))
+                progressMessage('sending ^Q to %r (%s port %s)' % (key, key2host(key), stopdict[key][self.DICT_CTRL]))
             try:
                 # 0x11 = ^Q
                 telnetdict[key].write("\x11");
