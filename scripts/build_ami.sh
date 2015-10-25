@@ -21,6 +21,8 @@ make x86_64-linux-opt
 make x86_64-linux-dbg
 make x86_64-rhel6-opt
 make x86_64-rhel6-dbg
+make x86_64-rhel7-opt
+make x86_64-rhel7-dbg
 
 make_link build/ami/lib
 
