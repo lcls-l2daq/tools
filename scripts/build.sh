@@ -16,6 +16,8 @@ if [[ `uname -r` == *el5* ]]; then
   x86_64_arch='x86_64-linux'
 elif [[ `uname -r` == *el6* ]]; then
   x86_64_arch='x86_64-rhel6'
+elif [[ `uname -r` == *el7* ]]; then
+  x86_64_arch='x86_64-rhel7'
 fi
 
 make ${x86_64_arch}-opt
