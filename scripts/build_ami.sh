@@ -13,6 +13,11 @@ function make_link()
       ln -s x86_64-rhel6-opt $1/x86_64-rhel6
     fi
   fi
+  if [ -e $1/x86_64-rhel7-opt ]; then
+    if [ ! -e $1/x86_64-rhel7 ]; then
+      ln -s x86_64-rhel7-opt $1/x86_64-rhel7
+    fi
+  fi
 }
 
 make i386-linux-opt
