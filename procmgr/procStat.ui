@@ -120,6 +120,19 @@
             </property>
            </widget>
           </item>
+          <item>
+           <widget class="QPushButton" name="pushButtonRestart">
+            <property name="toolTip">
+             <string>Select this button, and click on remote processes to restart</string>
+            </property>
+            <property name="text">
+             <string>Restart</string>
+            </property>
+            <property name="checkable">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
          </layout>
         </widget>
        </item>

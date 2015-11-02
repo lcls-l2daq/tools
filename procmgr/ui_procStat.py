@@ -2,7 +2,7 @@
 
 # Form implementation generated from reading ui file 'procStat.ui'
 #
-# Created: Thu May 23 17:27:04 2013
+# Created: Fri Oct 30 15:15:46 2015
 #      by: PyQt4 UI code generator 4.7.4
 #
 # WARNING! All changes made in this file will be lost!
@@ -62,6 +62,10 @@ class Ui_mainWindow(object):
         self.pushButtonLogfile.setCheckable(True)
         self.pushButtonLogfile.setObjectName("pushButtonLogfile")
         self.horizontalLayout.addWidget(self.pushButtonLogfile)
+        self.pushButtonRestart = QtGui.QPushButton(self.horizontalFrame)
+        self.pushButtonRestart.setCheckable(True)
+        self.pushButtonRestart.setObjectName("pushButtonRestart")
+        self.horizontalLayout.addWidget(self.pushButtonRestart)
         self.vboxlayout1.addWidget(self.horizontalFrame)
         self.vboxlayout.addWidget(self.groupBoxProcessStatus)
         self.groupBoxOutputFileStatus = QtGui.QGroupBox(self.centralwidget)
@@ -101,5 +105,7 @@ class Ui_mainWindow(object):
         self.pushButtonConsole.setText(QtGui.QApplication.translate("mainWindow", "Open Console", None, QtGui.QApplication.UnicodeUTF8))
         self.pushButtonLogfile.setToolTip(QtGui.QApplication.translate("mainWindow", "Select this button, and click on processes to view logfiles", None, QtGui.QApplication.UnicodeUTF8))
         self.pushButtonLogfile.setText(QtGui.QApplication.translate("mainWindow", "View Logfile", None, QtGui.QApplication.UnicodeUTF8))
+        self.pushButtonRestart.setToolTip(QtGui.QApplication.translate("mainWindow", "Select this button, and click on remote processes to restart", None, QtGui.QApplication.UnicodeUTF8))
+        self.pushButtonRestart.setText(QtGui.QApplication.translate("mainWindow", "Restart", None, QtGui.QApplication.UnicodeUTF8))
         self.groupBoxOutputFileStatus.setTitle(QtGui.QApplication.translate("mainWindow", "Output File Status", None, QtGui.QApplication.UnicodeUTF8))
 

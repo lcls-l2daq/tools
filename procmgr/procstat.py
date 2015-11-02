@@ -13,7 +13,7 @@ from PyQt4.QtGui import *
 from ProcMgr import ProcMgr, deduce_platform, key2host, key2uniqueid
 import ui_procStat
 import subprocess
-
+from string import replace
 
 __version__ = "0.4"
 
@@ -23,6 +23,7 @@ sOutFileExtension = ""
 bProcMgrThreadError = False
 sErrorOutDirNotExist = "Output Dir Not Exist"
 
+localIdList = []
 
 class CustomIOError(Exception):
   pass
@@ -158,6 +159,7 @@ class WinProcStat(QMainWindow, ui_procStat.Ui_mainWindow):
     # setup signal handlers
     self.connect(self.pushButtonConsole , SIGNAL("clicked(bool)"), self.onClickConsole)
     self.connect(self.pushButtonLogfile , SIGNAL("clicked(bool)"), self.onClickLogfile)
+    self.connect(self.pushButtonRestart , SIGNAL("clicked(bool)"), self.onClickRestart)
     self.connect(self.tableProcStat, SIGNAL("cellClicked(int, int)"), self.onProcCellClicked)
 
     self.connect(evgProcMgr, SIGNAL("Updated"),             self.onProcMgrUpdated )
@@ -167,7 +169,7 @@ class WinProcStat(QMainWindow, ui_procStat.Ui_mainWindow):
     self.connect(evgProcMgr, SIGNAL("OutputDirError"),      self.onProcMgrOutputDirError )
     self.connect(evgProcMgr, SIGNAL("UnknownError"),        self.onProcMgrUnknownError )
 
-    self.iShowConsole = 0 # 0: Don't show console, 1: Show console, 2: Show logfile
+    self.iShowConsole = 0 # 0: Don't show console, 1: Show console, 2: Show logfile, 3: Restart
     self.procMgr = None
     return
 
@@ -260,10 +262,18 @@ class WinProcStat(QMainWindow, ui_procStat.Ui_mainWindow):
     return
 
   def onProcCellClicked(self, iRow, iCol):
+    global localIdList
+
     if self.procMgr == None:
       return
     if self.iShowConsole == 0:
       return
+
+    if len(localIdList) == 0:
+      for kee in self.procMgr.d.iterkeys():
+        id = replace(kee, 'localhost:', '')
+        if id != kee:
+          localIdList.append(id)
 
     item = self.tableProcStat.item(iRow, 0)
     showId = item.data(Qt.UserRole).toString()
@@ -271,10 +281,23 @@ class WinProcStat(QMainWindow, ui_procStat.Ui_mainWindow):
       self.procMgr.spawnConsole(showId, False)
     elif self.iShowConsole == 2:
       self.procMgr.spawnLogfile(showId, False)
+    elif self.iShowConsole == 3:
+      if showId in localIdList:
+          self.showWarningWindow("Not Supported",
+                                 "Local processes cannot be individually restarted")
+      else:
+          QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
+          # stop
+          self.procMgr.stop([ showId ], 1)
+          time.sleep(0.5)
+          # start
+          self.procMgr.start([ showId ], 1)
+          QApplication.restoreOverrideCursor()
     return
 
   def onClickConsole(self, bChecked):
     self.pushButtonLogfile.setChecked(False)
+    self.pushButtonRestart.setChecked(False)
     if bChecked:
       self.iShowConsole = 1
     else:
@@ -282,8 +305,17 @@ class WinProcStat(QMainWindow, ui_procStat.Ui_mainWindow):
 
   def onClickLogfile(self, bChecked):
     self.pushButtonConsole.setChecked(False)
+    self.pushButtonRestart.setChecked(False)
     if bChecked:
       self.iShowConsole = 2
+    else:
+      self.iShowConsole = 0
+
+  def onClickRestart(self, bChecked):
+    self.pushButtonConsole.setChecked(False)
+    self.pushButtonLogfile.setChecked(False)
+    if bChecked:
+      self.iShowConsole = 3
     else:
       self.iShowConsole = 0
 
@@ -370,7 +402,7 @@ Program Version %s\
   return
 
 def main():
-  iExperiment = -1
+  iExperiment = 0
   sExpType = "amo"
   iPlatform = -1
   fProcmgrQueryInterval = 5.0
@@ -404,17 +436,13 @@ def main():
 
 
   if not exptTypeDefined:
-    print 'Expt Type Not Defined -- See Help:'
-    showUsage()
-    return 1
+    print 'Expt Type Not Defined -- using default value \''+sExpType+'\''
   if not eventNodesDefined:
     print 'Event Nodes Not Defined -- See Help:'
     showUsage()
     return 1
   if not exptIdDefined:
-    print 'Expt ID Not Defined -- See Help:'
-    showUsage()
-    return 1
+    print 'Expt ID Not Defined -- using default value \'%d\'' % iExperiment
 
 
   if len(lsRemainder) < 1:
