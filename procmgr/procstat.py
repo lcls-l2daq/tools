@@ -10,7 +10,7 @@ import locale
 import traceback
 from PyQt4.QtCore import *
 from PyQt4.QtGui import *
-from ProcMgr import ProcMgr, deduce_platform, key2host, key2uniqueid
+from ProcMgr import ProcMgr, deduce_platform
 import ui_procStat
 import subprocess
 from string import replace
@@ -286,12 +286,25 @@ class WinProcStat(QMainWindow, ui_procStat.Ui_mainWindow):
           self.showWarningWindow("Not Supported",
                                  "Local processes cannot be individually restarted")
       else:
+          # determine logpathbase and coresize
+          logpathbase = None
+          coresize = 0
+          if 'LOGPATH' in self.procMgr.procmgr_macro:
+            logpathbase = self.procMgr.procmgr_macro['LOGPATH']
+          if 'CORESIZE' in self.procMgr.procmgr_macro:
+            coresize = int(self.procMgr.procmgr_macro['CORESIZE'])
+
+          # override cursor
           QApplication.setOverrideCursor(QCursor(Qt.WaitCursor))
-          # stop
-          self.procMgr.stop([ showId ], 1)
+
+          # stop individual process
+          self.procMgr.stop([ showId ], True)
           time.sleep(0.5)
-          # start
-          self.procMgr.start([ showId ], 1)
+
+          # start individual process
+          self.procMgr.start([ showId ], True, logpathbase, coresize)
+
+          # restore cursor
           QApplication.restoreOverrideCursor()
     return
 

@@ -201,6 +201,12 @@ if options.macro_list:
     except:
         parser.error("Malformed macro")
 
+# define LOGPATH and CORESIZE macros
+if options.logpath and options.logpath != '/dev/null':
+    procmgr_macro['LOGPATH'] = options.logpath
+if options.coresize:
+    procmgr_macro['CORESIZE'] = options.coresize
+
 if options.helpFlags:
     print "supported flags in the procmgr configuration file:\n  X or x  open a large or small xterm to monitor process output\n  k       do not stop process with '%s stop,' only with '%s stop UniqueID'\n          (statically assigning the port# in the procmgr configuration file adds the k flag)\n  s       when stopping the process, send SIGINT before SIGTERM\n  p       add '-p <platform>[,<mod>,<chan>]' to command line arguments\n  u       add '-u <uniqueid>' to command line arguments" % (sys.argv[0], sys.argv[0])
     sys.exit(0)
