@@ -906,6 +906,34 @@ class ProcMgr:
         return resultlist
 
     #
+    # checkConnection
+    #
+    def checkConnection(self, key, value, verbose=0):
+        connected = False
+        # open a connection to the procServ control port
+        started = False
+        connected = False
+        telnetCount = 0
+        host = key2host(key)
+        while (not connected) and (telnetCount < 2):
+            telnetCount += 1
+            try:
+                self.telnet.open(host, value[self.DICT_CTRL])
+            except:
+                sleep(.25)
+            else:
+                connected = True
+
+        if connected:
+            # close telnet connection
+            self.telnet.close()
+
+        if verbose:
+            print ' --- checkConnection(key=%s) returning %s ---' % (key, connected)
+
+        return connected
+
+    #
     # restart
     #
     def restart(self, key, value, verbose=0):
@@ -941,8 +969,8 @@ class ProcMgr:
             else:
                 started = True
 
-                # close telnet connection
-                self.telnet.close()
+            # close telnet connection
+            self.telnet.close()
         else:
             print 'ERR: restart() telnet to %s port %s failed' % \
                 (host, value[self.DICT_CTRL])
@@ -990,6 +1018,12 @@ class ProcMgr:
                 # skip this entry
                 if key2uniqueid(key) not in id_list:
                     continue
+
+            if value[self.DICT_STATUS] == self.STATUS_SHUTDOWN:
+                # double check to see if process is actually NOCONNECT
+                if not self.checkConnection(key, value, verbose):
+                    value[self.DICT_STATUS] = self.STATUS_NOCONNECT
+
             if value[self.DICT_STATUS] == self.STATUS_NOCONNECT:
                 starthost = key2host(key)
                 # order matters: X flag takes priority over x flag
