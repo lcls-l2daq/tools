@@ -1070,13 +1070,19 @@ class ProcMgr:
                           redirect_string = '>>& \"%s\"' % logfile
 
                     pbits = (stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
-                    if (os.stat(logpath).st_mode & pbits) != pbits:
-                      try:
-                        # make log path readable/writable/searchable by all
-                        os.chmod(logpath, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
-                      except:
-                        print 'ERR: chmod %s failed' % logpath
+                    try:
+                        statmode = os.stat(logpath).st_mode
+                    except:
+                        print 'ERR: stat %s failed' % logpath
                         redirect_string = ''
+                    else:
+                        if (statmode & pbits) != pbits:
+                          try:
+                            # make log path readable/writable/searchable by all
+                            os.chmod(logpath, stat.S_IRWXU | stat.S_IRWXG | stat.S_IRWXO)
+                          except:
+                            print 'ERR: chmod %s failed' % logpath
+                            redirect_string = ''
 
                 # encode logfile path as part of procServ name
                 if (len(redirect_string) > 1):

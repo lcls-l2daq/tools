@@ -153,6 +153,7 @@ def _parse_macro(macro_list):
     return rv
 
 rv = 1      # return value
+logpath_max = 50
 
 command_list = [ 'start', 'stop', 'restart', 'status' ]
 
@@ -180,7 +181,7 @@ parser.add_option("-t", type="int", dest="sigint_delay", metavar="<secs>",
 homedir = os.path.expanduser('~')
 parser.add_option("-o", type="string", dest="logpath", metavar="<logpath>",
                   default=homedir,
-                  help="output directory (default=%s)" % homedir)
+                  help="output dir (default=%s) (max %d chars)" % (homedir, logpath_max))
 
 parser.add_option('-X', action="append", dest='Xterm_list', default=[], metavar="<substring>",
                   help="start/restart/status: large xterm for UniqueID w/substring")
@@ -200,6 +201,9 @@ if options.macro_list:
         procmgr_macro = _parse_macro(options.macro_list)
     except:
         parser.error("Malformed macro")
+
+if options.logpath and len(options.logpath) > logpath_max:
+    parser.error("logpath exceeds limit of %d chars" % logpath_max)
 
 # define LOGPATH and CORESIZE macros
 if options.logpath and options.logpath != '/dev/null':
