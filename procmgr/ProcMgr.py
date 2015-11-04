@@ -1036,11 +1036,6 @@ class ProcMgr:
                 else:
                     waitflag = ''
 
-                # set pidfile
-                pidfile = '/tmp/darkmatter-${USER}/proc/%s:%s' % (value[self.DICT_CTRL], key2uniqueid(key))
-                if verbose:
-                    print 'pid file: <%s>' % pidfile
-
                 if ('>' in value[self.DICT_CMD]) or (logpathbase == None) or (logpathbase == "/dev/null"):
                     redirect_string = ''
                 else:
@@ -1108,9 +1103,8 @@ class ProcMgr:
                   name = key2uniqueid(key)
 
                 startcmd = \
-                        '/reg/g/pcds/package/procServ-2.5.1/procServ --noautorestart --name %s --pidfile=%s %s --allow --coresize %d %s %s %s' % \
+                        '/reg/g/pcds/package/procServ-2.5.1.a/procServ --noautorestart --name %s %s --allow --coresize %d %s %s %s' % \
                        (name, \
-                        pidfile, \
                         waitflag, \
                         coresize, \
                         value[self.DICT_CTRL], \
