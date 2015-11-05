@@ -744,7 +744,7 @@ class ProcMgr:
         for key in self.d.iterkeys():
             if key2uniqueid(key) == uniqueid:
                 found = True
-                logfile = self.d[key][self.DICT_GETID]
+                logfile = self.procmgr_macro.get('LOGPATH', '.') + '/' + self.d[key][self.DICT_GETID]
                 break
         if not found:
             print 'spawnLogfile: process \'%s\' not found' % uniqueid
@@ -857,8 +857,8 @@ class ProcMgr:
 
             if verbose:
                 if self.d[key][self.DICT_GETID].endswith(".log"):
-                    print "  Logfile:", self.d[key][self.DICT_GETID]
-                
+                    print "  Logfile:", self.procmgr_macro.get('LOGPATH', '.') + \
+                                        '/' + self.d[key][self.DICT_GETID]
         if (nonePrinted == 1):
           print "(none found)"
 
@@ -1086,7 +1086,7 @@ class ProcMgr:
 
                 # encode logfile path as part of procServ name
                 if (len(redirect_string) > 1):
-                  name = logfile
+                  name = logfile.replace(logpathbase+'/', '', 1)
                   if not os.path.exists(logfile):
                     try:
                       outfile = open(logfile, 'w')
