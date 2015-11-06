@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-BUILD32=true
+#
 function make_link()
 {
   if [ -e $1/x86_64-linux-opt ]; then
@@ -19,18 +19,6 @@ function make_link()
     fi
   fi
 }
-
-for i in "$@"
-do
-  if [[ "$i" == "--no32" ]] ; then
-    BUILD32=false
-  fi
-done
-
-if [[ "$BUILD32" == true ]] ; then
-  make i386-linux-opt
-  make i386-linux-dbg
-fi
 
 make x86_64-linux-opt
 make x86_64-linux-dbg
