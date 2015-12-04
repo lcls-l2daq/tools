@@ -4,8 +4,8 @@
 #
 # OVERVIEW
 #
-# This script periodically polls the PDS database and exports the current
-# experiment names (EXPNAME) and numbers (EXPNUM) as read-only EPICS PVs.
+#   This script periodically polls the PDS database and exports the current
+#   experiment names (EXPNAME) and numbers (EXPNUM) as read-only EPICS PVs.
 #
 # USAGE
 #
@@ -24,7 +24,7 @@
 #   Before running this script the following steps are required for EPICS and
 #   Python 2.7 support.
 #
-#   1. Add /reg/g/pcds/package/epics/3.14/base/base-R3-14-11/bin/linux-x86_64 and
+#   1. Add /reg/common/package/epics-base/3.14.12.3/x86_64-rhel5-gcc41-opt/bin and
 #    /reg/common/package/python/2.7.3/x86_64-rhel5-gcc41-opt/bin (or equivalent)
 #    to $PATH.
 #
