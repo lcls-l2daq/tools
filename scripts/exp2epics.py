@@ -25,14 +25,17 @@
 #   Python 2.7 support.
 #
 #   1. Add /reg/common/package/epics-base/3.14.12.3/x86_64-rhel5-gcc41-opt/bin and
-#    /reg/common/package/python/2.7.3/x86_64-rhel5-gcc41-opt/bin (or equivalent)
-#    to $PATH.
+#      /reg/common/package/python/2.7.3/x86_64-rhel5-gcc41-opt/bin (or equivalent)
+#      to $PATH.
 #
 #   2. Add /reg/common/package/epics-base/3.14.12.3/x86_64-rhel5-gcc41-opt/lib and
 #      /reg/common/package/epicsca/3.14.9/lib/x86_64-linux-opt (or equivalent)
 #      to $LD_LIBRARY_PATH.
 #
-#   3. Set EPICS_CAS_INTF_ADDR_LIST to the IP address of the host's CDS interface.
+#   3. Add /reg/common/package/pcaspy/0.4.1b-python2.7/x86_64-rhel5-gcc41-opt/lib/python2.7/site-packages
+#      (or equivalent) to $PYTHONPATH.
+#
+#   4. Set EPICS_CAS_INTF_ADDR_LIST to the IP address of the host's CDS interface.
 #
 # DEMO
 #
