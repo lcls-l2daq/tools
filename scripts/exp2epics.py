@@ -24,8 +24,7 @@
 #   Before running this script the following steps are required for EPICS and
 #   Python 2.7 support.
 #
-#   1. Add /reg/common/package/epics-base/3.14.12.3/x86_64-rhel5-gcc41-opt/bin and
-#      /reg/common/package/python/2.7.3/x86_64-rhel5-gcc41-opt/bin (or equivalent)
+#   1. Add /reg/common/package/python/2.7.3/x86_64-rhel5-gcc41-opt/bin (or equivalent)
 #      to $PATH.
 #
 #   2. Add /reg/common/package/epics-base/3.14.12.3/x86_64-rhel5-gcc41-opt/lib and
