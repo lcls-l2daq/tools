@@ -127,7 +127,7 @@ class myDriver(Driver):
                 self.setParam(str(station)+':RUNNING',       0)
                 self.setParam(str(station)+':RUN_NUMBER',    0)
                 self.setParam(str(station)+':RUN_DURATION',  0)
-                self.setParam(str(station)+':RUN_SIZE',      0)
+                self.setParam(str(station)+':RUN_MBYTES',    0)
                 self.setParam(str(station)+':EVENT_COUNT',   0)
                 self.setParam(str(station)+':DAMAGE_COUNT',  0)
 
@@ -194,10 +194,10 @@ if __name__ == '__main__':
         # PVs updated by RPC methods
         pvdb['%d:RUNNING'       % station] = {'type' : 'int', 'value': 0}
         # ...if RUNNING=1, set CONFIGURED
-        # ...if RUNNING=0, clear RUN_NUMBER, RUN_DURATION, RUN_SIZE, EVENT_COUNT, DAMAGE_COUNT
+        # ...if RUNNING=0, clear RUN_NUMBER, RUN_DURATION, RUN_MBYTES, EVENT_COUNT, DAMAGE_COUNT
         pvdb['%d:RUN_NUMBER'    % station] = {'type' : 'int', 'value': 0}
         pvdb['%d:RUN_DURATION'  % station] = {'type' : 'int', 'value': 0}
-        pvdb['%d:RUN_SIZE'      % station] = {'type' : 'int', 'value': 0}
+        pvdb['%d:RUN_MBYTES'    % station] = {'type' : 'int', 'value': 0}
         pvdb['%d:EVENT_COUNT'   % station] = {'type' : 'int', 'value': 0}
         pvdb['%d:DAMAGE_COUNT'  % station] = {'type' : 'int', 'value': 0}
         pvdb['%d:CONFIG_TYPE'   % station] = {'type' : 'string'}
