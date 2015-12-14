@@ -1,4 +1,4 @@
-DaqTrigDelay AcqToAsicR0Delay testPulserLevel
+RunTrigDelay AcqToAsicR0Delay testPulserLevel
 1200 3700 450
 1225 3725 470
 1250 3750 500
