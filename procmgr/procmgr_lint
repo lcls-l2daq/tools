@@ -89,7 +89,7 @@ def entry_lint(dict):
           report_error("procmgr_config entry includes invalid cmd \'%s\' (use env keyword instead of /bin/env)" % str(value))
   return rv
 
-valid_instruments = ['AMO','SXR','XPP','XCS','CXI','MEC']
+valid_instruments = ['AMO','SXR','XPP','XCS','CXI','MEC','MFX']
 
 parser = optparse.OptionParser(usage=usage)
 
