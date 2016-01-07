@@ -14,7 +14,7 @@ from pprint import pprint
 COMMON_PATH = '/reg/common/package/'
 
 DEVICE = ['NoDevice', 'Evr', 'Acqiris', 'Opal1000', 'TM6740', 'pnCCD', 'Princeton', 'Fccd', 'Ipimb', 'Encoder', 'Cspad', 'AcqTDC', 'Xamps', 'Cspad2x2', 'Fexamp', 'Gsc16ai', 'Phasics', 'Timepix', 'Opal2000', 'Opal4000', 'OceanOptics', 'Opal1600', 'Opal8000', 'Fli', 'Quartz4A150', 'Andor', 'USDUSB', 'OrcaFl40', 'Imp', 'Epix', 'Rayonix', 'EpixSampler', 'Pimax', 'Fccd960', 'Epix10k']
-DETECTOR = ['NoDetector', 'AmoIms', 'AmoGasdet', 'AmoETof', 'AmoITof', 'AmoMbes', 'AmoVmi', 'AmoBps', 'Camp', 'EpicsArch', 'BldEb', 'SxrBeamline', 'SxrEndstation', 'XppSb1Ipm', 'XppSb1Pim', 'XppMonPim', 'XppSb2Ipm', 'XppSb3Ipm', 'XppSb3Pim', 'XppSb4Pim', 'XppGon', 'XppLas', 'XppEndstation', 'AmoEndstation', 'CxiEndstation', 'XcsEndstation', 'MecEndstation', 'CxiDg1', 'CxiDg2', 'CxiDg3', 'CxiDg4', 'CxiKb1', 'CxiDs1', 'CxiDs2', 'CxiDsu', 'CxiSc1', 'CxiDsd', 'XcsBeamline', 'CxiSc2', 'MecXuvSpectrometer', 'MecXrtsForw', 'MecXrtsBack', 'MecFdi', 'MecTimeTool', 'MecTargetChamber', 'FeeHxSpectrometer', 'XrayTransportDiagnostic', 'Lamp','Unk1', 'Unk2', 'Unk3']
+DETECTOR = ['NoDetector', 'AmoIms', 'AmoGasdet', 'AmoETof', 'AmoITof', 'AmoMbes', 'AmoVmi', 'AmoBps', 'Camp', 'EpicsArch', 'BldEb', 'SxrBeamline', 'SxrEndstation', 'XppSb1Ipm', 'XppSb1Pim', 'XppMonPim', 'XppSb2Ipm', 'XppSb3Ipm', 'XppSb3Pim', 'XppSb4Pim', 'XppGon', 'XppLas', 'XppEndstation', 'AmoEndstation', 'CxiEndstation', 'XcsEndstation', 'MecEndstation', 'CxiDg1', 'CxiDg2', 'CxiDg3', 'CxiDg4', 'CxiKb1', 'CxiDs1', 'CxiDs2', 'CxiDsu', 'CxiSc1', 'CxiDsd', 'XcsBeamline', 'CxiSc2', 'MecXuvSpectrometer', 'MecXrtsForw', 'MecXrtsBack', 'MecFdi', 'MecTimeTool', 'MecTargetChamber', 'FeeHxSpectrometer', 'XrayTransportDiagnostic', 'Lamp','MfxEndstation', 'MfxDg1', 'MfxDg2']
 BLD=['EBeam', 'PhaseCavity', 'FEEGasDetEnergy', 'Nh2Sb1Ipm01', 'HxxUm6Imb01', 'HxxUm6Imb02', 'HfxDg2Imb01', 'HfxDg2Imb02', 'XcsDg3Imb03', 'XcsDg3Imb04', 'HfxDg3Imb01', 'HfxDg3Imb02', 'HxxDg1Cam', 'HfxDg2Cam', 'HfxDg3Cam', 'XcsDg3Cam', 'HfxMonCam', 'HfxMonImb01', 'HfxMonImb02', 'HfxMonImb03', 'MecLasEm01', 'MecTctrPip01', 'MecTcTrDio01', 'MecXt2Ipm02', 'MecXt2Ipm03', 'MecHxmIpm01', 'GMD', 'CxiDg1Imb01', 'CxiDg2Imb01', 'CxiDg2Imb02', 'CxiDg4Imb01', 'CxiDg1Pim', 'CxiDg2Pim', 'CxiDg4Pim', 'XppMonPim0', 'XppMonPim1', 'XppSb2Ipm', 'XppSb3Ipm', 'XppSb3Pim', 'XppSb4Pim', 'XppEndstation0', 'XppEndstation1', 'MecXt2Pim02', 'MecXt2Pim03', 'CxiDg3Spec', 'Nh2Sb1Ipm02', 'FeeSpec0', 'SxrSpec0', 'XppSpec0', 'XcsUsrIpm01', 'XcsUsrIpm02', 'XcsUsrIpm03', 'XcsUsrIpm04', 'XcsSb1Ipm01', 'XcsSb1Ipm02', 'XcsSb2Ipm01', 'XcsSb2Ipm02', 'XcsGonIpm01', 'XcsLamIpm01']
 
 
@@ -145,7 +145,7 @@ OPTIONS
 
     -e, --expt
         Check logs for EXPT hutch.  If not given, amo is used as default
-        EXPT = amo, sxr, xpp, xcs, cxi, mec, or local
+        EXPT = amo, sxr, xpp, xcs, cxi, mfx, mec, or local
 
     -d, --day
         Check logs DAY days ago.  If no DAY or BEG field given, today's date is used by default.
@@ -676,7 +676,7 @@ def signal_check(path, signum, signame):
 
 
 def hutch_loop(expt, date_path, summ, fields, errs):
-    hutches = ['amo','sxr','xpp','xcs','cxi','mec','cxi_0','cxi_1','cxi_shared']
+    hutches = ['amo','sxr','xpp','xcs','cxi','mec','cxi_0','cxi_1','cxi_shared', 'mfx']
     for hutch in hutches:
         if expt=='all' or expt==hutch.lower():
             base_path = '/reg/g/pcds/pds/'+hutch+'/logfiles/'
