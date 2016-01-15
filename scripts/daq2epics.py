@@ -85,6 +85,7 @@ class myDriver(Driver):
 
     verbose = False
     maxInput = 1024
+    timeout = 3.0
     shutdownFlag = False
     instChoices= ['AMO', 'SXR', 'XPP','XCS', 'CXI', 'MEC', 'MFX']
     statusport = 29990
@@ -146,6 +147,11 @@ class myDriver(Driver):
                 self.setParam(stationstr+':CONTROL_STATE', str(request["params"]["control_state"]).ljust(40))
                 self.setParam(stationstr+':CONFIGURED',    request["params"]["configured"])
                 self.setParam(stationstr+':RECORDING',     request["params"]["recording"])
+            elif method == "timeout":
+                self.setParam(stationstr+':CONFIG_TYPE',   str('NOCONNECT').ljust(40))
+                self.setParam(stationstr+':CONTROL_STATE', str('NOCONNECT').ljust(40))
+                self.setParam(stationstr+':CONFIGURED',    0)
+                self.setParam(stationstr+':RECORDING',     0)
         except:
             print 'Error: "%s" method' % method
             print 'request[\"params\"] = ', request["params"]
@@ -160,11 +166,23 @@ class myDriver(Driver):
             print 'recvUdp: host=%s port=%s' % (host, port)
 
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+        # set timeout
+        s.settimeout(myDriver.timeout)
+
         # accept UDP datagrams from any sender
         s.bind(("", port))
 
         while not myDriver.shutdownFlag:
-            data, addr = s.recvfrom(myDriver.maxInput)
+
+            timeoutFlag = False
+            try:
+                data, addr = s.recvfrom(myDriver.maxInput)
+            except socket.timeout:
+                if myDriver.verbose:
+                    print 'socket timeout'
+                data = '{"jsonrpc": "2.0", "method": "timeout", "params": {"running" : 0}}'
+
             parsed_rpc = None
             if myDriver.verbose:
                 print "recvUdp: received msg '%s'" % data.rstrip()
