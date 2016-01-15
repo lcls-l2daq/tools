@@ -24,28 +24,24 @@
 #
 # ENVIRONMENT
 #
-#   Before running this script the following steps are required for EPICS and
-#   Python 2.7 support.
+#   Before running this script the environment must be set up properly.
 #
-#   1. Add /reg/common/package/python/2.7.3/x86_64-rhel5-gcc41-opt/bin (or equivalent)
-#      to $PATH.
+#     If using bash:
+#         $ source setup_daq2epics.bash
 #
-#   2. Add /reg/common/package/epics-base/3.14.12.3/x86_64-rhel5-gcc41-opt/lib and
-#      /reg/common/package/epicsca/3.14.9/lib/x86_64-linux-opt (or equivalent)
-#      to $LD_LIBRARY_PATH.
-#
-#   3. Add /reg/common/package/pcaspy/0.4.1b-python2.7/x86_64-rhel5-gcc41-opt/lib/python2.7/site-packages
-#      (or equivalent) to $PYTHONPATH.
-#
-#   4. Set EPICS_CAS_INTF_ADDR_LIST to the IP address of the host's CDS interface.
+#     If using tcsh:
+#         $ source setup_daq2epics.tcsh
 #
 
+import sys
+
+# Python 2.7 or greater is required
+assert sys.version_info >= (2,7)
 
 from pcaspy import SimpleServer, Driver
 import time
 from datetime import datetime
 import thread
-import sys
 import subprocess
 import argparse
 import socket
@@ -119,30 +115,37 @@ class myDriver(Driver):
         if station < 0 or station >= self.nstations:
             print 'Error: station %d out of range' % station
             return
+
+        # only include station number in PV name if there are multiple stations
+        if self.nstations > 1:
+            stationstr = str(self.nstations)
+        else:
+            stationstr = ''
+
         try:
             if request["params"]["running"] == 1:
-                self.setParam(str(station)+':RUNNING',       1)
-                self.setParam(str(station)+':CONFIGURED',    1)
+                self.setParam(stationstr+':RUNNING',       1)
+                self.setParam(stationstr+':CONFIGURED',    1)
             else:
-                self.setParam(str(station)+':RUNNING',       0)
-                self.setParam(str(station)+':RUN_NUMBER',    0)
-                self.setParam(str(station)+':RUN_DURATION',  0)
-                self.setParam(str(station)+':RUN_MBYTES',    0)
-                self.setParam(str(station)+':EVENT_COUNT',   0)
-                self.setParam(str(station)+':DAMAGE_COUNT',  0)
+                self.setParam(stationstr+':RUNNING',       0)
+                self.setParam(stationstr+':RUN_NUMBER',    0)
+                self.setParam(stationstr+':RUN_DURATION',  0)
+                self.setParam(stationstr+':RUN_MBYTES',    0)
+                self.setParam(stationstr+':EVENT_COUNT',   0)
+                self.setParam(stationstr+':DAMAGE_COUNT',  0)
 
             if method == "update_1":
-                self.setParam(str(station)+':RUN_NUMBER',    request["params"]["run_number"])
-                self.setParam(str(station)+':RUN_DURATION',  request["params"]["run_duration"])
-                self.setParam(str(station)+':RUN_MBYTES',    request["params"]["run_mbytes"])
-                self.setParam(str(station)+':EVENT_COUNT',   request["params"]["event_count"])
-                self.setParam(str(station)+':DAMAGE_COUNT',  request["params"]["damage_count"])
-                self.setParam(str(station)+':CONTROL_STATE', str(request["params"]["control_state"]).ljust(40))
+                self.setParam(stationstr+':RUN_NUMBER',    request["params"]["run_number"])
+                self.setParam(stationstr+':RUN_DURATION',  request["params"]["run_duration"])
+                self.setParam(stationstr+':RUN_MBYTES',    request["params"]["run_mbytes"])
+                self.setParam(stationstr+':EVENT_COUNT',   request["params"]["event_count"])
+                self.setParam(stationstr+':DAMAGE_COUNT',  request["params"]["damage_count"])
+                self.setParam(stationstr+':CONTROL_STATE', str(request["params"]["control_state"]).ljust(40))
             elif method == "update_2":
-                self.setParam(str(station)+':CONFIG_TYPE',   str(request["params"]["config_type"]).ljust(40))
-                self.setParam(str(station)+':CONTROL_STATE', str(request["params"]["control_state"]).ljust(40))
-                self.setParam(str(station)+':CONFIGURED',    request["params"]["configured"])
-                self.setParam(str(station)+':RECORDING',     request["params"]["recording"])
+                self.setParam(stationstr+':CONFIG_TYPE',   str(request["params"]["config_type"]).ljust(40))
+                self.setParam(stationstr+':CONTROL_STATE', str(request["params"]["control_state"]).ljust(40))
+                self.setParam(stationstr+':CONFIGURED',    request["params"]["configured"])
+                self.setParam(stationstr+':RECORDING',     request["params"]["recording"])
         except:
             print 'Error: "%s" method' % method
             print 'request[\"params\"] = ', request["params"]
@@ -184,32 +187,39 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='export DAQ info to EPICS')
 
     parser.add_argument('instrument', choices=myDriver.instChoices)
-    parser.add_argument('-n', type=int, default=1, help='number of stations', metavar='NSTATIONS')
+    parser.add_argument('-n', type=int, default=1, help='number of stations (default=1)', metavar='NSTATIONS')
     parser.add_argument('-v', '--verbose', action='store_true', help='be verbose')
 
     args = parser.parse_args()
     myDriver.verbose = args.verbose
 
     for station in range(args.n):
-        # PVs updated by RPC methods
-        pvdb['%d:RUNNING'       % station] = {'type' : 'int', 'value': 0}
-        # ...if RUNNING=1, set CONFIGURED
-        # ...if RUNNING=0, clear RUN_NUMBER, RUN_DURATION, RUN_MBYTES, EVENT_COUNT, DAMAGE_COUNT
-        pvdb['%d:RUN_NUMBER'    % station] = {'type' : 'int', 'value': 0}
-        pvdb['%d:RUN_DURATION'  % station] = {'type' : 'int', 'value': 0}
-        pvdb['%d:RUN_MBYTES'    % station] = {'type' : 'int', 'value': 0}
-        pvdb['%d:EVENT_COUNT'   % station] = {'type' : 'int', 'value': 0}
-        pvdb['%d:DAMAGE_COUNT'  % station] = {'type' : 'int', 'value': 0}
-        pvdb['%d:CONFIG_TYPE'   % station] = {'type' : 'string'}
-        pvdb['%d:CONTROL_STATE' % station] = {'type' : 'string'}
-        pvdb['%d:CONFIGURED'    % station] = {'type' : 'int', 'value': 0}
-        pvdb['%d:RECORDING'     % station] = {'type' : 'int', 'value': 0}
 
-    if myDriver.verbose:
-        print 'pvdb:', pvdb
+        # only include station number in PV name if there are multiple stations
+        if args.n > 1:
+            stationstr = str(station)
+        else:
+            stationstr = ''
+
+        # PVs updated by RPC methods
+        pvdb[stationstr+':RUNNING'      ] = {'type' : 'int', 'value': 0}
+        pvdb[stationstr+':RUN_NUMBER'   ] = {'type' : 'int', 'value': 0}
+        pvdb[stationstr+':RUN_DURATION' ] = {'type' : 'int', 'value': 0}
+        pvdb[stationstr+':RUN_MBYTES'   ] = {'type' : 'int', 'value': 0}
+        pvdb[stationstr+':EVENT_COUNT'  ] = {'type' : 'int', 'value': 0}
+        pvdb[stationstr+':DAMAGE_COUNT' ] = {'type' : 'int', 'value': 0}
+        pvdb[stationstr+':CONFIG_TYPE'  ] = {'type' : 'string'}
+        pvdb[stationstr+':CONTROL_STATE'] = {'type' : 'string'}
+        pvdb[stationstr+':CONFIGURED'   ] = {'type' : 'int', 'value': 0}
+        pvdb[stationstr+':RECORDING'    ] = {'type' : 'int', 'value': 0}
 
     instrument = args.instrument
     prefix = 'DAQ:' + instrument
+
+    print '=========== Serving %d PVs ==============' % len(pvdb)
+    for key in sorted(pvdb):
+        print prefix+key
+    print '========================================='
 
     server = SimpleServer()
 
