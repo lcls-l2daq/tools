@@ -19,7 +19,7 @@
 #
 #   optional arguments:
 #     -h, --help            show this help message and exit
-#     -n NSTATIONS          number of stations
+#     -n NSTATIONS          number of stations (default=1)
 #     -v, --verbose         be verbose
 #
 # ENVIRONMENT
