@@ -175,7 +175,6 @@ class myDriver(Driver):
 
         while not myDriver.shutdownFlag:
 
-            timeoutFlag = False
             try:
                 data, addr = s.recvfrom(myDriver.maxInput)
             except socket.timeout:
