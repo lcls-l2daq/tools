@@ -13,7 +13,7 @@ if grep --quiet 'release 6' $RELEASE_FILE; then
 elif grep --quiet 'release 7' $RELEASE_FILE; then
   # RHEL7
   export PATH=/reg/common/package/python/2.7.5/x86_64-rhel7-gcc48-opt/bin:$PATH
-  export PYTHONPATH=/reg/common/package/pcaspy/0.4.1b-python2.7/x86_64-rhel6-gcc44-opt/lib/python2.7/site-packages
+  export PYTHONPATH=/reg/common/package/pcaspy/0.4.1b-python2.7/x86_64-rhel7-gcc48-opt/lib/python2.7/site-packages
 else
   echo "This OS release is not supported"
 fi
