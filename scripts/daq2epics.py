@@ -26,11 +26,8 @@
 #
 #   Before running this script the environment must be set up properly.
 #
-#     If using bash:
+#     Using bash:
 #         $ source setup_daq2epics.bash
-#
-#     If using tcsh:
-#         $ source setup_daq2epics.tcsh
 #
 
 import sys
