@@ -21,20 +21,10 @@
 #
 # ENVIRONMENT
 #
-#   Before running this script the following steps are required for EPICS and
-#   Python 2.7 support.
+#   Before running this script the environment must be set up properly.
 #
-#   1. Add /reg/common/package/python/2.7.3/x86_64-rhel5-gcc41-opt/bin (or equivalent)
-#      to $PATH.
-#
-#   2. Add /reg/common/package/epics-base/3.14.12.3/x86_64-rhel5-gcc41-opt/lib and
-#      /reg/common/package/epicsca/3.14.9/lib/x86_64-linux-opt (or equivalent)
-#      to $LD_LIBRARY_PATH.
-#
-#   3. Add /reg/common/package/pcaspy/0.4.1b-python2.7/x86_64-rhel5-gcc41-opt/lib/python2.7/site-packages
-#      (or equivalent) to $PYTHONPATH.
-#
-#   4. Set EPICS_CAS_INTF_ADDR_LIST to the IP address of the host's CDS interface.
+#     Using bash:
+#         $ source setup_daq2epics.bash
 #
 # DEMO
 #
@@ -63,7 +53,7 @@ from os import path
 
 class myDriver(Driver):
 
-    instrumentList = ['AMO:0', 'SXR:0', 'XPP:0','XCS:0', 'CXI:0', 'CXI:1', 'MEC:0']
+    instrumentList = ['AMO:0', 'SXR:0', 'XPP:0','XCS:0', 'CXI:0', 'CXI:1', 'MFX:0', 'MEC:0']
     verbose = False
     shutdownFlag = False
     pollPeriod = 30
