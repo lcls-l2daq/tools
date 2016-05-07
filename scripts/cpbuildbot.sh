@@ -28,7 +28,7 @@ fi
 
 DAQREL="/reg/g/pcds/dist/pds/$1"
 mkdir -p ${DAQREL}
-BOT="/reg/neh/home1/caf/Buildbot/out"
+BOT="/reg/neh/home/caf/Buildbot/out"
 CWD=`pwd`
 cd $DAQREL
 
