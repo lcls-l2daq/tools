@@ -4,8 +4,8 @@ BUILD32=true
 
 function make_link()
 {
-  if [ ! -e $1/x86_64-linux ]; then
-    ln -s $2-opt $1/x86_64-linux
+  if [ ! -e $1/$2 ]; then
+    ln -s $2-opt $1/$2
   fi
 }
 
