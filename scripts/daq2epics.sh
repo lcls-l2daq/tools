@@ -122,7 +122,7 @@ class myDriver(Driver):
             stationstr = ''
 
         try:
-            if method == "update_1" or method == "update_2":
+            if method == "update_1" or method == "update_2" or method == "timeout":
                 if request["params"]["running"] == 1:
                     self.setParam(stationstr+':RUNNING',       1)
                     self.setParam(stationstr+':CONFIGURED',    1)
