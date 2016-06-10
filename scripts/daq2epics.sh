@@ -50,9 +50,6 @@ def parse_rpc(data):
         parsed_json = json.loads(data)
     except ValueError:
         raise
-    else:
-        if myDriver.verbose:
-            print 'json:', parsed_json
     if type(parsed_json) is not dict:
         print 'Error: message is not a dict'
         raise ValueError
