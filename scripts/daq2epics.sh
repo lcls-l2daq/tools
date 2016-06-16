@@ -9,7 +9,6 @@
 
 RELEASE_FILE="/etc/redhat-release"
 
-/usr/bin/head -v $RELEASE_FILE
 if grep --quiet 'release 6' $RELEASE_FILE; then
   # RHEL6
   export PATH=/reg/common/package/python/2.7.5/x86_64-rhel6-gcc44-opt/bin:$PATH
@@ -79,19 +78,19 @@ class myDriver(Driver):
     maxInput = 1024
     timeout = 3.0
     shutdownFlag = False
-    instChoices= ['AMO', 'SXR', 'XPP','XCS', 'CXI', 'MEC', 'MFX']
     statusport = 29990
     statushost = socket.gethostname()
     currentexpcmd = '/reg/g/pcds/dist/pds/current/build/pdsapp/bin/x86_64-linux-opt/currentexp'
 
-    def __init__(self, instr, nstations):
+    def __init__(self, instr, station, stationstr):
         super(myDriver, self).__init__()
         # start thread for receiving UDP datagrams
         self.tid1 = thread.start_new_thread(self.recvUdp,(myDriver.statushost,myDriver.statusport))
         # start thread for polling current experiment
         self.tid2 = thread.start_new_thread(self.pollExp,(myDriver.statushost,myDriver.statusport))
         self.instr = instr
-        self.nstations = nstations
+        self.station = station
+        self.stationstr = stationstr
 
     # These PVs are read-only
     def write(self, reason, value):
@@ -106,51 +105,46 @@ class myDriver(Driver):
         except:
             # default station
             station = 0
+
         if myDriver.verbose:
             print ' *** act: method="%s" station=%d ***' % (method, station)
-        if station < 0 or station >= self.nstations:
-            print 'Error: station %d out of range' % station
-            return
 
-        # only include station number in PV name if there are multiple stations
-        if self.nstations > 1:
-            stationstr = str(station)
-        else:
-            stationstr = ''
+        if station != self.station:
+            print ' *** act: station error (recd %d, expected %d) ***' % (station, self.station)
 
         try:
             if method == "update_1" or method == "update_2" or method == "timeout":
                 if request["params"]["running"] == 1:
-                    self.setParam(stationstr+':RUNNING',       1)
-                    self.setParam(stationstr+':CONFIGURED',    1)
+                    self.setParam(self.stationstr+':RUNNING',       1)
+                    self.setParam(self.stationstr+':CONFIGURED',    1)
                 else:
-                    self.setParam(stationstr+':RUNNING',       0)
-                    self.setParam(stationstr+':RUN_NUMBER',    0)
-                    self.setParam(stationstr+':RUN_DURATION',  0)
-                    self.setParam(stationstr+':RUN_MBYTES',    0)
-                    self.setParam(stationstr+':EVENT_COUNT',   0)
-                    self.setParam(stationstr+':DAMAGE_COUNT',  0)
+                    self.setParam(self.stationstr+':RUNNING',       0)
+                    self.setParam(self.stationstr+':RUN_NUMBER',    0)
+                    self.setParam(self.stationstr+':RUN_DURATION',  0)
+                    self.setParam(self.stationstr+':RUN_MBYTES',    0)
+                    self.setParam(self.stationstr+':EVENT_COUNT',   0)
+                    self.setParam(self.stationstr+':DAMAGE_COUNT',  0)
 
             if method == "update_1":
-                self.setParam(stationstr+':RUN_NUMBER',    request["params"]["run_number"])
-                self.setParam(stationstr+':RUN_DURATION',  request["params"]["run_duration"])
-                self.setParam(stationstr+':RUN_MBYTES',    request["params"]["run_mbytes"])
-                self.setParam(stationstr+':EVENT_COUNT',   request["params"]["event_count"])
-                self.setParam(stationstr+':DAMAGE_COUNT',  request["params"]["damage_count"])
-                self.setParam(stationstr+':CONTROL_STATE', str(request["params"]["control_state"]).ljust(40))
+                self.setParam(self.stationstr+':RUN_NUMBER',    request["params"]["run_number"])
+                self.setParam(self.stationstr+':RUN_DURATION',  request["params"]["run_duration"])
+                self.setParam(self.stationstr+':RUN_MBYTES',    request["params"]["run_mbytes"])
+                self.setParam(self.stationstr+':EVENT_COUNT',   request["params"]["event_count"])
+                self.setParam(self.stationstr+':DAMAGE_COUNT',  request["params"]["damage_count"])
+                self.setParam(self.stationstr+':CONTROL_STATE', str(request["params"]["control_state"]).ljust(40))
             elif method == "update_2":
-                self.setParam(stationstr+':CONFIG_TYPE',   str(request["params"]["config_type"]).ljust(40))
-                self.setParam(stationstr+':CONTROL_STATE', str(request["params"]["control_state"]).ljust(40))
-                self.setParam(stationstr+':CONFIGURED',    request["params"]["configured"])
-                self.setParam(stationstr+':RECORDING',     request["params"]["recording"])
+                self.setParam(self.stationstr+':CONFIG_TYPE',   str(request["params"]["config_type"]).ljust(40))
+                self.setParam(self.stationstr+':CONTROL_STATE', str(request["params"]["control_state"]).ljust(40))
+                self.setParam(self.stationstr+':CONFIGURED',    request["params"]["configured"])
+                self.setParam(self.stationstr+':RECORDING',     request["params"]["recording"])
             elif method == "timeout":
-                self.setParam(stationstr+':CONFIG_TYPE',   str('NOCONNECT').ljust(40))
-                self.setParam(stationstr+':CONTROL_STATE', str('NOCONNECT').ljust(40))
-                self.setParam(stationstr+':CONFIGURED',    0)
-                self.setParam(stationstr+':RECORDING',     0)
+                self.setParam(self.stationstr+':CONFIG_TYPE',   str('NOCONNECT').ljust(40))
+                self.setParam(self.stationstr+':CONTROL_STATE', str('NOCONNECT').ljust(40))
+                self.setParam(self.stationstr+':CONFIGURED',    0)
+                self.setParam(self.stationstr+':RECORDING',     0)
             elif method == "expnum":
-                self.setParam(stationstr+':EXPNUM',        request["params"]["expnum"])
-                self.setParam(stationstr+':EXPNAME',       str(request["params"]["expname"]).ljust(40))
+                self.setParam(self.stationstr+':EXPNUM',        request["params"]["expnum"])
+                self.setParam(self.stationstr+':EXPNAME',       str(request["params"]["expname"]).ljust(40))
         except:
             print 'Error: "%s" method' % method
             print 'request[\"params\"] = ', request["params"]
@@ -179,7 +173,7 @@ class myDriver(Driver):
             except socket.timeout:
                 if myDriver.verbose:
                     print 'socket timeout'
-                data = '{"jsonrpc": "2.0", "method": "timeout", "params": {"running" : 0}}'
+                data = '{"jsonrpc": "2.0", "method": "timeout", "params": {"running" : 0, "station" : %d}}' % self.station
 
             parsed_rpc = None
             if myDriver.verbose:
@@ -226,7 +220,7 @@ class myDriver(Driver):
     def pollExp(self, host, port):
         pollCount = -1
         if myDriver.verbose:
-            print 'pollExp: self.instr = %s  self.nstations = %d' % (self.instr, self.nstations)
+            print 'pollExp: self.instr = %s  self.station = %d' % (self.instr, self.station)
 
         while not myDriver.shutdownFlag:
 
@@ -238,80 +232,96 @@ class myDriver(Driver):
             if pollCount % 120 != 0:
                 continue
 
-            for station in range(self.nstations):
+            ret, expname, expnum = self.currentexp(self.instr + ':' + str(self.station))
 
-                ret, expname, expnum = self.currentexp(self.instr + ':' + str(station))
+            if ret == 0:
+                if myDriver.verbose:
+                    print 'pollExp: expname = %s, expnum = %d' % (expname, expnum)
+            else:
+                print 'pollExp ERROR: currentexp() returned %d' % ret
+                continue
 
-                if ret == 0:
-                    if myDriver.verbose:
-                        print 'pollExp: expname = %s, expnum = %d' % (expname, expnum)
-                else:
-                    print 'pollExp ERROR: currentexp() returned %d' % ret
-                    continue
+            data = '{"jsonrpc": "2.0", "method": "expnum", "params": {"expnum" : %d, "expname" : \"%s\", "station" : %d}}' % (expnum, expname, self.station)
 
-                data = '{"jsonrpc": "2.0", "method": "expnum", "params": {"expnum" : %d, "expname" : \"%s\", "station" : %d}}' % (expnum, expname, station)
+            parsed_rpc = None
 
-                parsed_rpc = None
-
-                try:
-                    parsed_rpc = parse_rpc(data)
-                except ValueError:
-                    print 'pollExp: ValueError\n--------\n%s\n--------' % data.rstrip()
-                else:
-                    if myDriver.verbose:
-                        print 'jsonrpc:', parsed_rpc
-                    # act on the request
-                    self.act(parsed_rpc)
+            try:
+                parsed_rpc = parse_rpc(data)
+            except ValueError:
+                print 'pollExp: ValueError\n--------\n%s\n--------' % data.rstrip()
+            else:
+                if myDriver.verbose:
+                    print 'jsonrpc:', parsed_rpc
+                # act on the request
+                self.act(parsed_rpc)
 
         return
 
-if __name__ == '__main__':
+def printDb():
     global pvdb
-    pvdb = {}     # start with empty dictionary
-
-    parser = argparse.ArgumentParser(prog='daq2epics.sh', description='export DAQ info to EPICS')
-
-    parser.add_argument('instrument', choices=myDriver.instChoices)
-    parser.add_argument('-n', type=int, default=1, help='number of stations (default=1)', metavar='NSTATIONS')
-    parser.add_argument('-v', '--verbose', action='store_true', help='be verbose')
-
-    args = parser.parse_args()
-    myDriver.verbose = args.verbose
-
-    for station in range(args.n):
-
-        # only include station number in PV name if there are multiple stations
-        if args.n > 1:
-            stationstr = str(station)
-        else:
-            stationstr = ''
-
-        # PVs updated by RPC methods
-        pvdb[stationstr+':RUNNING'      ] = {'type' : 'int', 'value': 0}
-        pvdb[stationstr+':RUN_NUMBER'   ] = {'type' : 'int', 'value': 0}
-        pvdb[stationstr+':RUN_DURATION' ] = {'type' : 'int', 'value': 0}
-        pvdb[stationstr+':RUN_MBYTES'   ] = {'type' : 'int', 'value': 0}
-        pvdb[stationstr+':EVENT_COUNT'  ] = {'type' : 'int', 'value': 0}
-        pvdb[stationstr+':DAMAGE_COUNT' ] = {'type' : 'int', 'value': 0}
-        pvdb[stationstr+':CONFIG_TYPE'  ] = {'type' : 'string'}
-        pvdb[stationstr+':CONTROL_STATE'] = {'type' : 'string'}
-        pvdb[stationstr+':CONFIGURED'   ] = {'type' : 'int', 'value': 0}
-        pvdb[stationstr+':RECORDING'    ] = {'type' : 'int', 'value': 0}
-        pvdb[stationstr+':EXPNAME'      ] = {'type' : 'string'}
-        pvdb[stationstr+':EXPNUM'       ] = {'type' : 'int', 'value': 0}
-
-    instrument = args.instrument
-    prefix = 'DAQ:' + instrument
+    global prefix
 
     print '=========== Serving %d PVs ==============' % len(pvdb)
     for key in sorted(pvdb):
         print prefix+key
     print '========================================='
+    return
+
+if __name__ == '__main__':
+    global pvdb
+    pvdb = {}     # start with empty dictionary
+    global prefix
+    prefix = ''
+
+    parser = argparse.ArgumentParser(prog='daq2epics.sh', description='export DAQ info to EPICS')
+
+    parser.add_argument('-P', required=True, help='e.g. SXR or CXI:0 or CXI:1', metavar='PARTITION')
+    parser.add_argument('-v', '--verbose', action='store_true', help='be verbose')
+
+    args = parser.parse_args()
+    myDriver.verbose = args.verbose
+
+    #
+    # Parse the PARTITION argument for the instrument name and station #. 
+    # If the partition name includes a colon, PV names will include station # even if 0.
+    # If no colon is present, station # defaults to 0 and is not included in PV names.
+    # Partition names 'AMO' and 'AMO:0' thus lead to different PV names.
+    #
+    if (args.P).find(":") > 0:
+        instrument, suffix = (args.P).split(':', 1)
+        try:
+            station = int(suffix)
+        except:
+            station = 0
+        stationstr = str(station)
+    else:
+        instrument = args.P
+        station = 0
+        stationstr = ''
+
+    # PVs updated by RPC methods
+    pvdb[stationstr+':RUNNING'      ] = {'type' : 'int', 'value': 0}
+    pvdb[stationstr+':RUN_NUMBER'   ] = {'type' : 'int', 'value': 0}
+    pvdb[stationstr+':RUN_DURATION' ] = {'type' : 'int', 'value': 0}
+    pvdb[stationstr+':RUN_MBYTES'   ] = {'type' : 'int', 'value': 0}
+    pvdb[stationstr+':EVENT_COUNT'  ] = {'type' : 'int', 'value': 0}
+    pvdb[stationstr+':DAMAGE_COUNT' ] = {'type' : 'int', 'value': 0}
+    pvdb[stationstr+':CONFIG_TYPE'  ] = {'type' : 'string'}
+    pvdb[stationstr+':CONTROL_STATE'] = {'type' : 'string'}
+    pvdb[stationstr+':CONFIGURED'   ] = {'type' : 'int', 'value': 0}
+    pvdb[stationstr+':RECORDING'    ] = {'type' : 'int', 'value': 0}
+    pvdb[stationstr+':EXPNAME'      ] = {'type' : 'string'}
+    pvdb[stationstr+':EXPNUM'       ] = {'type' : 'int', 'value': 0}
+
+    prefix = 'DAQ:' + instrument
+
+    # printDb(pvdb, prefix)
+    printDb()
 
     server = SimpleServer()
 
     server.createPV(prefix, pvdb)
-    driver = myDriver(instrument, args.n)
+    driver = myDriver(instrument, station, stationstr)
 
     try:
         # process CA transactions
