@@ -1,5 +1,17 @@
 #!/bin/bash
 
+# usage: daq2epics.sh [-h] [-U PORT] [-v] PARTITION
+#
+# export DAQ info to EPICS
+#
+# positional arguments:
+#   PARTITION      e.g. SXR or CXI:0 or CXI:1
+#
+# optional arguments:
+#   -h, --help     show this help message and exit
+#   -U PORT        UDP port (default 29990)
+#   -v, --verbose  be verbose
+
 # OS Requirement: RHEL6 or RHEL7
 # Python Requirement: version 2.7
 
@@ -19,6 +31,7 @@ elif grep --quiet 'release 7' $RELEASE_FILE; then
   export PYTHONPATH=/reg/common/package/pcaspy/0.4.1b-python2.7/x86_64-rhel7-gcc48-opt/lib/python2.7/site-packages
 else
   echo "This OS release is not supported"
+  /usr/bin/head $RELEASE_FILE
   exit 1
 fi
 
@@ -79,16 +92,15 @@ class myDriver(Driver):
     maxInput = 1024
     timeout = 3.0
     shutdownFlag = False
-    statusport = 29990
     statushost = socket.gethostname()
     currentexpcmd = '/reg/g/pcds/dist/pds/current/build/pdsapp/bin/x86_64-linux-opt/currentexp'
 
-    def __init__(self, instr, station, stationstr):
+    def __init__(self, instr, station, stationstr, statusport):
         super(myDriver, self).__init__()
         # start thread for receiving UDP datagrams
-        self.tid1 = thread.start_new_thread(self.recvUdp,(myDriver.statushost,myDriver.statusport))
+        self.tid1 = thread.start_new_thread(self.recvUdp,(myDriver.statushost,statusport))
         # start thread for polling current experiment
-        self.tid2 = thread.start_new_thread(self.pollExp,(myDriver.statushost,myDriver.statusport))
+        self.tid2 = thread.start_new_thread(self.pollExp,(0,))
         self.instr = instr
         self.station = station
         self.stationstr = stationstr
@@ -223,7 +235,7 @@ class myDriver(Driver):
 
         return returncode, expname, expnum
 
-    def pollExp(self, host, port):
+    def pollExp(self, ignore):
         pollCount = -1
         if myDriver.verbose:
             print 'pollExp: self.instr = %s  self.station = %d' % (self.instr, self.station)
@@ -282,7 +294,8 @@ if __name__ == '__main__':
 
     parser = argparse.ArgumentParser(prog='daq2epics.sh', description='export DAQ info to EPICS')
 
-    parser.add_argument('-P', required=True, help='e.g. SXR or CXI:0 or CXI:1', metavar='PARTITION')
+    parser.add_argument('PARTITION', help='e.g. SXR or CXI:0 or CXI:1')
+    parser.add_argument('-U', type=int, help='UDP port (default 29990)', default=29990, metavar='PORT')
     parser.add_argument('-v', '--verbose', action='store_true', help='be verbose')
 
     args = parser.parse_args()
@@ -294,15 +307,15 @@ if __name__ == '__main__':
     # If no colon is present, station # defaults to 0 and is not included in PV names.
     # Partition names 'AMO' and 'AMO:0' thus lead to different PV names.
     #
-    if (args.P).find(":") > 0:
-        instrument, suffix = (args.P).split(':', 1)
+    if (args.PARTITION).find(":") > 0:
+        instrument, suffix = (args.PARTITION).split(':', 1)
         try:
             station = int(suffix)
         except:
             station = 0
         stationstr = str(station)
     else:
-        instrument = args.P
+        instrument = args.PARTITION
         station = 0
         stationstr = ''
 
@@ -328,7 +341,7 @@ if __name__ == '__main__':
     server = SimpleServer()
 
     server.createPV(prefix, pvdb)
-    driver = myDriver(instrument, station, stationstr)
+    driver = myDriver(instrument, station, stationstr, args.U)
 
     try:
         # process CA transactions
