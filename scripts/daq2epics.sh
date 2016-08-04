@@ -19,6 +19,7 @@ elif grep --quiet 'release 7' $RELEASE_FILE; then
   export PYTHONPATH=/reg/common/package/pcaspy/0.4.1b-python2.7/x86_64-rhel7-gcc48-opt/lib/python2.7/site-packages
 else
   echo "This OS release is not supported"
+  exit 1
 fi
 
 source /reg/g/pcds/setup/epicsenv-3.14.12.sh
@@ -158,13 +159,18 @@ class myDriver(Driver):
         if myDriver.verbose:
             print 'recvUdp: host=%s port=%s' % (host, port)
 
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-        # set timeout
-        s.settimeout(myDriver.timeout)
+            # set timeout
+            s.settimeout(myDriver.timeout)
 
-        # accept UDP datagrams from any sender
-        s.bind(("", port))
+            # accept UDP datagrams from any sender
+            s.bind(("", port))
+        except socket.error as msg:
+            print 'Socket error: UDP port %d: %s' % (port, msg)
+            myDriver.shutdownFlag = True
+            return
 
         while not myDriver.shutdownFlag:
 
@@ -201,7 +207,7 @@ class myDriver(Driver):
             proc = subprocess.Popen([myDriver.currentexpcmd, instrument], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
             proc.wait()
         except OSError, m:
-            print 'subprocess error:', m.strerror
+            print 'Subprocess error:', m.strerror
             myDriver.shutdownFlag = True
         else:
             returncode = proc.returncode
@@ -238,7 +244,8 @@ class myDriver(Driver):
                 if myDriver.verbose:
                     print 'pollExp: expname = %s, expnum = %d' % (expname, expnum)
             else:
-                print 'pollExp ERROR: currentexp() returned %d' % ret
+                print 'Error: currentexp() returned %d' % ret
+                myDriver.shutdownFlag = True
                 continue
 
             data = '{"jsonrpc": "2.0", "method": "expnum", "params": {"expnum" : %d, "expname" : \"%s\", "station" : %d}}' % (expnum, expname, self.station)
