@@ -139,25 +139,41 @@ class myDriver(Driver):
                     self.setParam(self.stationstr+':DAMAGE_COUNT',  0)
 
             if method == "update_1":
-                self.setParam(self.stationstr+':RUN_NUMBER',    request["params"]["run_number"])
-                self.setParam(self.stationstr+':RUN_DURATION',  request["params"]["run_duration"])
-                self.setParam(self.stationstr+':RUN_MBYTES',    request["params"]["run_mbytes"])
-                self.setParam(self.stationstr+':EVENT_COUNT',   request["params"]["event_count"])
-                self.setParam(self.stationstr+':DAMAGE_COUNT',  request["params"]["damage_count"])
-                self.setParam(self.stationstr+':CONTROL_STATE', str(request["params"]["control_state"]).ljust(40))
+                try:
+                    self.setParam(self.stationstr+':RUN_NUMBER',    request["params"]["run_number"])
+                    self.setParam(self.stationstr+':RUN_DURATION',  request["params"]["run_duration"])
+                    self.setParam(self.stationstr+':RUN_MBYTES',    request["params"]["run_mbytes"])
+                    self.setParam(self.stationstr+':EVENT_COUNT',   request["params"]["event_count"])
+                    self.setParam(self.stationstr+':DAMAGE_COUNT',  request["params"]["damage_count"])
+                    self.setParam(self.stationstr+':CONTROL_STATE', str(request["params"]["control_state"]).ljust(40))
+                    if request["params"].has_key("config_type"):
+                        self.setParam(self.stationstr+':CONFIG_TYPE',   str(request["params"]["config_type"]).ljust(40))
+                    if request["params"].has_key("recording"):
+                        self.setParam(self.stationstr+':RECORDING',     request["params"]["recording"])
+                except KeyError as badkey:
+                    print 'KeyError: update_1: badkey =', badkey
+
             elif method == "update_2":
-                self.setParam(self.stationstr+':CONFIG_TYPE',   str(request["params"]["config_type"]).ljust(40))
-                self.setParam(self.stationstr+':CONTROL_STATE', str(request["params"]["control_state"]).ljust(40))
-                self.setParam(self.stationstr+':CONFIGURED',    request["params"]["configured"])
-                self.setParam(self.stationstr+':RECORDING',     request["params"]["recording"])
+                try:
+                    self.setParam(self.stationstr+':CONFIG_TYPE',   str(request["params"]["config_type"]).ljust(40))
+                    self.setParam(self.stationstr+':CONTROL_STATE', str(request["params"]["control_state"]).ljust(40))
+                    self.setParam(self.stationstr+':CONFIGURED',    request["params"]["configured"])
+                    self.setParam(self.stationstr+':RECORDING',     request["params"]["recording"])
+                except KeyError as badkey:
+                    print 'KeyError: update_2: badkey =', badkey
+
             elif method == "timeout":
                 self.setParam(self.stationstr+':CONFIG_TYPE',   str('NOCONNECT').ljust(40))
                 self.setParam(self.stationstr+':CONTROL_STATE', str('NOCONNECT').ljust(40))
                 self.setParam(self.stationstr+':CONFIGURED',    0)
                 self.setParam(self.stationstr+':RECORDING',     0)
+
             elif method == "expnum":
-                self.setParam(self.stationstr+':EXPNUM',        request["params"]["expnum"])
-                self.setParam(self.stationstr+':EXPNAME',       str(request["params"]["expname"]).ljust(40))
+                try:
+                    self.setParam(self.stationstr+':EXPNUM',        request["params"]["expnum"])
+                    self.setParam(self.stationstr+':EXPNAME',       str(request["params"]["expname"]).ljust(40))
+                except KeyError as badkey:
+                    print 'KeyError: expnum: badkey =', badkey
         except:
             print 'Error: "%s" method' % method
             print 'request[\"params\"] = ', request["params"]
@@ -202,7 +218,8 @@ class myDriver(Driver):
                 print 'recvUdp: ValueError\n--------\n%s\n--------' % data.rstrip()
             else:
                 if myDriver.verbose:
-                    print 'jsonrpc:', parsed_rpc
+                    print 'jsonrpc:'
+                    print json.dumps(parsed_rpc, sort_keys=True, indent=4)
                 # act on the request
                 self.act(parsed_rpc)
 
