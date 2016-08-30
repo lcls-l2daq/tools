@@ -34,9 +34,9 @@ runfmt = {'run':'%5.5s',
           'evtsz':'%10.10s',
           'evtrt':'%4.4s',
           'datrt':'%15.15s',
-          'sources':'%20.20s',
+          'sources':'%30.30s',
           'maxdmg':'(%10.10s)',
-          'srcdmg':'%28.28s',
+          'srcdmg':'%30.30s',
           'daq':'%20.20s',
           'compress':'%20.20s',
           'ami':'%20.20s',
@@ -60,7 +60,7 @@ headerttl = {'run':'Run',
              'evtsz':'Evnt size',
              'evtrt':'[Hz]',
              'datrt':'Data rate',
-             'sources':'%20.20s',
+             'sources':'%30.30s',
              'maxdmg':'# events',
              'srcdmg':'Largest contributor',
              'daq':'DAQ release',
@@ -216,7 +216,8 @@ def control_log(path,summ,fields):
                 instname = expstr[0].replace("'","")
                 expstr = expstr[1].strip("'").replace("'","")
                 expname = expstr.split('(#')[0].replace("'","")
-                expnum = int(expstr.split('(#')[1].strip(')'))
+                expnum = expstr.split(')')[0]
+                expnum = int(expnum.split('(#')[1].strip(')'))
             if (line.find("Configured")>=0 or line.find("Unmapped")>=0):
                 if run['dur']!='':
                     fruns.append(run)
@@ -236,6 +237,8 @@ def control_log(path,summ,fields):
                         daq_release = full_release.replace("/reg/neh/home2/","~")
                     elif full_release.find("home3") != -1:
                         daq_release = full_release.replace("/reg/neh/home3/","~")
+                    elif full_release.find("home4") != -1:
+                        daq_release = full_release.replace("/reg/neh/home4/","~")
                     else:
                         daq_release = full_release.replace("/reg/neh/home/","~")
             index = line.find("Duration")
@@ -368,11 +371,11 @@ def control_log(path,summ,fields):
 
         if summ==SUMMARY['Brief']:
             print_summary_header(fname, fruns)
-            fields = ['run','begin','end','dur','evtrt','bytes','evts','dmg','dmgpct','srcdmg','maxdmg','daq','ami','expname','expnum','daqrest']
+            fields = ['run','begin','end','dur','evtrt','bytes','evts','dmg','dmgpct','srcdmg','maxdmg','daq','ami','expname','expnum']
             print_summary_fields(fruns,fields)
         elif summ==SUMMARY['Expanded']:
             print_summary_header(fname, fruns)
-            fields = ['run', 'dur', 'end', 'bytes', 'datrt', 'evtrt', 'evts', 'dmg', 'dmgpct', 'srcdmg', 'maxdmg', 'daq', 'ami', 'ins', 'expname', 'expnum', 'daqrest']
+            fields = ['run', 'dur', 'end', 'bytes', 'datrt', 'evtrt', 'evts', 'dmg', 'dmgpct', 'srcdmg', 'maxdmg', 'daq', 'ami', 'ins', 'expname', 'expnum']
             print_summary_fields(fruns,fields)
         elif summ==SUMMARY['Fields']:
             print_summary_header(fname, fruns)            
@@ -393,10 +396,10 @@ def print_full(fname,fruns,sources):
         if len(fruns[0]['compress']) != 0:
             print '----- Compression status (%s): ' % (fruns[0]['compress'][0]['ts'])
             for det in fruns[0]['compress']:
-                print "      %-15s %-15s (on %s):\tCompression %s." % (det['dev'], det['task'],det['node'], det['msg'])
+                print "      %-25s %-25s (on %s):\tCompression %s." % (det['dev'], det['task'],det['node'], det['msg'])
 
-    fmtttl = '\n%28.28s'
-    fmtstr = '%12.12s'
+    fmtttl = '\n%29.29s'
+    fmtstr = '%29.29s'
     step = 5
         
     for irun in range(0,len(fruns),step):
@@ -493,11 +496,11 @@ def print_summary_fields(fruns, fields, sep=' '):
 def print_summary(fruns,fields,summ):
     if summ==SUMMARY['Brief']:
         print_summary_header(fname, fruns)
-        fields = ['run','begin','end','dur','evts','dmg','bytes','evtrt','srcdmg','maxdmg','daq','ami','ins','expname','expnum','daqrest','amirest']
+        fields = ['run','begin','end','dur','evts','dmg','bytes','evtrt','srcdmg','maxdmg','daq','ami','ins','expname','expnum']
         print_summary_fields(fruns,fields)
     elif summ==SUMMARY['Expanded']:
         print_summary_header(fname, fruns)
-        fields = ['run', 'dur', 'end', 'bytes', 'datrt', 'evtrt', 'evts', 'dmg', 'dmgpct', 'srcdmg', 'maxdmg', 'daq', 'ami', 'ins', 'expname', 'expnum', 'daqrest']
+        fields = ['run', 'dur', 'end', 'bytes', 'datrt', 'evtrt', 'evts', 'dmg', 'dmgpct', 'srcdmg', 'maxdmg', 'daq', 'ami', 'ins', 'expname', 'expnum']
         print_summary_fields(fruns,fields)
     elif summ==SUMMARY['Fields']:
         print_summary_header(fname, fruns)            
@@ -579,7 +582,7 @@ def fixup_check(path):
     odate = pfn.communicate()[0].split('\n')
     laststr = None
     lastcnt = 1
-    fmtstr='%20.20s'
+    fmtstr='%29.29s'
     lttl = False
     for l in odate:
         if (l[:6]=='/reg/g'):
@@ -649,7 +652,7 @@ def signal_check(path, signum, signame):
     odate = pfn.communicate()[0].split('\n')
     laststr = None
     lastcnt = 1
-    fmtstr='%20.20s'
+    fmtstr='%29.29s'
     lttl = False
     for l in odate:
         if (l[:6]=='/reg/g' and l.find('signal %d'%signum)>=0):
@@ -689,8 +692,8 @@ def hutch_loop(expt, date_path, summ, fields, errs):
                     out = p.communicate()[0]
                     if (len(out) == 0):
                         # The DAQ is still running and this is the latest control_gui file
-                        fields = latest[0].split('_')[0].split('/')
-                        year, month, day = (fields[-3],fields[-2],fields[-1])
+                        date_fields = latest[0].split('logfiles/')[1].split('_')[0].split('/')
+                        year, month, day = (date_fields[-3],date_fields[-2],date_fields[-1])
                         date_path = datetime.date(int(year), int(month), int(day)).strftime("%Y/%m/%d")
                         path =base_path+date_path
                     else:
@@ -773,8 +776,8 @@ def pid2task(path,pid):
 
 def transition_check(path):
     print_header = True
-    fmtstr="%15.15s"
-    longfmtstr="%25.25s"
+    fmtstr="%29.29s"
+    longfmtstr="%29.29s"
     for fname in glob.iglob(path+'*control_gui.log'):
         logtime=fname.split(path)[1].split('_')[1]
         fruns = []
