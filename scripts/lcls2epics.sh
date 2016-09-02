@@ -106,7 +106,7 @@ if __name__ == '__main__':
     pvdb[stationstr+':NUML1'        ] = {'type' : 'float', 'value': 0}
     pvdb[stationstr+':DEADFRAC'     ] = {'type' : 'float', 'value': 0}
     pvdb[stationstr+':DEADTIME'     ] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':DEADFLNK'     ] = {'type' : 'float', 'value': 0, 'count': 8}
+    pvdb[stationstr+':DEADFLNK'     ] = {'type' : 'float', 'count': 8, 'value': [-1.]*8 }
 
     prefix = 'DAQ:' + instrument
 

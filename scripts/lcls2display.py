@@ -42,7 +42,7 @@ class Ui_MainWindow(object):
         self.l0rate   = PvLabel( self.centralWidget, partition, "L0RATE")
         self.deadtime = PvLabel( self.centralWidget, partition, "DEADTIME")
 #  This can crash the pcas server!
-#        self.deadflnk = PvLabel( self.centralWidget, partition, "DEADFLNK")
+        self.deadflnk = PvLabel( self.centralWidget, partition, "DEADFLNK")
 
         MainWindow.setCentralWidget(self.centralWidget)
 
