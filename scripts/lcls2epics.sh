@@ -100,9 +100,11 @@ if __name__ == '__main__':
     pvdb[stationstr+':RECORDING'    ] = {'type' : 'float', 'value': 0}
     pvdb[stationstr+':EXPNAME'      ] = {'type' : 'string'}
     pvdb[stationstr+':EXPNUM'       ] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':L0RATE'       ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':L0INPRATE'    ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':L0ACCRATE'    ] = {'type' : 'float', 'value': 0}
     pvdb[stationstr+':L1RATE'       ] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':NUML0'        ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':NUML0INP'     ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':NUML0ACC'     ] = {'type' : 'float', 'value': 0}
     pvdb[stationstr+':NUML1'        ] = {'type' : 'float', 'value': 0}
     pvdb[stationstr+':DEADFRAC'     ] = {'type' : 'float', 'value': 0}
     pvdb[stationstr+':DEADTIME'     ] = {'type' : 'float', 'value': 0}
