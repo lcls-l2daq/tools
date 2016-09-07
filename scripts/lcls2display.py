@@ -3,38 +3,56 @@ import argparse
 from psp import Pv
 from PyQt4 import QtCore, QtGui
 
+class PvDisplay(QtGui.QLabel):
+
+    valueSet = QtCore.pyqtSignal(QtCore.QString,name='valueSet')
+
+    def __init__(self):
+        QtGui.QLabel.__init__(self,"-")
+
+    def connect_signal(self):
+        self.valueSet.connect(self.setValue)
+
+    def setValue(self,value):
+        self.setText(value)
+
 class PvLabel:
     def __init__(self, parent, partition, name, isInt=False):
         self.layout = QtGui.QHBoxLayout(parent)
         self.label = QtGui.QLabel(name)
         self.layout.addWidget(self.label)
-        self.display = QtGui.QLabel("-")
+#        self.display = QtGui.QLabel("-")
+        self.display = PvDisplay()
+        self.display.connect_signal()
         self.layout.addWidget(self.display)
         parent.layout.addLayout(self.layout)
-        self.isInt = isInt
 
         pvname = "DAQ:"+partition+":"+name
         print pvname
         self.pv = Pv.Pv(pvname)
         self.pv.monitor_start()
         self.pv.add_monitor_callback(self.update)
+        self.isInt = isInt
 
     def update(self, err):
         q = self.pv.value
+        print 'emit',q
         if err is None:
+            s = QtCore.QString('fail')
             try:
                 if self.isInt:
-                    self.display.setText(QtCore.QString("%1 (0x%2)")
-                                         #.arg(QtCore.QString.number(long(q),10))
-                                         .arg(QtCore.QLocale().toString(long(q)))
-                                         .arg(QtCore.QString.number(long(q),16)))
+                    s = QtCore.QString("%1 (0x%2)").arg(QtCore.QString.number(long(q),10)).arg(QtCore.QString.number(long(q),16))
                 else:
-                    self.display.setNum(q)
+                    s = QtCore.QString.number(q)
             except:
                 v = ''
                 for i in range(len(q)):
                     v = v + ' %f'%q[i]
-                self.display.setText(v)
+                s = QtCore.QString(v)
+
+            print 'emitting',s
+            self.display.valueSet.emit(s)
+            print 'emitted',s
         else:
             print err
 
@@ -50,12 +68,13 @@ class Ui_MainWindow(object):
         self.l0inprate= PvLabel( self.centralWidget, partition, "L0INPRATE")
         self.l0accrate= PvLabel( self.centralWidget, partition, "L0ACCRATE")
         self.deadtime = PvLabel( self.centralWidget, partition, "DEADTIME")
-#  This can crash the pcas server!
         self.deadflnk = PvLabel( self.centralWidget, partition, "DEADFLNK")
 
         MainWindow.setCentralWidget(self.centralWidget)
 
 if __name__ == '__main__':
+    print QtCore.PYQT_VERSION_STR
+
     parser = argparse.ArgumentParser(description='simple pv monitor gui')
     parser.add_argument("pv", help="pv to monitor")
     args = parser.parse_args()
