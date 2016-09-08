@@ -36,7 +36,6 @@ class PvLabel:
 
     def update(self, err):
         q = self.pv.value
-        print 'emit',q
         if err is None:
             s = QtCore.QString('fail')
             try:
@@ -50,9 +49,7 @@ class PvLabel:
                     v = v + ' %f'%q[i]
                 s = QtCore.QString(v)
 
-            print 'emitting',s
             self.display.valueSet.emit(s)
-            print 'emitted',s
         else:
             print err
 
