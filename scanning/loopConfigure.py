@@ -22,7 +22,7 @@ if __name__ == "__main__":
     parser.add_option("-n","--steps",dest="steps",type="int",default=20,
                       help="run N parameter steps", metavar="N")
     parser.add_option("-e","--events",dest="events",type="int",default=105,
-                      help="record N events/cycle", metavar="EVENTS")
+                      help="run N events/cycle", metavar="EVENTS")
     (options, args) = parser.parse_args()
     
     print 'host    ', options.host
@@ -52,3 +52,5 @@ if __name__ == "__main__":
 #    Saving monitoring displays for example
 #
     ready = raw_input('-- Finished, hit Enter to exit -->')
+    
+    daq.disconnect()
