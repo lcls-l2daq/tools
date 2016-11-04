@@ -25,8 +25,8 @@ if __name__ == "__main__":
 #                      help="device to scan, default Epix100a",metavar="DEV")
     parser.add_option("-i","--deviceID",dest="deviceID",type="int",default=0,
                       help="device ID to scan, default 0",metavar="DEV_ID")
-    parser.add_option("-t","--typeIdVersion",dest="typeIdVersion",type="int",default=1,
-                      help="type ID Version in use, default 1",metavar="typeIdVersion")
+    parser.add_option("-t","--typeIdVersion",dest="typeIdVersion",type="int",default=2,
+                      help="type ID Version in use, default 2",metavar="typeIdVersion")
     parser.add_option("-P","--parameter",dest="parameter",type="string",
                       help="epix parameter to scan", metavar="PARAMETER")
     parser.add_option("-A","--dbalias",dest="dbalias",type="string",
@@ -157,6 +157,7 @@ if __name__ == "__main__":
 #    print 'Done printing xtcSet\n'
 #    print "cdb.get opened\n", cdb.get(key=key)
     xtc = cdb.get(key=key,src=detectorValue,typeid=typeIdValue)[0]
+#    xtc = cdb.get(key=key,src=detectorValue,typeid=typeIdValue)
     print 'xtc is', xtc
     epix = xtc.get(0)
     parameterType = 'None'
