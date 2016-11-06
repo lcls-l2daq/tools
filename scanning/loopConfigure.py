@@ -42,10 +42,10 @@ if __name__ == "__main__":
     ready = raw_input('--Hit Enter when Ready-->')
 
     for cycle in range(options.steps):
-        loopCount += 1
-        print 'loop  ', loopCount
         daq.configure(events=options.events,controls=[])
         daq.begin(events=options.events,controls=[])
+        loopCount += 1
+        print 'loop  ', loopCount
         daq.end()		
 #
 #  Wait for the user to declare 'done'
