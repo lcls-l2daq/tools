@@ -53,7 +53,7 @@ from os import path
 
 class myDriver(Driver):
 
-    instrumentList = ['AMO:0', 'SXR:0', 'XPP:0','XCS:0', 'CXI:0', 'CXI:1', 'MFX:0', 'MEC:0']
+    instrumentList = ['AMO:0', 'SXR:0', 'XPP:0','XCS:0', 'CXI:0', 'CXI:1', 'MFX:0', 'MEC:0', 'DET:0']
     verbose = False
     shutdownFlag = False
     pollPeriod = 30
