@@ -72,7 +72,7 @@ if __name__ == '__main__':
     myDriver.verbose = args.verbose
 
     #
-    # Parse the PARTITION argument for the instrument name and station #. 
+    # Parse the PARTITION argument for the instrument name and station #.
     # If the partition name includes a colon, PV names will include station # even if 0.
     # If no colon is present, station # defaults to 0 and is not included in PV names.
     # Partition names 'AMO' and 'AMO:0' thus lead to different PV names.
@@ -109,6 +109,19 @@ if __name__ == '__main__':
     pvdb[stationstr+':DEADFRAC'     ] = {'type' : 'float', 'value': 0}
     pvdb[stationstr+':DEADTIME'     ] = {'type' : 'float', 'value': 0}
     pvdb[stationstr+':DEADFLNK'     ] = {'type' : 'float', 'count': 8, 'value': [-1.]*8 }
+
+    pvdb[stationstr+':RXCLKCOUNT'      ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':TXCLKCOUNT'      ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':RXRSTCOUNT'      ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':CRCERRCOUNT'     ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':RXDECERRCOUNT'   ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':RXDSPERRCOUNT'   ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':BYPASSRESETCOUNT'] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':BYPASSDONECOUNT' ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':RXLINKUP'        ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':FIDCOUNT'        ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':SOFCOUNT'        ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':EOFCOUNT'        ] = {'type' : 'float', 'value': 0}
 
     prefix = 'DAQ:' + instrument
 
