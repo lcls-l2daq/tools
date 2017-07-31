@@ -46,7 +46,10 @@ class PvLabel:
             except:
                 v = ''
                 for i in range(len(q)):
-                    v = v + ' %f'%q[i]
+                    #v = v + ' %f'%q[i]
+                    v = v + ' ' + QtCore.QString.number(q[i])
+                    if ((i%8)==7):
+                        v = v + '\n'
                 s = QtCore.QString(v)
 
             self.display.valueSet.emit(s)
@@ -56,7 +59,8 @@ class PvLabel:
 class Ui_MainWindow(object):
     def setupUi(self, MainWindow, partition):
         MainWindow.setObjectName(QtCore.QString.fromUtf8("MainWindow"))
-        MainWindow.resize(128, 96)
+        #MainWindow.resize(128, 96)
+        MainWindow.resize(275, 96)
         self.centralWidget = QtGui.QWidget(MainWindow)
         self.centralWidget.setObjectName("centralWidget")
         self.centralWidget.layout = QtGui.QVBoxLayout(self.centralWidget)
@@ -67,38 +71,39 @@ class Ui_MainWindow(object):
         #self.deadtime = PvLabel( self.centralWidget, partition, "DEADTIME")
         #self.deadflnk = PvLabel( self.centralWidget, partition, "DEADFLNK")
 
-        self.running       = PvLabel( self.centralWidget, partition, "RUNNING")
-        self.run_number    = PvLabel( self.centralWidget, partition, "RUN_NUMBER")
-        self.run_duration  = PvLabel( self.centralWidget, partition, "RUN_DURATION")
-        self.run_mbytes    = PvLabel( self.centralWidget, partition, "RUN_MBYTES")
-        self.config_type   = PvLabel( self.centralWidget, partition, "CONFIG_TYPE")
-        self.control_state = PvLabel( self.centralWidget, partition, "CONTROL_STATE")
-        self.configured    = PvLabel( self.centralWidget, partition, "CONFIGURED")
-        self.recording     = PvLabel( self.centralWidget, partition, "RECORDING")
-        self.expName       = PvLabel( self.centralWidget, partition, "EXPNAME")
-        self.expNum        = PvLabel( self.centralWidget, partition, "EXPNUM")
-        self.l0InpRate     = PvLabel( self.centralWidget, partition, "L0INPRATE")
-        self.l0AccRate     = PvLabel( self.centralWidget, partition, "L0ACCRATE")
-        self.l1Rate        = PvLabel( self.centralWidget, partition, "L1RATE")
-        self.numL0Inp      = PvLabel( self.centralWidget, partition, "NUML0INP")
-        self.numL0Acc      = PvLabel( self.centralWidget, partition, "NUML0ACC", True)
-        self.numL1         = PvLabel( self.centralWidget, partition, "NUML1")
-        self.deadFrac      = PvLabel( self.centralWidget, partition, "DEADFRAC")
-        self.deadTime      = PvLabel( self.centralWidget, partition, "DEADTIME")
-        self.deadFlnk      = PvLabel( self.centralWidget, partition, "DEADFLNK")
+        self.running          = PvLabel(self.centralWidget, partition, "RUNNING")
+        self.run_number       = PvLabel(self.centralWidget, partition, "RUN_NUMBER")
+        self.run_duration     = PvLabel(self.centralWidget, partition, "RUN_DURATION")
+        self.run_mbytes       = PvLabel(self.centralWidget, partition, "RUN_MBYTES")
+        self.config_type      = PvLabel(self.centralWidget, partition, "CONFIG_TYPE")
+        self.control_state    = PvLabel(self.centralWidget, partition, "CONTROL_STATE")
+        self.configured       = PvLabel(self.centralWidget, partition, "CONFIGURED")
+        self.recording        = PvLabel(self.centralWidget, partition, "RECORDING")
+        self.expName          = PvLabel(self.centralWidget, partition, "EXPNAME")
+        self.expNum           = PvLabel(self.centralWidget, partition, "EXPNUM")
 
-        self.rxClkCount       = PvLabel(self.centralWidget, partition, 'RXCLKCOUNT'      )
-        self.txClkCount       = PvLabel(self.centralWidget, partition, 'TXCLKCOUNT'      )
-        self.rxRstCount       = PvLabel(self.centralWidget, partition, 'RXRSTCOUNT'      )
-        self.crcErrCount      = PvLabel(self.centralWidget, partition, 'CRCERRCOUNT'     )
-        self.rxDecErrCount    = PvLabel(self.centralWidget, partition, 'RXDECERRCOUNT'   )
-        self.rxDspErrCount    = PvLabel(self.centralWidget, partition, 'RXDSPERRCOUNT'   )
-        self.bypassResetCount = PvLabel(self.centralWidget, partition, 'BYPASSRESETCOUNT')
-        self.bypassDoneCount  = PvLabel(self.centralWidget, partition, 'BYPASSDONECOUNT' )
-        self.rxLinkUp         = PvLabel(self.centralWidget, partition, 'RXLINKUP'        )
-        self.fidCount         = PvLabel(self.centralWidget, partition, 'FIDCOUNT'        )
-        self.sofCount         = PvLabel(self.centralWidget, partition, 'SOFCOUNT'        )
-        self.eofCount         = PvLabel(self.centralWidget, partition, 'EOFCOUNT'        )
+        self.l0InpRate        = PvLabel(self.centralWidget, partition, "XPM:L0INPRATE")
+        self.l0AccRate        = PvLabel(self.centralWidget, partition, "XPM:L0ACCRATE")
+        self.l1Rate           = PvLabel(self.centralWidget, partition, "XPM:L1RATE")
+        self.numL0Inp         = PvLabel(self.centralWidget, partition, "XPM:NUML0INP")
+        self.numL0Acc         = PvLabel(self.centralWidget, partition, "XPM:NUML0ACC", True)
+        self.numL1            = PvLabel(self.centralWidget, partition, "XPM:NUML1")
+        self.deadFrac         = PvLabel(self.centralWidget, partition, "XPM:DEADFRAC")
+        self.deadTime         = PvLabel(self.centralWidget, partition, "XPM:DEADTIME")
+        self.deadFlnk         = PvLabel(self.centralWidget, partition, "XPM:DEADFLNK")
+
+        self.rxClkCount       = PvLabel(self.centralWidget, partition, 'XPM:RXCLKS'     )
+        self.txClkCount       = PvLabel(self.centralWidget, partition, 'XPM:TXCLKS'     )
+        self.rxRstCount       = PvLabel(self.centralWidget, partition, 'XPM:RXRSTS'     )
+        self.crcErrCount      = PvLabel(self.centralWidget, partition, 'XPM:CRCERRS'    )
+        self.rxDecErrCount    = PvLabel(self.centralWidget, partition, 'XPM:RXDECERRS'  )
+        self.rxDspErrCount    = PvLabel(self.centralWidget, partition, 'XPM:RXDSPERRS'  )
+        self.bypassResetCount = PvLabel(self.centralWidget, partition, 'XPM:BYPASSRSTS' )
+        self.bypassDoneCount  = PvLabel(self.centralWidget, partition, 'XPM:BYPASSDONES')
+        self.rxLinkUp         = PvLabel(self.centralWidget, partition, 'XPM:RXLINKUP'   )
+        self.fidCount         = PvLabel(self.centralWidget, partition, 'XPM:FIDS'       )
+        self.sofCount         = PvLabel(self.centralWidget, partition, 'XPM:SOFS'       )
+        self.eofCount         = PvLabel(self.centralWidget, partition, 'XPM:EOFS'       )
 
         MainWindow.setCentralWidget(self.centralWidget)
 
