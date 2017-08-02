@@ -101,28 +101,58 @@ if __name__ == '__main__':
     pvdb[stationstr+':EXPNAME'      ] = {'type' : 'string', 'value': '-'}
     pvdb[stationstr+':EXPNUM'       ] = {'type' : 'float', 'value': 0}
 
-    pvdb[stationstr+':XPM:L0INPRATE'] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':XPM:L0ACCRATE'] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':XPM:L1RATE'   ] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':XPM:NUML0INP' ] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':XPM:NUML0ACC' ] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':XPM:NUML1'    ] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':XPM:DEADFRAC' ] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':XPM:DEADTIME' ] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':XPM:DEADFLNK' ] = {'type' : 'float', 'count': 32, 'value': [-1.]*32 }
+    pvdb[stationstr+':XPM:L0InpRate'] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':XPM:L0AccRate'] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':XPM:L1Rate'   ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':XPM:NumL0Inp' ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':XPM:NumL0Acc' ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':XPM:NumL1'    ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':XPM:DeadFrac' ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':XPM:DeadTime' ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':XPM:DeadFLnk' ] = {'type' : 'float', 'count': 32, 'value': [-1.]*32 }
 
-    pvdb[stationstr+':XPM:RXCLKS'     ] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':XPM:TXCLKS'     ] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':XPM:RXRSTS'     ] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':XPM:CRCERRS'    ] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':XPM:RXDECERRS'  ] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':XPM:RXDSPERRS'  ] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':XPM:BYPASSRSTS' ] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':XPM:BYPASSDONES'] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':XPM:RXLINKUP'   ] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':XPM:FIDS'       ] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':XPM:SOFS'       ] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':XPM:EOFS'       ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':XPM:RxClks'     ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':XPM:TxClks'     ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':XPM:RxRsts'     ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':XPM:CrcErrs'    ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':XPM:RxDecErrs'  ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':XPM:RxDspErrs'  ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':XPM:BypassRsts' ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':XPM:BypassDones'] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':XPM:RxLinkUp'   ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':XPM:FIDs'       ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':XPM:SOFs'       ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':XPM:EOFs'       ] = {'type' : 'float', 'value': 0}
+
+    # @todo: Need to rethink the following when there are multiple DTIs
+
+    pvdb[stationstr+':DTI:UsLinks'    ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':DTI:BpLinks'    ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':DTI:DsLinks'    ] = {'type' : 'float', 'value': 0}
+
+    pvdb[stationstr+':DTI:UsRxErrs'   ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+    pvdb[stationstr+':DTI:UsRxFull'   ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+    pvdb[stationstr+':DTI:UsIbRecv'   ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+    pvdb[stationstr+':DTI:UsIbEvt'    ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+    pvdb[stationstr+':DTI:UsObRecv'   ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+    pvdb[stationstr+':DTI:UsObSent'   ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+
+    pvdb[stationstr+':DTI:BpObSent'   ] = {'type' : 'float', 'value': 0}
+
+    pvdb[stationstr+':DTI:DsRxErrs'   ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+    pvdb[stationstr+':DTI:DsRxFull'   ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+    pvdb[stationstr+':DTI:DsObSent'   ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+
+    pvdb[stationstr+':DTI:QpllLock'   ] = {'type' : 'float', 'value': 0}
+
+    pvdb[stationstr+':DTI:MonClkRate' ] = {'type' : 'float', 'count': 4, 'value': [0]*4}
+    pvdb[stationstr+':DTI:MonClkSlow' ] = {'type' : 'float', 'count': 4, 'value': [0]*4}
+    pvdb[stationstr+':DTI:MonClkFast' ] = {'type' : 'float', 'count': 4, 'value': [0]*4}
+    pvdb[stationstr+':DTI:MonClkLock' ] = {'type' : 'float', 'count': 4, 'value': [0]*4}
+
+    pvdb[stationstr+':DTI:UsLinkObL0' ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':DTI:UsLinkObL1A'] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':DTI:UsLinkObL1R'] = {'type' : 'float', 'value': 0}
 
     prefix = 'DAQ:' + instrument
 
