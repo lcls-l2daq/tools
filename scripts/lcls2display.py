@@ -17,7 +17,7 @@ class PvDisplay(QtGui.QLabel):
         self.setText(value)
 
 class PvLabel:
-    def __init__(self, parent, partition, module, name, isInt=False):
+    def __init__(self, parent, partition, module, name, dName=None, isInt=False):
         self.layout = QtGui.QHBoxLayout()
         self.label = QtGui.QLabel(name)
         self.layout.addWidget(self.label)
@@ -29,29 +29,50 @@ class PvLabel:
         parent.addLayout(self.layout)
 
         if module is None:
-            pvname = "DAQ:"+partition+":"+name
+            pvbase = "DAQ:"+partition+":"
         else:
-            pvname = "DAQ:"+partition+":"+module+":"+name
+            pvbase = "DAQ:"+partition+":"+module+":"
+        pvname = pvbase+name
         print pvname
         self.pv = Pv.Pv(pvname)
         self.pv.monitor_start()
         self.pv.add_monitor_callback(self.update)
+        if dName is not None:
+            dPvName = pvbase+dName
+            self.dPv = Pv.Pv(dPvName)
+            self.dPv.monitor_start()
+            self.dPv.add_monitor_callback(self.update)
+        else:
+            self.dPv = None
         self.isInt = isInt
 
     def update(self, err):
         q = self.pv.value
+        if self.dPv is not None:
+            dq = self.dPv.value
+        else:
+            dq = None
         if err is None:
             s = QtCore.QString('fail')
             try:
                 if self.isInt:
-                    s = QtCore.QString("%1 (0x%2)").arg(QtCore.QString.number(long(q),10)).arg(QtCore.QString.number(long(q),16))
+                    if dq is None:
+                        s = QtCore.QString("%1 (0x%2)").arg(QtCore.QString.number(long(q),10)).arg(QtCore.QString.number(long(q),16))
+                    else:
+                        s = QtCore.QString("%1 (0x%2) [%3 (0x%4)]").arg(QtCore.QString.number(long(q),10)).arg(QtCore.QString.number(long(q),16)).arg(QtCore.QString.number(long(dq),10)).arg(QtCore.QString.number(long(dq),16))
                 else:
-                    s = QtCore.QString.number(q)
+                    if dq is None:
+                        s = QtCore.QString.number(q)
+                    else:
+                        s = QtCore.QString("%1 [%2]").arg(QtCore.QString.number(q)).arg(QtCore.QString.number(dq))
             except:
                 v = ''
                 for i in range(len(q)):
-                    #v = v + ' %f'%q[i]
-                    v = v + ' ' + QtCore.QString.number(q[i])
+                    v = v + ' %f'%q[i]
+                    #v = v + ' ' + QtCore.QString.number(q[i])
+                    if dq is not None:
+                        #v = v + ' [' + QtCore.QString.number(dq[i]) + ']'
+                        v = v + ' [' + '%f'%dq[i] + ']'
                     if ((i%8)==7):
                         v = v + '\n'
                 s = QtCore.QString(v)
@@ -119,7 +140,7 @@ class Ui_MainWindow(object):
         self.xpm_l0AccRate    = PvLabel(xpmVbox, partition, "XPM", "L0AccRate")
         self.xpm_l1Rate       = PvLabel(xpmVbox, partition, "XPM", "L1Rate")
         self.xpm_numL0Inp     = PvLabel(xpmVbox, partition, "XPM", "NumL0Inp")
-        self.xpm_numL0Acc     = PvLabel(xpmVbox, partition, "XPM", "NumL0Acc", True)
+        self.xpm_numL0Acc     = PvLabel(xpmVbox, partition, "XPM", "NumL0Acc", None, True)
         self.xpm_numL1        = PvLabel(xpmVbox, partition, "XPM", "NumL1")
         self.xpm_deadFrac     = PvLabel(xpmVbox, partition, "XPM", "DeadFrac")
         self.xpm_deadTime     = PvLabel(xpmVbox, partition, "XPM", "DeadTime")
@@ -147,22 +168,22 @@ class Ui_MainWindow(object):
         dtiBox.addStretch()
         dtiVbox.addLayout(dtiBox)
 
-        self.dti_usLinks      = PvLabel(dtiVbox, partition, "DTI", "UsLinks", True)
-        self.dti_bpLinks      = PvLabel(dtiVbox, partition, "DTI", "BpLinks", True)
-        self.dti_dsLinks      = PvLabel(dtiVbox, partition, "DTI", "DsLinks", True)
+        self.dti_usLinks      = PvLabel(dtiVbox, partition, "DTI", "UsLinks", None, True)
+        self.dti_bpLinks      = PvLabel(dtiVbox, partition, "DTI", "BpLinks", None, True)
+        self.dti_dsLinks      = PvLabel(dtiVbox, partition, "DTI", "DsLinks", None, True)
 
-        self.dti_usRxErrs     = PvLabel(dtiVbox, partition, "DTI", "UsRxErrs"   )
-        self.dti_usRxFull     = PvLabel(dtiVbox, partition, "DTI", "UsRxFull"   )
-        self.dti_usIbRecv     = PvLabel(dtiVbox, partition, "DTI", "UsIbRecv"   )
-        self.dti_usIbEvt      = PvLabel(dtiVbox, partition, "DTI", "UsIbEvt"    )
-        self.dti_usObRecv     = PvLabel(dtiVbox, partition, "DTI", "UsObRecv"   )
-        self.dti_usObSent     = PvLabel(dtiVbox, partition, "DTI", "UsObSent"   )
+        self.dti_usRxErrs     = PvLabel(dtiVbox, partition, "DTI", "UsRxErrs", "dUsRxErrs"   )
+        self.dti_usRxFull     = PvLabel(dtiVbox, partition, "DTI", "UsRxFull", "dUsRxFull"   )
+        self.dti_usIbRecv     = PvLabel(dtiVbox, partition, "DTI", "UsIbRecv", "dUsIbRecv"   )
+        self.dti_usIbEvt      = PvLabel(dtiVbox, partition, "DTI", "UsIbEvt",  "dUsIbEvt"    )
+        self.dti_usObRecv     = PvLabel(dtiVbox, partition, "DTI", "UsObRecv", "dUsObRecv"   )
+        self.dti_usObSent     = PvLabel(dtiVbox, partition, "DTI", "UsObSent", "dUsObSent"   )
 
-        self.dti_bpObSent     = PvLabel(dtiVbox, partition, "DTI", "BpObSent"   )
+        self.dti_bpObSent     = PvLabel(dtiVbox, partition, "DTI", "BpObSent", "dBpObSent"   )
 
-        self.dti_dsRxErrs     = PvLabel(dtiVbox, partition, "DTI", "DsRxErrs"   )
-        self.dti_dsRxFull     = PvLabel(dtiVbox, partition, "DTI", "DsRxFull"   )
-        self.dti_dsObSent     = PvLabel(dtiVbox, partition, "DTI", "DsObSent"   )
+        self.dti_dsRxErrs     = PvLabel(dtiVbox, partition, "DTI", "DsRxErrs", "dDsRxErrs"   )
+        self.dti_dsRxFull     = PvLabel(dtiVbox, partition, "DTI", "DsRxFull", "dDsRxFull"   )
+        self.dti_dsObSent     = PvLabel(dtiVbox, partition, "DTI", "DsObSent", "dDsObSent"   )
 
         self.dti_qpllLock     = PvLabel(dtiVbox, partition, "DTI", "QpllLock"   )
 
@@ -171,9 +192,16 @@ class Ui_MainWindow(object):
         self.dti_monClkFast   = PvLabel(dtiVbox, partition, "DTI", "MonClkFast" )
         self.dti_monClkLock   = PvLabel(dtiVbox, partition, "DTI", "MonClkLock" )
 
-        self.dti_usLinkObL0   = PvLabel(dtiVbox, partition, "DTI", "UsLinkObL0" )
-        self.dti_usLinkObL1A  = PvLabel(dtiVbox, partition, "DTI", "UsLinkObL1A")
-        self.dti_usLinkObL1R  = PvLabel(dtiVbox, partition, "DTI", "UsLinkObL1R")
+        self.dti_usLinkObL0   = PvLabel(dtiVbox, partition, "DTI", "UsLinkObL0",  "dUsLinkObL0" )
+        self.dti_usLinkObL1A  = PvLabel(dtiVbox, partition, "DTI", "UsLinkObL1A", "dUsLinkObL1A")
+        self.dti_usLinkObL1R  = PvLabel(dtiVbox, partition, "DTI", "UsLinkObL1R", "dUsLinkObL1R")
+
+        self.dti_rxFrmErrs    = PvLabel(dtiVbox, partition, "DTI", "RxFrmErrs", "dRxFrmErrs" )
+        self.dti_rxFrms       = PvLabel(dtiVbox, partition, "DTI", "RxFrms",    "dRxFrms"    )
+        self.dti_rxOpcodes    = PvLabel(dtiVbox, partition, "DTI", "RxOpcodes", "dRxOpcodes" )
+        self.dti_txFrmErrs    = PvLabel(dtiVbox, partition, "DTI", "TxFrmErrs", "dTxFrmErrs" )
+        self.dti_txFrms       = PvLabel(dtiVbox, partition, "DTI", "TxFrms",    "dTxFrms"    )
+        self.dti_txOpcodes    = PvLabel(dtiVbox, partition, "DTI", "TxOpcodes", "dTxOpcodes" )
 
         dtiVbox.addStretch()
 

@@ -126,33 +126,59 @@ if __name__ == '__main__':
 
     # @todo: Need to rethink the following when there are multiple DTIs
 
-    pvdb[stationstr+':DTI:UsLinks'    ] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':DTI:BpLinks'    ] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':DTI:DsLinks'    ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':DTI:UsLinks'     ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':DTI:BpLinks'     ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':DTI:DsLinks'     ] = {'type' : 'float', 'value': 0}
 
-    pvdb[stationstr+':DTI:UsRxErrs'   ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
-    pvdb[stationstr+':DTI:UsRxFull'   ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
-    pvdb[stationstr+':DTI:UsIbRecv'   ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
-    pvdb[stationstr+':DTI:UsIbEvt'    ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
-    pvdb[stationstr+':DTI:UsObRecv'   ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
-    pvdb[stationstr+':DTI:UsObSent'   ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+    pvdb[stationstr+':DTI:UsRxErrs'    ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+    pvdb[stationstr+':DTI:dUsRxErrs'   ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+    pvdb[stationstr+':DTI:UsRxFull'    ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+    pvdb[stationstr+':DTI:dUsRxFull'   ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+    pvdb[stationstr+':DTI:UsIbRecv'    ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+    pvdb[stationstr+':DTI:dUsIbRecv'   ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+    pvdb[stationstr+':DTI:UsIbEvt'     ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+    pvdb[stationstr+':DTI:dUsIbEvt'    ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+    pvdb[stationstr+':DTI:UsObRecv'    ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+    pvdb[stationstr+':DTI:dUsObRecv'   ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+    pvdb[stationstr+':DTI:UsObSent'    ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+    pvdb[stationstr+':DTI:dUsObSent'   ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
 
-    pvdb[stationstr+':DTI:BpObSent'   ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':DTI:BpObSent'    ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':DTI:dBpObSent'   ] = {'type' : 'float', 'value': 0}
 
-    pvdb[stationstr+':DTI:DsRxErrs'   ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
-    pvdb[stationstr+':DTI:DsRxFull'   ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
-    pvdb[stationstr+':DTI:DsObSent'   ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+    pvdb[stationstr+':DTI:DsRxErrs'    ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+    pvdb[stationstr+':DTI:dDsRxErrs'   ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+    pvdb[stationstr+':DTI:DsRxFull'    ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+    pvdb[stationstr+':DTI:dDsRxFull'   ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+    pvdb[stationstr+':DTI:DsObSent'    ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
+    pvdb[stationstr+':DTI:dDsObSent'   ] = {'type' : 'float', 'count': 7, 'value': [0]*7}
 
-    pvdb[stationstr+':DTI:QpllLock'   ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':DTI:QpllLock'    ] = {'type' : 'float', 'value': 0}
 
-    pvdb[stationstr+':DTI:MonClkRate' ] = {'type' : 'float', 'count': 4, 'value': [0]*4}
-    pvdb[stationstr+':DTI:MonClkSlow' ] = {'type' : 'float', 'count': 4, 'value': [0]*4}
-    pvdb[stationstr+':DTI:MonClkFast' ] = {'type' : 'float', 'count': 4, 'value': [0]*4}
-    pvdb[stationstr+':DTI:MonClkLock' ] = {'type' : 'float', 'count': 4, 'value': [0]*4}
+    pvdb[stationstr+':DTI:MonClkRate'  ] = {'type' : 'float', 'count': 4, 'value': [0]*4}
+    pvdb[stationstr+':DTI:MonClkSlow'  ] = {'type' : 'float', 'count': 4, 'value': [0]*4}
+    pvdb[stationstr+':DTI:MonClkFast'  ] = {'type' : 'float', 'count': 4, 'value': [0]*4}
+    pvdb[stationstr+':DTI:MonClkLock'  ] = {'type' : 'float', 'count': 4, 'value': [0]*4}
 
-    pvdb[stationstr+':DTI:UsLinkObL0' ] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':DTI:UsLinkObL1A'] = {'type' : 'float', 'value': 0}
-    pvdb[stationstr+':DTI:UsLinkObL1R'] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':DTI:UsLinkObL0'  ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':DTI:dUsLinkObL0' ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':DTI:UsLinkObL1A' ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':DTI:dUsLinkObL1A'] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':DTI:UsLinkObL1R' ] = {'type' : 'float', 'value': 0}
+    pvdb[stationstr+':DTI:dUsLinkObL1R'] = {'type' : 'float', 'value': 0}
+
+    pvdb[stationstr+':DTI:RxFrmErrs'   ] = {'type' : 'float', 'count': 2, 'value': [0]*2}
+    pvdb[stationstr+':DTI:dRxFrmErrs'  ] = {'type' : 'float', 'count': 2, 'value': [0]*2}
+    pvdb[stationstr+':DTI:RxFrms'      ] = {'type' : 'float', 'count': 2, 'value': [0]*2}
+    pvdb[stationstr+':DTI:dRxFrms'     ] = {'type' : 'float', 'count': 2, 'value': [0]*2}
+    pvdb[stationstr+':DTI:RxOpcodes'   ] = {'type' : 'float', 'count': 2, 'value': [0]*2}
+    pvdb[stationstr+':DTI:dRxOpcodes'  ] = {'type' : 'float', 'count': 2, 'value': [0]*2}
+    pvdb[stationstr+':DTI:TxFrmErrs'   ] = {'type' : 'float', 'count': 2, 'value': [0]*2}
+    pvdb[stationstr+':DTI:dTxFrmErrs'  ] = {'type' : 'float', 'count': 2, 'value': [0]*2}
+    pvdb[stationstr+':DTI:TxFrms'      ] = {'type' : 'float', 'count': 2, 'value': [0]*2}
+    pvdb[stationstr+':DTI:dTxFrms'     ] = {'type' : 'float', 'count': 2, 'value': [0]*2}
+    pvdb[stationstr+':DTI:TxOpcodes'   ] = {'type' : 'float', 'count': 2, 'value': [0]*2}
+    pvdb[stationstr+':DTI:dTxOpcodes'  ] = {'type' : 'float', 'count': 2, 'value': [0]*2}
 
     prefix = 'DAQ:' + instrument
 
