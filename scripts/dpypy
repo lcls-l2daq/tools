@@ -1,0 +1,7 @@
+#!/bin/bash
+export PSPKG_ROOT=/reg/g/pcds/pkg_mgr
+#export PSPKG_RELEASE=controls-basic-0.0.2
+export PSPKG_RELEASE=controls-0.0.8
+source $PSPKG_ROOT/etc/set_env.sh
+pgm=$1; shift;
+python "$pgm" "$@"
