@@ -83,19 +83,27 @@ if __name__ == '__main__':
     pvdb[stationstr+':DTI:BpLinkUp'       ] = {'type' : 'int'}
     pvdb[stationstr+':DTI:DsLinkUp'       ] = {'type' : 'int'}
 
-    for i in range (numUsLinks):
-      pvdb[stationstr+':DTI:UsRxErrs'    +'%d'%i] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:UsRemLinkID' +'%d'%i] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:UsRxFull'    +'%d'%i] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:UsIbRecv'    +'%d'%i] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:UsIbDump'    +'%d'%i] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:UsIbEvt'     +'%d'%i] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:UsAppObRecv' +'%d'%i] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:UsAppObSent' +'%d'%i] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:DsRxErrs'    +'%d'%i] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:DsRemLinkID' +'%d'%i] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:DsRxFull'    +'%d'%i] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:DsObSent'    +'%d'%i] = {'type' : 'int'}
+    pvdb[stationstr+':DTI:UsRxErrs'       ] = {'type' : 'int'}
+    pvdb[stationstr+':DTI:dUsRxErrs'      ] = {'type' : 'float'}
+    pvdb[stationstr+':DTI:UsRemLinkID'    ] = {'type' : 'int'}
+    pvdb[stationstr+':DTI:UsRxFull'       ] = {'type' : 'int'}
+    pvdb[stationstr+':DTI:dUsRxFull'      ] = {'type' : 'float'}
+    pvdb[stationstr+':DTI:UsIbRecv'       ] = {'type' : 'int'}
+    pvdb[stationstr+':DTI:dUsIbRecv'      ] = {'type' : 'float'}
+    pvdb[stationstr+':DTI:UsIbDump'       ] = {'type' : 'int'}
+    pvdb[stationstr+':DTI:UsIbEvt'        ] = {'type' : 'int'}
+    pvdb[stationstr+':DTI:dUsIbEvt'       ] = {'type' : 'float'}
+    pvdb[stationstr+':DTI:UsAppObRecv'    ] = {'type' : 'int'}
+    pvdb[stationstr+':DTI:dUsAppObRecv'   ] = {'type' : 'float'}
+    pvdb[stationstr+':DTI:UsAppObSent'    ] = {'type' : 'int'}
+    pvdb[stationstr+':DTI:dUsAppObSent'   ] = {'type' : 'float'}
+    pvdb[stationstr+':DTI:DsRxErrs'       ] = {'type' : 'int'}
+    pvdb[stationstr+':DTI:dDsRxErrs'      ] = {'type' : 'float'}
+    pvdb[stationstr+':DTI:DsRemLinkID'    ] = {'type' : 'int'}
+    pvdb[stationstr+':DTI:DsRxFull'       ] = {'type' : 'int'}
+    pvdb[stationstr+':DTI:dDsRxFull'      ] = {'type' : 'float'}
+    pvdb[stationstr+':DTI:DsObSent'       ] = {'type' : 'int'}
+    pvdb[stationstr+':DTI:dDsObSent'      ] = {'type' : 'float'}
 
     pvdb[stationstr+':DTI:QpllLock'       ] = {'type' : 'int'}
     pvdb[stationstr+':DTI:BpTxInterval'   ] = {'type' : 'int'}
@@ -106,46 +114,53 @@ if __name__ == '__main__':
     pvdb[stationstr+':DTI:MonClkLock'     ] = {'type' : 'int', 'count' : 4}
 
     pvdb[stationstr+':DTI:UsLinkObL0'     ] = {'type' : 'int'}
+    pvdb[stationstr+':DTI:dUsLinkObL0'    ] = {'type' : 'float'}
     pvdb[stationstr+':DTI:UsLinkObL1A'    ] = {'type' : 'int'}
+    pvdb[stationstr+':DTI:dUsLinkObL1A'   ] = {'type' : 'float'}
     pvdb[stationstr+':DTI:UsLinkObL1R'    ] = {'type' : 'int'}
+    pvdb[stationstr+':DTI:dUsLinkObL1R'   ] = {'type' : 'float'}
 
-    for stream in streamSet:
-      pvdb[stationstr+':DTI:'+stream+':CountReset'    ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':ResetRx'       ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':Flush'         ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':Loopback'      ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':TxLocData'     ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':TxLocDataEn'   ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':AutoStatSendEn'] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':FlowControlDis'] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':RxPhyRdy'      ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':TxPhyRdy'      ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':LocLinkRdy'    ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':RemLinkRdy'    ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':TxRdy'         ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':RxPolarity'    ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':RemPauseStat'  ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':LocPauseStat'  ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':RemOflowStat'  ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':LocOflowStat'  ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':RemData'       ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':CellErrs'      ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':LinkDowns'     ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':LinkErrs'      ] = {'type' : 'int'}
-      for i in range (4):
-        pvdb[stationstr+':DTI:'+stream+':RemOflowVC' +'%d'%i] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':RxFrameErrs'   ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':RxFrames'      ] = {'type' : 'int'}
-      for i in range (4):
-        pvdb[stationstr+':DTI:'+stream+':LocOflowVC' +'%d'%i] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':TxFrameErrs'   ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':TxFrames'      ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':RxClockFreq'   ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':TxClockFreq'   ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':TxLastOpCode'  ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':RxLastOpCode'  ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':RxOpCodes'     ] = {'type' : 'int'}
-      pvdb[stationstr+':DTI:'+stream+':TxOpCodes'     ] = {'type' : 'int'}
+    # The following PVs correspond to DtiDsPgp5Gb.yaml.
+    pvdb[stationstr+':DTI:CountReset'    ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:ResetRx'       ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:Flush'         ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:Loopback'      ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:TxLocData'     ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:TxLocDataEn'   ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:AutoStatSendEn'] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:FlowControlDis'] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:RxPhyRdy'      ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:TxPhyRdy'      ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:LocLinkRdy'    ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:RemLinkRdy'    ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:TxRdy'         ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:RxPolarity'    ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:RemPauseStat'  ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:LocPauseStat'  ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:RemOflowStat'  ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:LocOflowStat'  ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:RemData'       ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:CellErrs'      ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:LinkDowns'     ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:LinkErrs'      ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:RemOflowVC'    ] = {'type' : 'int', 'count' : 2 * 4}
+    pvdb[stationstr+':DTI:RxFrErrs'      ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:dRxFrErrs'     ] = {'type' : 'float', 'count' : 2}
+    pvdb[stationstr+':DTI:RxFrames'      ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:dRxFrames'     ] = {'type' : 'float', 'count' : 2}
+    pvdb[stationstr+':DTI:LocOflowVC'    ] = {'type' : 'int', 'count' : 2 * 4}
+    pvdb[stationstr+':DTI:TxFrErrs'      ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:dTxFrErrs'     ] = {'type' : 'float', 'count' : 2}
+    pvdb[stationstr+':DTI:TxFrames'      ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:dTxFrames'     ] = {'type' : 'float', 'count' : 2}
+    pvdb[stationstr+':DTI:RxClockFreq'   ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:TxClockFreq'   ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:TxLastOpCode'  ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:RxLastOpCode'  ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:RxOpCodes'     ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:dRxOpCodes'    ] = {'type' : 'float', 'count' : 2}
+    pvdb[stationstr+':DTI:TxOpCodes'     ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:dTxOpCodes'    ] = {'type' : 'float', 'count' : 2}
 
     prefix = 'DAQ:' + instrument
 
