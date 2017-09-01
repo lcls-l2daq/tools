@@ -121,7 +121,9 @@ if __name__ == '__main__':
     pvdb[stationstr+':DTI:dUsLinkObL1R'   ] = {'type' : 'float'}
 
     # The following PVs correspond to DtiDsPgp5Gb.yaml.
-    pvdb[stationstr+':DTI:CountReset'    ] = {'type' : 'int', 'count' : 2}
+    pvdb[stationstr+':DTI:CountReset0'   ] = {'type' : 'int'}
+    pvdb[stationstr+':DTI:CountReset1'   ] = {'type' : 'int'}
+
     pvdb[stationstr+':DTI:ResetRx'       ] = {'type' : 'int', 'count' : 2}
     pvdb[stationstr+':DTI:Flush'         ] = {'type' : 'int', 'count' : 2}
     pvdb[stationstr+':DTI:Loopback'      ] = {'type' : 'int', 'count' : 2}
