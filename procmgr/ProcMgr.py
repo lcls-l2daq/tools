@@ -1109,7 +1109,7 @@ class ProcMgr:
                   name = key2uniqueid(key)
 
                 startcmd = \
-                        '/reg/g/pcds/package/procServ-2.5.1.a/procServ --noautorestart --name %s %s --allow --coresize %d %s %s %s' % \
+                        '/reg/common/package/procServ/2.6.0-SLAC/x86_64-rhel7-gcc48-opt/bin/procServ --noautorestart --name %s %s --allow --coresize %d %s %s %s' % \
                        (name, \
                         waitflag, \
                         coresize, \
