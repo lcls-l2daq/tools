@@ -364,6 +364,7 @@ class Ui_MainWindow(object):
 
         LblCheckBox  (lol, pvbase, "UsLinkEn",       7)
 
+        LblEditInt   (lol, pvbase, "UsLinkPartition", 7)
         LblEditInt   (lol, pvbase, "UsLinkFwdMask",   7)
         LblEditInt   (lol, pvbase, "UsLinkTrigDelay", 7)
 
