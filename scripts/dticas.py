@@ -74,6 +74,7 @@ if __name__ == '__main__':
       pvdb[stationstr+':DTI:UsLinkFwdMode'   +'%d'%i] = {'type' : 'int'}
       pvdb[stationstr+':DTI:UsLinkDataSrc'   +'%d'%i] = {'type' : 'int'}
       pvdb[stationstr+':DTI:UsLinkDataType'  +'%d'%i] = {'type' : 'int'}
+      pvdb[stationstr+':DTI:UsLinkLabel'     +'%d'%i] = {'type' : 'string', 'value' : 'US-%d'%i }
 
     pvdb[stationstr+':DTI:ModuleInit'     ] = {'type' : 'int'}
 
