@@ -46,8 +46,8 @@ if __name__ == '__main__':
     prefix = args.P
     
     # PVs
-    #pvdb[':PARTITIONS'         ] = {'type' : 'int', 'value' : 7}
-    pvdb[':PARTITIONS'         ] = {'type' : 'int', 'value' : 1}
+    pvdb[':PARTITIONS'         ] = {'type' : 'int', 'value' : 7}
+    #pvdb[':PARTITIONS'         ] = {'type' : 'int', 'value' : 1}
     pvdb[':PAddr'              ] = {'type' : 'int'}
     pvdb[':FwBuild'            ] = {'type' : 'char', 'count':256}
     pvdb[':ModuleInit'         ] = {'type' : 'int'}

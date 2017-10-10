@@ -55,6 +55,7 @@ if __name__ == '__main__':
         pvdb[stationstr+':%d:L0Select_SeqBit'    %i] = {'type' : 'int'}
         pvdb[stationstr+':%d:DstSelect'          %i] = {'type' : 'int'}
         pvdb[stationstr+':%d:DstSelect_Mask'     %i] = {'type' : 'int'}
+        pvdb[stationstr+':%d:L0Delay'            %i] = {'type' : 'int'}
         pvdb[stationstr+':%d:ResetL0'            %i] = {'type' : 'int'}
         pvdb[stationstr+':%d:Run'                %i] = {'type' : 'int'}
 

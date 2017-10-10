@@ -472,6 +472,7 @@ class Ui_MainWindow(object):
         trgbox = QtGui.QGroupBox('Trigger')
         trglo = QtGui.QVBoxLayout()
         LblEditEvt   (trglo, pvbase, "L0Select"        )
+        LblEditInt   (trglo, pvbase, "L0Delay"         )
         LblEditDst   (trglo, pvbase, "DstSelect"       )
         LblCheckBox  (trglo, pvbase, "Run"             )
         trgbox.setLayout(trglo)
