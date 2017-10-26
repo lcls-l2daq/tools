@@ -48,11 +48,9 @@ if __name__ == '__main__':
     prefix = args.P
 
     if args.R is None:
-      p2set = set('')
+      p2set = set([''])
     else:
       p2set = set(args.R.split(","))
-
-    print 'p2set: ', p2set
 
     # PVs
 
